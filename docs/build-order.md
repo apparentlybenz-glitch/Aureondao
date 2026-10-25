@@ -5,13 +5,15 @@
 | Day | Work |
 |---|---|
 | 1 | Slice 0 (foundation), slice 1 (auth) |
-| 2 | Slice 2 (wallets, assets, transfer, bills) |
-| 3 | Slice 3 (market data), start slice 4 (Spot) |
+| 2 | Slice 2 (wallets, assets, transfer, bills) and the mobile app shell |
+| 3 | Slice 3 (market data) with the Home market table, then start slice 4 (Spot) |
 | 4 | Finish slice 4 |
-| 5 | Slice 5 (Options and settlement) |
+| 5 | Slice 5 (Options and settlement), built to the owner's Options reference screen |
 | 6 | Slice 9 (homepage), then a full bug pass |
 
-**Deferred until after day 6:** slice 6 (Forex), slice 7 (deposit and withdraw queues), slice 8 (KYC), slice 10 (locales). Their sections stay below, marked deferred.
+**Deferred until after day 6:** slice 6 (Forex), Perpetual (O21), slice 7 (deposit and withdraw queues), slice 8 (KYC), slice 10 (locales). Their sections stay below, marked deferred.
+
+Mobile first (C20): every UI slice is built at 390 px first and ends with a phone review before sign-off.
 
 Each slice ends at a STOP gate: report, then wait for sign-off before the next slice.
 
@@ -166,6 +168,9 @@ Rules for every slice:
 - Drawings persist across reloads.
 
 **Done when:** the terminal matches the spec's layout, with every unavailable panel handled as decided.
+
+## Perpetual (deferred until after day 6, O21)
+**Scope:** not in v1. Revisit with Forex. It needs funding rates, margin and liquidation, designed as their own money-path slice.
 
 ## Slice 7: Deposit and withdraw requests with admin review (deferred until after day 6)
 **Scope**
