@@ -12,14 +12,27 @@
 
 | Data type | Crypto (BTC/USDT, ETH/USDT, …) | Forex + metals (XAU/USD, EUR/USD, AUD/*, CAD/JPY) |
 |---|---|---|
-| **Tickers** | Browser-direct REST from **one leader tab** per browser, 5 s; provider fallback chain | One **shared, edge-cached Worker route** (Workers Cache), 60 s client poll |
-| **Klines** | Browser-direct REST on mount + on interval close; live candle patched from ticker | Shared Worker route; **no free official intraday source** → open decision |
-| **Depth** | Browser-direct REST, 2 s, **only for the visible terminal's symbol** | **No free forex depth exists** → display-only synthetic/indicative book is an open decision |
-| **Settlement price** | Server-side (Supabase Edge Function in a pinned non-US region): **median of ≥2 fresh exchange prices** (<60 s) | **XAU only via tokenized-gold proxy** (PAXG/XAUT on exchanges); **FX and XAG options not viable in v1** with free data |
+| **Tickers** | Browser-direct REST from **one leader tab** per browser, 5 s. Browser chain is **`data-api.binance.vision` → OKX only**: these are the only hosts that sent `Access-Control-Allow-Origin` to our origin. Then the shared Worker route | One **shared, edge-cached Worker route** (Workers Cache), 60 s client poll |
+| **Klines** | Browser-direct (same two hosts) on mount + on interval close; live candle patched from ticker | Shared Worker route; **no free official intraday source** → open decision |
+| **Depth** | Browser-direct (same two hosts), 2 s, **only for the visible terminal's symbol** | **No free forex depth exists** → display-only synthetic/indicative book is an open decision |
+| **Settlement price** | Server-side (`price-ingest` Edge Function, region-pinned): **median of ≥2 fresh exchange prices**. From the sandbox's US-geolocated egress, Vision, OKX and KuCoin answered; `api.binance.com` returned 451 and Bybit returned 403 | **XAU only via tokenized-gold proxy** (PAXG/XAUT, measured live on 3 exchanges); **FX and XAG options not viable in v1** with free data |
 
 The Worker route gets about **84 k requests a month** for 10 users at 4 h/day. Crypto polling never reaches the Worker. Section 7 shows the math.
 
-**Big caveat:** every live probe from this sandbox was **blocked by the sandbox egress proxy** (56/56 calls, HTTP CONNECT 403). That means no upstream status, latency, CORS or rate-limit header was measured. One FX/metals source was measured for real, through its npm mirror. Everything else comes from primary docs fetched from GitHub, or from web research, and is labelled that way. **Run the probe script (§1.4) from a dev machine and from a deployed diagnostic Worker before implementation.**
+**Measurement status (re-probe, 2026-10-25 08:10–08:13 UTC, sandbox egress):** after the owner allowlisted the exchange hosts and `api.frankfurter.app`, real calls were made (§1.2).
+
+| Host | Result | CORS for our origin | Browser-direct? |
+|---|---|---|---|
+| `data-api.binance.vision` | 200 | `ACAO: *` on GET; **OPTIONS preflight → 403** | **Yes, simple GETs only** |
+| OKX | 200 | Reflects any `Origin`; preflight answered | **Yes** |
+| KuCoin | 200 | **No ACAO for our origin** (allowlists its own sites) | **Not browser-direct; server/Worker only** |
+| `api.binance.com` | **451 restricted location** | — | No (from this egress) |
+| Bybit | **403 "CloudFront … block access from your country"** | — | Not from US; unverified elsewhere |
+| `api.frankfurter.app` | 301 → `api.frankfurter.dev` (still blocked here); the redirect carries no ACAO | — | — |
+
+Every other FX/metals host (gold-api, metals.live, jsDelivr, pages.dev, exchangerate.host, open.er-api, Yahoo, TwelveData, Stooq) and the geo-IP echoes are **still blocked by the sandbox proxy**.
+
+**Sandbox egress ≠ production.** These results come from a datacenter IP that geolocates to the US (inferred from CloudFront PoPs `ORD56`/`IAD61`, Cloudflare `cf-ray …-IAD`, and the 451/403 texts). Traffic also passes through a TLS-terminating proxy, which could in principle add, drop or alter headers, CORS headers included. None of this proves reachability or CORS behaviour from a user's browser or a deployed Worker. See §1.6 for the checks still required.
 
 **Correction to the brief:** Cloudflare Cache Rules sit *behind* a Worker, not in front of it. They cannot stop a Worker from being invoked. Cloudflare has a newer feature, **Workers Cache**, that does sit in front. It serves hits without running the Worker, but **each hit is still billed as a Worker request** (no CPU time). Details and citations are in §5.
 
@@ -31,44 +44,91 @@ The Worker route gets about **84 k requests a month** for 10 users at 4 h/day. C
 
 | Item | Value |
 |---|---|
-| Measurement window | 2026-10-25 07:35–07:50 UTC |
-| Tool | `curl 8.5.0` via sandbox HTTPS proxy (`/root/.ccr/ca-bundle.crt`, TLS verification on) |
-| Egress region | **Unknown.** The geo-IP echo endpoints (`ipinfo.io`, `ifconfig.co`, `ipapi.co`, `www.cloudflare.com/cdn-cgi/trace`, `1.1.1.1/cdn-cgi/trace`) were all **blocked by sandbox proxy**. |
-| Proxy verdict text | `HTTP/1.1 403 Forbidden … request blocked: no rule or allowlist entry allows host "api.binance.com"` (the same for every market-data host) |
-| Secondary fetcher | The `WebFetch` tool was also unable to reach these hosts (`getaddrinfo ENOTFOUND`) |
-| Reachable from sandbox | `registry.npmjs.org`, `raw.githubusercontent.com`, `api.github.com` (used for the npm-mirror measurement and for primary docs) |
+| Measurement windows | Round 1: 2026-10-25 07:35–07:50 UTC, when everything was blocked. **Round 2: 08:10–08:13 UTC**, after the owner allowlisted `api.kucoin.com`, `www.okx.com`, `api.binance.com`, `data-api.binance.vision`, `api.bybit.com` and `api.frankfurter.app` |
+| Tool | `curl 8.5.0` via sandbox HTTPS proxy (`/root/.ccr/ca-bundle.crt`, TLS verification on), `--compressed`, `Origin: https://aureonx.example` |
+| Egress region | Geo-IP echoes (`ipinfo.io`, `www.cloudflare.com/cdn-cgi/trace`, …) are **still blocked by sandbox proxy**. **Inferred: United States, East/Central**, from four pieces of evidence: Binance's CloudFront PoP `x-amz-cf-pop: ORD56-P2` (Chicago); Bybit's `IAD61-P8` (Ashburn) plus its body "configured to block access from your country"; KuCoin and Frankfurter `cf-ray …-IAD`; and Binance's 451 restricted-location body. OKX routed internally to `x-routed-to: TKY`. |
+| IP type | Datacenter/cloud egress shared with other sandbox sessions. Binance `x-mbx-used-weight-1m` climbed 14 → 90 → 125 across a handful of our weight-2/5 calls, so other tenants share the IP. |
+| Proxy | TLS-terminating proxy between curl and upstream. Headers are assumed to pass through unmodified, but **that is not proven**, and it applies to CORS headers too. |
+| Still blocked by sandbox proxy | `api.frankfurter.dev`, `api.gold-api.com`, `api.metals.live`, `api.exchangerate.host`, `cdn.jsdelivr.net`, `latest.currency-api.pages.dev`, `open.er-api.com`, `query1.finance.yahoo.com`, `api.twelvedata.com`, `stooq.com`, geo-IP echoes. Each returns `CONNECT 403 … no rule or allowlist entry allows host` |
 
-> To unblock this, add the hosts in §1.4 under **Allowed domains** in the cloud environment's Network access settings ([docs](https://code.claude.com/docs/en/cloud-environments#network-access)). Then re-run the probe.
-> Even after unblocking, sandbox results ≠ Cloudflare PoP results ≠ end-user browser results. Geo-blocking depends on the caller's IP (§4).
+> **Every result in §1.2–§1.3 is "sandbox egress".** A user's browser (residential IP, own country, real CORS enforcement) and a deployed Cloudflare Worker (Cloudflare egress IPs, PoP or placement region) can and will see different status codes, geo-blocks and possibly headers. §1.6 lists what must be re-verified.
 
-### 1.2 Raw results — exchanges and FX/metals endpoints (GET + OPTIONS preflight, `Origin: https://aureonx.example`)
+### 1.2 Round-2 raw results (sandbox egress, US-geolocated datacenter IP)
 
-Every row below is the same result. The proxy rejected the request, so no upstream response, CORS header, rate-limit header or cache header could be observed. "Proxy RTT" is only the time the local proxy took to refuse. It is **not** upstream latency.
+GET and OPTIONS preflight were each sent with `Origin: https://aureonx.example`. The preflight added `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: content-type`. Latency is the curl `time_total` of the logged probe; where given, "p50 (5×)" is the median of 5 extra GETs at about 08:12 UTC. Bytes are decompressed. Every **Access-Control-\*** header returned is quoted verbatim; "absent" means the response had none.
 
-| UTC | Provider | Endpoint (data type) | GET | OPTIONS | Proxy RTT (s) | Bytes | CORS / RL / cache headers |
-|---|---|---|---|---|---|---|---|
-| 07:43:34 | Binance `api.binance.com` | `/api/v3/ticker/24hr?symbols=[…]` (tickers) | blocked by sandbox proxy | blocked | 0.210 | 0 | n/a |
-| 07:43:35 | Binance | `/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100` | blocked by sandbox proxy | blocked | 0.208 | 0 | n/a |
-| 07:43:36 | Binance | `/api/v3/depth?symbol=BTCUSDT&limit=50` | blocked by sandbox proxy | blocked | 0.263 | 0 | n/a |
-| 07:43:36 | Binance `data-api.binance.vision` | tickers / klines / depth (same paths) | blocked by sandbox proxy | blocked | 0.207–0.256 | 0 | n/a |
-| 07:43:38 | KuCoin `api.kucoin.com` | `/api/v1/market/allTickers`, `/market/candles?type=1min`, `/market/orderbook/level2_20` | blocked by sandbox proxy | blocked | 0.209–0.394 | 0 | n/a |
-| 07:43:39 | OKX `www.okx.com` | `/api/v5/market/tickers?instType=SPOT`, `/market/candles?bar=1m`, `/market/books?sz=50` | blocked by sandbox proxy | blocked | 0.250–0.263 | 0 | n/a |
-| 07:43:41 | Bybit `api.bybit.com` | `/v5/market/tickers?category=spot`, `/kline?interval=1`, `/orderbook?limit=50` | blocked by sandbox proxy | blocked | 0.134–0.262 | 0 | n/a |
-| 07:43:43 | Frankfurter `.dev` / `.app` | `/v1/latest`, `/latest` | blocked by sandbox proxy | blocked | 0.218 / 0.288 | 0 | n/a |
-| 07:43:44 | gold-api | `/price/XAU`, `/price/XAG` | blocked by sandbox proxy | blocked | 0.247 / 0.249 | 0 | n/a |
-| 07:43:45 | metals.live | `/v1/spot` | blocked by sandbox proxy | blocked | 0.239 | 0 | n/a |
-| 07:43:45 | exchangerate.host | `/latest?symbols=XAU,XAG` | blocked by sandbox proxy | blocked | 0.260 | 0 | n/a |
-| 07:43:46 | currency-api (jsDelivr / pages.dev) | `/v1/currencies/xau.json` | blocked by sandbox proxy | blocked | 0.264 / 0.275 | 0 | n/a |
-| 07:43:47 | open.er-api | `/v6/latest/USD` | blocked by sandbox proxy | blocked | 0.161 | 0 | n/a |
-| 07:43:48 | Yahoo chart | `/v8/finance/chart/EURUSD=X?interval=1m`, `GC=F` | blocked by sandbox proxy | blocked | 0.304 / 0.158 | 0 | n/a |
-| 07:43:49 | TwelveData | `/price?symbol=XAU/USD` | blocked by sandbox proxy | blocked | 0.267 | 0 | n/a |
-| 07:43:49 | Stooq | `/q/l/?s=xauusd&e=csv` | blocked by sandbox proxy | blocked | 0.274 | 0 | n/a |
+| UTC | Provider / endpoint (sandbox egress) | GET status | GET s (p50 5×) | GET bytes | GET Access-Control-* (verbatim) | OPTIONS status | OPTIONS Access-Control-* (verbatim) | Rate-limit headers | Cache headers |
+|---|---|---|---|---|---|---|---|---|---|
+| 08:10:14 | KuCoin `/api/v1/market/allTickers` (tickers, 969 symbols) | 200 | 0.629 (0.415) | 96,603 | **absent** | 200 (1 B) | **absent** | `gw-ratelimit-limit: 2000`, `gw-ratelimit-remaining: 1967`, `gw-ratelimit-reset: 21198` | `cache-control: public,max-age=0`, `cf-cache-status: DYNAMIC`, `vary: Origin` |
+| 08:10:15 | KuCoin `/market/orderbook/level1?symbol=BTC-USDT` (ticker) | 200 | 0.611 | 127 | **absent** | 200 | **absent** | `gw-ratelimit-*` (1992/2000) | `cf-cache-status: DYNAMIC`, `vary: Origin` |
+| 08:10:17 | KuCoin `/market/candles?symbol=BTC-USDT&type=1min` (klines) | 200 | 0.389 (0.347) | 2,813 | **absent** | 200 | **absent** | `gw-ratelimit-*` (1952/2000, reset 5709 ms) | `public,max-age=0`, `DYNAMIC` |
+| 08:10:17 | KuCoin `/market/orderbook/level2_20?symbol=BTC-USDT` (depth) | 200 | 0.344 (0.325) | 374 | **absent** | 200 | **absent** | `gw-ratelimit-*` (1974/2000) | `DYNAMIC` |
+| 08:10:18 | KuCoin `/market/stats?symbol=PAXG-USDT` / `XAUT-USDT` | 200 / 200 | 0.314 / 0.323 | 216 / 215 | **absent** | 200 | **absent** | `gw-ratelimit-*` | `DYNAMIC` |
+| 08:10:20 | OKX `/api/v5/market/tickers?instType=SPOT` (tickers, 1,195 instruments) | 200 | 0.364 (0.517) | 100,834 | `access-control-allow-origin: https://aureonx.example` | 200 (0 B) | `access-control-allow-origin: https://aureonx.example` · `access-control-allow-headers: content-type` · `access-control-allow-methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT` · `access-control-max-age: 3` | **none** | `cache-control: no-cache, no-store, max-age=0, must-revalidate`, `expires: 0`, `vary: Accept-Encoding, Origin`, `cf-cache-status: DYNAMIC` |
+| 08:10:20 | OKX `/market/ticker?instId=BTC-USDT` | 200 | 0.302 | 242 | `access-control-allow-origin: https://aureonx.example` | 200 | same as above (`max-age: 3`) | none | same |
+| 08:10:21 | OKX `/market/candles?instId=BTC-USDT&bar=1m&limit=100` (klines) | 200 | 0.306 (0.331) | 3,622 | `access-control-allow-origin: https://aureonx.example` | 200 | same (`max-age: 3`) | none | same |
+| 08:10:22 | OKX `/market/books?instId=BTC-USDT&sz=50` (depth) | 200 | 0.357 (0.355) | 916 | `access-control-allow-origin: *` | 200 | `access-control-allow-origin: *` · `access-control-allow-headers: content-type` · `access-control-allow-methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT` · `access-control-max-age: 10` | none | `vary: Accept-Encoding`, `DYNAMIC` (no cache-control) |
+| 08:10:22 | OKX `/market/ticker?instId=PAXG-USDT` / `XAUT-USDT` | 200 / 200 | 0.312 / 0.320 | 227 / 230 | `access-control-allow-origin: https://aureonx.example` | 200 | same (`max-age: 3`) | none | `no-cache, no-store…` |
+| 08:10:24 | Binance `api.binance.com` `/api/v3/ticker/24hr?symbols=[…]` | **451** | 0.141 | 224 | **absent** | **451** | **absent** | none | `x-cache: Error from cloudfront`, `x-amz-cf-pop: ORD56-P2` |
+| 08:10:25 | Binance `api.binance.com` `/klines`, `/depth`, `/ticker/bookTicker?symbol=PAXGUSDT` | **451** ×3 | 0.134–0.231 | 224 | **absent** | **451** | **absent** | none | `Error from cloudfront` |
+| 08:10:26 | Binance Vision `/api/v3/ticker/24hr?symbols=[BTC,ETH,PAXG,XAUT]` (tickers) | 200 | 0.718 (0.715) | 683 | `access-control-allow-origin: *` · `access-control-allow-methods: GET, HEAD, OPTIONS` | **403** (nginx HTML) | **absent** | `x-mbx-used-weight: 14`, `x-mbx-used-weight-1m: 14` | `cache-control: no-cache, no-store, must-revalidate`, `expires: 0` |
+| 08:10:28 | Binance Vision `/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100` | 200 | 0.737 (0.720) | 4,493 | `access-control-allow-origin: *` · `access-control-allow-methods: GET, HEAD, OPTIONS` | **403** | **absent** | `x-mbx-used-weight-1m: 90` (shared IP) | same |
+| 08:10:29 | Binance Vision `/api/v3/depth?symbol=BTCUSDT&limit=50` | 200 | 0.719 (0.716) | 629 | `access-control-allow-origin: *` · `access-control-allow-methods: GET, HEAD, OPTIONS` | **403** | **absent** | `x-mbx-used-weight-1m: 105` | same |
+| 08:10:30 | Binance Vision `/api/v3/ticker/bookTicker?symbol=XAUTUSDT` | 200 | 0.720 | 119 | `access-control-allow-origin: *` · `access-control-allow-methods: GET, HEAD, OPTIONS` | **403** | **absent** | `x-mbx-used-weight-1m: 125` | same |
+| 08:10:31 | Bybit `/v5/market/tickers?category=spot` (+ `symbol=BTCUSDT`, `PAXGUSDT`, `XAUTUSDT`) | **403** ×4 | 0.134–0.148 | 96 | **absent** | **403** | **absent** | none | `x-cache: Error from cloudfront`, `x-amz-cf-pop: IAD61-P8` |
+| 08:10:32 | Bybit `/v5/market/kline`, `/v5/market/orderbook` | **403** ×2 | 0.138–0.140 | 96 | **absent** | **403** | **absent** | none | same |
+| 08:10:34 | Frankfurter `api.frankfurter.app/latest?from=USD&to=…`, `/latest?from=XAU`, `/2026-10-01..`, `/currencies` | **301** → `https://api.frankfurter.dev/v1/…` | 0.149–0.411 | 167 | **absent** (on the redirect) | 301 | **absent** | none | none |
+| 08:10:36 | `api.frankfurter.dev`, gold-api, metals.live, exchangerate.host, jsDelivr, pages.dev, open.er-api, Yahoo, TwelveData, Stooq, geo-IP echoes | **blocked by sandbox proxy** (CONNECT 403, curl `000`) | — | 0 | n/a | blocked | n/a | n/a | n/a |
 
-The full TSV (56 rows) came from the script in §1.4.
+Verbatim error bodies (sandbox egress):
+* `api.binance.com` 451: `{"code": 0, "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."}`
+* Bybit 403: `{ error:The Amazon CloudFront distribution is configured to block access from your country }`. This is a **geo** block, not the rate-limit 403.
+* Binance Vision OPTIONS 403: nginx HTML `403 Forbidden`, with `cache-control: no-cache, no-store, must-revalidate`.
+
+**CORS follow-up probes** (08:11 UTC, sandbox egress, GET `orderbook/level1` / OKX `candles`):
+
+| Probe | Result |
+|---|---|
+| KuCoin with `Origin: https://www.kucoin.com` | `access-control-allow-origin: https://www.kucoin.com` · `access-control-allow-methods: GET,POST,OPTIONS,PUT,DELETE` · `access-control-max-age: 5` · `access-control-expose-headers: **` · `access-control-allow-headers: Authorization,Cache-Control,Content-Type,KC-API-KEY,…,X-SITE-TYPE` · `access-control-allow-credentials: true` |
+| KuCoin with `Origin: https://localhost:3000` or `null` | **absent** → KuCoin allowlists its own origins; **our origin will be refused by browsers** |
+| OKX with `Origin: https://evil.example` or `https://aureonx-preview.pages.dev` | the same origin is echoed back → OKX reflects any origin (books: `*`) |
+| Binance Vision OPTIONS without `Access-Control-Request-Headers` | still **403** → Vision supports **no preflight**; only CORS-"simple" GETs work |
+| Binance Vision `HEAD /api/v3/ping` | 200, `access-control-allow-origin: *` |
+
+**Payload freshness** (exchange timestamp vs the response `Date` header, which has 1 s resolution):
+
+| Endpoint | Lag |
+|---|---|
+| OKX BTC ticker `ts` | 0.6 s |
+| OKX books `ts` | ≈0 s |
+| KuCoin allTickers `time` | ≈0 s |
+| Vision BTCUSDT `closeTime` | 0.002 s |
+| Vision PAXGUSDT `closeTime` | **26.9 s** (last *trade*, illiquid pair; the book was current) |
+| Vision klines | last candle open = current minute (in-progress) |
+| OKX klines | newest-first; `confirm` = `0` on the current bar, `1` on closed bars |
+| KuCoin klines | newest-first, seconds; 100 rows returned without a `limit` parameter |
+
+### 1.2a Tokenized gold, live (sandbox egress, 08:10 UTC)
+
+| Pair | Vision (last · bid/ask) | OKX (last · bid/ask) | KuCoin (last · bid/ask) | Bybit / api.binance.com |
+|---|---|---|---|---|
+| PAXG/USDT | 4002.12 · 4002.11/4002.12 | 4003 · 4002.0/4002.2 | 4002.14 · 4002.13/4002.14 | 403 / 451 |
+| XAUT/USDT | 3991.71 · 3991.70/3991.71 (spot listing **confirmed**) | 3992.3 · 3992.4/3992.5 | 3992.95 · 3992.94/3992.95 | 403 / 451 |
+
+Observations:
+* The three venues agree within about 2.5 bp per token.
+* **PAXG trades about 25 bp above XAUT** (mid ≈ 4002.1 vs ≈ 3992.5). The median of the two tokens is ≈ 3997.3.
+* For comparison, the daily currency-api XAU/USD (§1.3, date 2026-10-25) is 3993.62.
+* So the token proxy carries a ±10–15 bp basis and is **indicative**, not spot.
+* Use **bid/ask mid with fetch time** for freshness. Last-trade timestamps on PAXG can be 30 s or more old even when the book is live.
+
+### 1.2b Round-1 results (07:43 UTC)
+
+All 56 GET/OPTIONS calls returned `CONNECT 403 … no rule or allowlist entry allows host` from the sandbox proxy. This is superseded by Round 2 for the six allowlisted hosts and still current for the rest.
 
 ### 1.3 Real measurement: currency-api (fawazahmed0) via its npm mirror
 
-This dataset is published daily as the npm package `@fawazahmed0/currency-api`. jsDelivr serves files from that package, so the npm tarball holds the same files the CDN URL returns ([README](https://github.com/fawazahmed0/exchange-api)). This was the only market-data payload the sandbox could fetch.
+This dataset is published daily as the npm package `@fawazahmed0/currency-api`. jsDelivr serves files from that package, so the npm tarball holds the same files the CDN URL returns ([README](https://github.com/fawazahmed0/exchange-api)). It is still the only FX/metals payload the sandbox can fetch: jsDelivr and pages.dev remain blocked in Round 2. This is sandbox egress via `registry.npmjs.org`.
 
 | Item | Measured |
 |---|---|
@@ -132,8 +192,8 @@ for row in "${URLS[@]}"; do
     extra=(); [ $method = OPTIONS ] && extra=(-X OPTIONS -H "Access-Control-Request-Method: GET")
     out=$(curl -sS -m 20 -o /dev/null -D "$H" -H "Origin: $ORIGIN" "${extra[@]}" \
           -w '%{http_code}\t%{time_total}\t%{size_download}' "$url" 2>&1 | tail -1)
-    acao=$(grep -i '^access-control-allow-origin' "$H" | tail -1 | cut -d' ' -f2- | tr -d '\r')
-    acam=$(grep -i '^access-control-allow-methods' "$H" | tail -1 | cut -d' ' -f2- | tr -d '\r')
+    acao=$(grep -i '^access-control-' "$H" | tr -d '\r' | paste -sd'|' -)   # ALL Access-Control-* verbatim
+    acam=$(grep -i -E '^(x-amz-cf-pop|cf-ray|x-routed-to|server):' "$H" | tr -d '\r' | paste -sd'|' -)  # where it was served
     hdr=$(grep -i -E '^(x-mbx-used-weight[^:]*|x-ratelimit[^:]*|ratelimit[^:]*|x-bapi-limit[^:]*|retry-after|cache-control|age|cf-cache-status|x-cache|expires|etag|last-modified):' "$H" | tr -d '\r' | paste -sd';' -)
     printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "$(date -u +%FT%TZ)" "$prov" "$kind" "$method" "$out" "${acao:--}" "${acam:--}" "${hdr:--}"
     rm -f "$H"
@@ -141,7 +201,9 @@ for row in "${URLS[@]}"; do
 done
 ```
 
-**Acceptance gate before implementation:** for each crypto provider, from at least one EU and one US vantage point, record: GET status, `Access-Control-Allow-Origin` on GET **and** OPTIONS, `x-mbx-used-weight-1m` / `x-bapi-limit*` / other rate-limit headers, `Cache-Control`, and the payload timestamp lag.
+For OPTIONS, also add `-H "Access-Control-Request-Headers: content-type"` and repeat without it; Round 2 did both. Round 2 also added PAXG/XAUT tickers and KuCoin/OKX single-ticker rows.
+
+**Acceptance gate before implementation:** for each crypto provider, from at least one EU and one US vantage point, record: GET status, all `Access-Control-*` headers on GET **and** OPTIONS, `x-mbx-used-weight-1m` / `x-bapi-limit*` / `gw-ratelimit-*` / other rate-limit headers, `Cache-Control`, and the payload timestamp lag. The real CORS test is a `fetch()` from a page served on the production origin, in a real browser (§1.6). curl only shows what the server sends.
 
 ### 1.5 What we know from primary docs (not measured here)
 
@@ -149,14 +211,39 @@ done
 |---|---|---|---|---|---|---|
 | Binance (`api.binance.com`, `data-api.binance.vision`) | `/api/v3/ticker/24hr?symbols=[..]` weight 2 for 1–20 symbols, 40 for 21–100, max 100 symbols | `/api/v3/klines` weight 2, limit ≤1000 (default 500), **oldest→newest**, intervals `1s 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M` | `/api/v3/depth` weight 5 (limit ≤100), 25 (≤500), 50 (≤1000), 250 (≤5000) | `REQUEST_WEIGHT` 6000/min; 429 → back off; repeat → **418 IP ban**; `Retry-After` header | `X-MBX-USED-WEIGHT-1M` | [rest-api.md](https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md), [market_data_only.md](https://github.com/binance/binance-spot-api-docs/blob/master/faqs/market_data_only.md) |
 | Bybit v5 | `/v5/market/tickers?category=spot` (all, or `symbol=`) | `/v5/market/kline` limit 1–1000 (default 200), intervals `1 3 5 15 30 60 120 240 360 720 D W M`, **newest→oldest** | `/v5/market/orderbook?category=spot` limit 1–200 | **600 req / 5 s per IP**, shared by `api.bybit.com` + `api.bytick.com`; violation → **HTTP 403, ~30 min ban** | `X-Bapi-Limit`, `X-Bapi-Limit-Status`, `X-Bapi-Limit-Reset-Timestamp` | [rate-limit.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/rate-limit.mdx), [kline.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/market/kline.mdx), [orderbook.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/market/orderbook.mdx), [guide.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/guide.mdx) |
-| OKX v5 | `/api/v5/market/tickers?instType=SPOT` (all), `/market/ticker?instId=` | `/market/candles` limit ≤300, **newest→oldest**; daily+ bars default to UTC+8 unless suffixed `utc` (`1Dutc`) | `/market/books?sz=` | Per-endpoint per-IP (ccxt weights: tickers 1, candles/books ½); official numbers to be re-verified | (to measure) | [ccxt okx.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/okx.ts) (secondary; official docs host blocked) |
-| KuCoin | `/api/v1/market/allTickers` (ccxt cost 15) | `/api/v1/market/candles?type=1min` limit ≤1500, **newest→oldest**, row = `[t(sec), open, close, high, low, vol, turnover]` (**note the O-C-H-L order**) | `/market/orderbook/level2_20` / `level2_100` (public) | Weight pool per IP (to re-verify) | (to measure) | [ccxt kucoin.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/kucoin.ts) (secondary) |
+| OKX v5 | `/api/v5/market/tickers?instType=SPOT` (all), `/market/ticker?instId=` | `/market/candles` limit ≤300, **newest→oldest**; daily+ bars default to UTC+8 unless suffixed `utc` (`1Dutc`) | `/market/books?sz=` | Per-endpoint per-IP (ccxt weights: tickers 1, candles/books ½); official numbers to be re-verified | **None returned** (measured, sandbox egress) → client must self-limit | [ccxt okx.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/okx.ts) (secondary; official docs host blocked) |
+| KuCoin | `/api/v1/market/allTickers` (ccxt cost 15) | `/api/v1/market/candles?type=1min` limit ≤1500, **newest→oldest**, row = `[t(sec), open, close, high, low, vol, turnover]` (**note the O-C-H-L order**, confirmed in a live payload) | `/market/orderbook/level2_20` / `level2_100` (public) | Measured: `gw-ratelimit-limit: 2000` with `gw-ratelimit-reset` < 30,000 ms → about 2000 weight / 30 s pool per IP | `gw-ratelimit-limit/-remaining/-reset` (measured) | [ccxt kucoin.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/kucoin.ts) (secondary) |
 | Frankfurter | Daily central-bank reference rates (ECB-based default blend, 200+ currencies, 100+ sources), `/v1/latest`, `/v2/*` | Daily time series only (one fix per day, no OHLC) | none | Not documented as strict | — | [frankfurter README](https://github.com/lineofflight/frankfurter) |
 | currency-api | Daily, includes XAU/XAG/PAXG/XAUT (measured §1.3) | Daily snapshots by date URL | none | "No rate limits" | — | [exchange-api README](https://github.com/fawazahmed0/exchange-api) |
 | TwelveData (free "Basic") | Needs an **API key**; 8 credits/min, **800/day** cap, resets 00:00 UTC; forex/crypto listed; XAU/USD coverage on free plan unverified | `time_series` 1min…1month | none | 800/day | — | [pricing](https://twelvedata.com/pricing), [credits](https://support.twelvedata.com/en/articles/5615854-credits) |
 | gold-api.com, metals.live, exchangerate.host, open.er-api, Yahoo chart, Stooq | **Unverified this session** (hosts blocked, search found no primary docs). Yahoo chart is an **unofficial** endpoint (no SLA/ToS for API use). exchangerate.host now requires a key (to verify). | | | | | — |
 
-**CORS: unknown for all providers.** Web research turned up only conflicting anecdotes. CORS is the gating fact for browser-direct (§1.4 acceptance gate). The plan below includes the fallback for any provider without `Access-Control-Allow-Origin: *`.
+**CORS (sandbox-egress evidence, §1.2).** CORS is the deciding fact for browser-direct.
+
+| Host | What the server sent | Browser-direct status |
+|---|---|---|
+| `data-api.binance.vision` | `ACAO: *` on GET; no preflight (OPTIONS → 403) | Browser-direct **only** with CORS-simple GETs: no custom request headers, no `Content-Type`, no `Cache-Control` request header. `fetch(url, { cache: 'no-store' })` is fine because it adds no header. |
+| OKX | Reflects any `Origin` (books: `*`); preflight answered with `max-age` 3–10 s | Browser-direct OK. |
+| KuCoin | Allowlist of its own sites only | **Not browser-direct.** |
+| `api.binance.com`, Bybit | Blocked before any CORS header (451 / 403 at CloudFront) | CORS **unknown**. Not browser-direct until §1.6 proves otherwise. |
+| `api.frankfurter.app` | 301 with no ACAO | Browsers fail CORS on a cross-origin redirect without ACAO. Call `api.frankfurter.dev` directly (server-side; still unmeasured). |
+
+### 1.6 Production reachability checks still required
+
+None of the following is proven by sandbox egress. Each needs a check from (B) a **real browser** page on the production origin (check DevTools for CORS errors, not just status), from a US and a non-US residential IP, and/or from (W) a **deployed Cloudflare Worker** (record `cf-placement` / `cf-ray` colo) and the **`price-ingest` Supabase Edge Function** in its pinned region (record `x-sb-edge-region`).
+
+| # | Endpoint / behaviour | Why it is still open | Needs |
+|---|---|---|---|
+| 1 | `api.binance.com` all endpoints: 451 for US | Seen from the US datacenter egress. Must confirm for US residential browsers, for non-US browsers (expected 200), and for Cloudflare/Supabase egress in the EU placement region. CORS headers never observed. | B (US + EU), W |
+| 2 | Bybit all endpoints: CloudFront 403 "block access from your country" | Seen from US egress. Unknown from EU, from Cloudflare egress IPs (reported cloud-range blocks), or from Supabase EU. CORS never observed. | B (EU), W |
+| 3 | `data-api.binance.vision`: 200 from US egress | Could differ for residential vs datacenter IPs and other countries. Re-confirm `ACAO: *` arrives unmodified without the proxy, and that a real `fetch()` with no custom headers succeeds while one with a custom header fails (no preflight). | B (US + EU), W |
+| 4 | OKX `www.okx.com`: 200 + origin reflection from US egress | Global OKX is restricted for US residents. The browser behaviour from US/EEA residential IPs is unverified (e.g. redirects to `my.okx.com` / `app.okx.com`). Re-confirm reflection for the real production origin. | B (US + EU), W |
+| 5 | KuCoin: 200 from US egress despite the Jan-2025 US-IP restriction | The API may still block US residential IPs. Confirm from Supabase EU (server-side use only). Confirm ACAO stays absent for our origin (already enough to rule out browser-direct). | W, Supabase |
+| 6 | `api.frankfurter.dev` | Still blocked in the sandbox; status, CORS and freshness unmeasured. | W (+ B if ever browser-direct) |
+| 7 | gold-api, metals.live, exchangerate.host, open.er-api, jsDelivr/pages.dev currency-api, Yahoo chart, TwelveData, Stooq | Still blocked in the sandbox; nothing measured live except currency-api via npm. | W (all FX/metals go through the md Worker) |
+| 8 | Workers Cache + Placement Hint behaviour | `cf-cache-status: HIT` with no Worker CPU; that misses run near `aws:eu-central-1` (`cf-placement: remote-FRA`-style header); that Binance and Bybit answer 200 from there. | W |
+| 9 | `price-ingest` egress | Whether ≥2 crypto sources and ≥2 PAXG/XAUT venues answer from the pinned Supabase region. From US egress, Vision, OKX and KuCoin did; Bybit and `api.binance.com` did not. | Supabase |
+| 10 | Proxy header integrity | The sandbox TLS-terminating proxy could alter headers. Every CORS/rate-limit conclusion above must be re-read from a non-proxied client. | B or W |
 
 ---
 
@@ -164,8 +251,8 @@ done
 
 | Pair | Free real-time (<60 s) source | Free daily source | Notes |
 |---|---|---|---|
-| BTC/USDT, ETH/USDT, other crypto spot | Binance, OKX, Bybit, KuCoin REST (all have tickers, klines, depth) | — | Region-dependent (§4) |
-| **XAU/USD** | **PAXG/USDT, XAUT/USDT on exchanges** (24/7 proxy; 1 token ≈ 1 troy oz; basis ±0.1–0.2% observed §1.3). gold-api (claimed real-time, unverified). TwelveData (key, 800/day) | currency-api (measured), Frankfurter (XAU not expected, verify `/v2/currencies`) | Tokenized gold ≠ spot XAU; label "Indicative" |
+| BTC/USDT, ETH/USDT, other crypto spot | Browser: Vision, OKX. Server: Vision, OKX, KuCoin (+ Bybit and `api.binance.com` where not geo-blocked). All have tickers, klines and depth | — | Region-dependent (§4, §1.6) |
+| **XAU/USD** | **PAXG/USDT, XAUT/USDT, measured live on Vision, OKX and KuCoin** (§1.2a; 24/7 proxy; 1 token ≈ 1 troy oz; PAXG ≈ +25 bp vs XAUT; median ≈ +10 bp vs the daily reference). gold-api (claimed real-time, still blocked/unverified). TwelveData (key, 800/day) | currency-api (measured), Frankfurter (XAU not expected; `.dev` unmeasured) | Tokenized gold ≠ spot XAU; label "Indicative" |
 | **XAG/USD** | None reliable for free (gold-api claimed, unverified; no liquid tokenized silver on the four exchanges, to verify) | currency-api (measured) | |
 | EUR/USD, AUD/USD, AUD/JPY, AUD/CAD, CAD/JPY | None official for free. Yahoo `EURUSD=X` (unofficial). TwelveData (key, 800/day cap = ~1 refresh / 14 min for 8 pairs) | Frankfurter, currency-api (measured, all pairs directly or via cross) | Crosses: compute from USD legs with decimal math, or read `aud.json` directly |
 | Forex klines (intraday) | Yahoo chart 1m/5m/15m/30m/60m (unofficial). TwelveData (key, budget-limited) | Frankfurter daily series (close-only) | No free *official* intraday candles |
@@ -194,10 +281,18 @@ Supabase (settlement; owned by the settlement agent)
 
 ### 3.2 Tickers
 
-* **Crypto: browser-direct**, from the leader tab only, every **5 s** while any AureonX tab is visible.
-  * One batched call per provider per cycle. Binance: `ticker/24hr?symbols=[…]` with ≤20 symbols costs weight 2; bigger lists are split into chunks of 20 or sent as a single all-symbol call to Bybit/OKX/KuCoin.
-  * Rate limits are per **user IP**, so per-user browser polling spreads load naturally and never touches our Worker.
-  * If a provider lacks CORS, or is geo-blocked for this user (451 / geo-403), the leader moves to the next provider in the fallback chain (§6.4). If **every** crypto provider fails for the user's region, the client switches to the md Worker's crypto route (`/md/v1/crypto/tickers`). That route is cached at max-age=5 and placed via Placement Hint in a region the exchanges serve. This is the *only* case where crypto traffic reaches the Worker, and it is still one shared cached URL.
+* **Crypto: browser-direct**, from the leader tab only, every **5 s** while any AureonX tab is visible. **Only `data-api.binance.vision` and OKX qualify** on CORS evidence (§1.5). Changed after Round 2:
+  * KuCoin is **removed** from the browser chain because it sends no ACAO to our origin.
+  * Bybit and `api.binance.com` are **removed pending §1.6**: geo-blocked from the probe egress, CORS never observed.
+  * One batched call per cycle:
+    * Vision: `ticker/24hr?symbols=[…]` with ≤20 symbols costs weight 2; larger lists go in chunks of 20.
+    * OKX: `market/tickers?instType=SPOT` returns all ~1,195 instruments in ~100 KB. That is heavy every 5 s, so use per-symbol `market/ticker` only for ≤5 symbols, otherwise the all-tickers call at 10 s.
+  * Vision rule: **CORS-simple GET only**. No custom request headers and no `Content-Type` on GET, because Vision answers every preflight with 403.
+  * Rate limits are per **user IP**, so per-user browser polling spreads load naturally and never touches our Worker. OKX returns **no rate-limit headers**, so the client must self-limit (§6.5).
+  * If a provider fails CORS, or is geo-blocked for this user (451 / geo-403), the leader moves to the next provider (§6.4). If **both** browser providers fail, the client switches to the md Worker's crypto route (`/md/v1/crypto/tickers`).
+    * That route is cached at max-age=5 and served by a Worker placed (Placement Hint) in a region the exchanges serve.
+    * It is the *only* case where crypto traffic reaches the Worker, and it is still one shared cached URL.
+    * It is also where KuCoin, and Bybit/`api.binance.com` (if reachable from the placement region), contribute.
 * **Forex/metals: shared Worker route** `GET /md/v1/fx/tickers?set=core`. Use one fixed URL per symbol set so every client shares the same cache key and the query string is never user-built. Client polls every **60 s**.
   * Upstream (decided by Open decision D1): daily reference (Frankfurter → currency-api fallback), plus XAU/XAG from the chosen near-real-time source, plus PAXG/XAUT mid from the crypto providers as an XAU proxy.
   * Response header `Cache-Control: public, max-age=30, stale-while-revalidate=30`. For a daily-only set, use `max-age=900, stale-while-revalidate=3600`.
@@ -205,8 +300,8 @@ Supabase (settlement; owned by the settlement agent)
 
 ### 3.3 Klines
 
-* **Crypto: browser-direct.**
-  * On terminal mount or symbol/interval change: one fetch with limit 500 (Binance) or 300 (OKX), normalized to oldest→newest.
+* **Crypto: browser-direct** via Vision (`ACAO: *` on klines, measured) or OKX (origin reflected on candles, measured). KuCoin klines go through the Worker fallback only.
+  * On terminal mount or symbol/interval change: one fetch with limit 500 (Vision) or 300 (OKX), normalized to oldest→newest.
   * At each interval close + 1–2 s jitter: re-fetch only the last 2 candles (`limit=2`).
   * Between closes, the **live candle is patched from the ticker stream** (display-only: update close/high/low). This avoids per-second kline polling.
   * For ≥1h intervals, re-fetch the last 2 candles every 60 s.
@@ -214,7 +309,7 @@ Supabase (settlement; owned by the settlement agent)
 
 ### 3.4 Depth
 
-* **Crypto: browser-direct**, every **2 s**, and **only** for the symbol in a visible terminal. Limit 20 (Binance weight 5).
+* **Crypto: browser-direct** via Vision `depth` (`ACAO: *`, measured) or OKX `books` (`ACAO: *`, measured), every **2 s**, and **only** for the symbol in a visible terminal. Limit 20 (Vision weight 5). KuCoin `level2_20` goes through the Worker fallback only (no ACAO).
   * With no visible terminal: no depth polling.
   * Hidden document: pause.
   * The best bid/ask from depth also refreshes the terminal header price between ticker polls.
@@ -224,11 +319,18 @@ Supabase (settlement; owned by the settlement agent)
 
 * **Server-side only.** Merged with the data model: there is one Edge Function, `price-ingest` (`docs/data-model.md` §7), run every 10 s by pg_cron while there is demand. The validation rules below run inside it before it calls `ingest_prices`; the database then applies its own freshness checks (≤15 s for entry and fills, at-or-after expiry and ≤60 s for settlement). It is invoked from pg_cron with `x-region` / `forceFunctionRegion` pinned to a region the exchanges serve (EU first; measure). Region pinning is documented in [Supabase regional invocation](https://supabase.com/docs/guides/functions/regional-invocation). Without pinning, a function runs nearest the caller. Verify via the `x-sb-edge-region` response header.
 * **Crypto options:**
-  * Price = **median** of the mid (or last) from ≥2 of {Binance `data-api.binance.vision`, OKX, Bybit, KuCoin}.
+  * Price = **median** of the bid/ask **mid** from ≥2 of {Binance `data-api.binance.vision`, OKX, KuCoin, Bybit, `api.binance.com`}.
+    * From the US-geolocated sandbox egress, Vision, OKX and KuCoin all answered with sub-second timestamps.
+    * Bybit (403) and `api.binance.com` (451) did not.
+    * So ≥2 sources is achievable even if the pinned region turns out to be US-geolocated. EU pinning stays recommended so the last two also count (verify, §1.6 #9).
+    * CORS is irrelevant server-side.
   * Each source must have an exchange timestamp ≤ **30 s** old and a fetch ≤ **10 s** ago.
   * Sources must agree within ≤ **50 bp** of the median (threshold = Open decision D4).
   * Fewer than 2 qualifying sources → status `UNAVAILABLE` → retry with backoff until expiry + grace. The settlement agent defines the policy after that (e.g. void or postpone). **Never** settle on a stale or single unchecked price.
-* **XAU options:** only via the **tokenized-gold proxy**: median of PAXG/USDT and XAUT/USDT across exchanges, converted with USDT≈USD (or divided by USDC/USDT if available). This is fresh (24/7) but is a *proxy*: the basis to spot is about −0.15%/+0.06% on 2026-10-25 (§1.3). Product copy must say "settles to the indicative gold reference" and never name the token or exchange.
+* **XAU options:** only via the **tokenized-gold proxy**: median of PAXG/USDT and XAUT/USDT across exchanges, converted with USDT≈USD (or divided by USDC/USDT if available).
+  * Live check (§1.2a, sandbox egress): both tokens are quoted on Vision, OKX and KuCoin; the venues agree within ~2.5 bp; PAXG sits ~25 bp above XAUT.
+  * Compute a median **per token across venues**, then the mean of the two token medians. Freshness comes from the bid/ask mid and fetch time; PAXG last-trade timestamps were 27 s old.
+  * This is fresh (24/7) but is a *proxy*: the basis to the daily XAU reference was −15 bp/+6 bp (§1.3). Product copy must say "settles to the indicative gold reference" and never name the token or exchange.
 * **FX options (EUR/USD, AUD/*, CAD/JPY) and XAG options: not viable in v1** with free data. The free official sources are daily. The only free intraday option is an unofficial endpoint (Yahoo chart). The keyed free tier (TwelveData) has 800 calls/day, about one refresh every 14 min for 8 pairs, which fails the <60 s requirement. Recommendation: defer, or settle FX options **daily** at the reference-rate fix (Open decision D5).
 
 ---
@@ -237,23 +339,23 @@ Supabase (settlement; owned by the settlement agent)
 
 | Provider | What is known | Evidence quality |
 |---|---|---|
-| **Binance** `api.binance.com` | Returns **HTTP 451 "Service unavailable from a restricted location"** to US IPs, and reportedly to some cloud/datacenter ranges (a US Linode got 451, Frankfurt did not; Railway reports US/NL/SG ranges affected). Restrictions on public market data date from late 2022. | Community reports: [Linode](https://www.linode.com/community/questions/23972/linode-and-binancecom), [Vercel](https://community.vercel.com/t/binance-api-calls-on-vercel/29895), [Railway](https://station.railway.com/questions/deployment-is-crashing-7b190d57), [CryptoDataDownload](https://www.cryptodatadownload.com/blog/posts/binance-download-data-python-usa-residents/) |
-| Binance `data-api.binance.vision` | Official market-data-only host (no key); docs list no geo limits. Whether it 451s US IPs is **unverified**. Must measure. | [market_data_only.md](https://github.com/binance/binance-spot-api-docs/blob/master/faqs/market_data_only.md) |
-| **Bybit** | The service agreement excludes the US, Canada, Singapore, Hong Kong and Mainland China, among others ([help center](https://bybit.com/en/help-center/article/Service-Restricted-Countries)). Cloud/US IPs reportedly get **HTTP 403 at the CDN edge** before auth ([QuotaGuard, vendor blog](https://quotaguard.com/blog/bybit-api-403-cloud-platform-cdn-block-fix)). Docs tell NL users to use `api.bybit.nl` and HK users `api.bybit.com.hk`; `api.bybit.com` "has the possibility to be shutdown at any time" for them ([guide.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/guide.mdx)). Note: Bybit's *rate-limit* ban is also a 403, so a 403 is ambiguous. Treat 403 with no JSON body as geo/edge-block and 403 after a burst as rate ban. | Official + vendor |
-| **OKX** | Separate regional platforms: global `www.okx.com`, EEA `my.okx.com`, US `app.okx.com` / `us.okx.com` ([okx-api SDK regions](https://www.mintlify.com/tiagosiebler/okx-api/guides/regions), [ccxt OKX US](https://docs.ccxt.com/docs/comparisons/ccxt-vs-okxus-api)). Global service is restricted for US residents. API-level IP behavior for public endpoints is **unverified**. | Secondary |
-| **KuCoin** | Announced on 2025-01-16 that **access from US IP addresses is restricted** effective 2025-01-23 ([announcement](https://kucoin.com/announcement/us-ip-access-restrictions-and-guidance-on-asset-withdrawals-for-users-in-the-united-states)). Whether public API endpoints are covered is **unverified**. | Official (web), API effect inferred |
+| **Binance** `api.binance.com` | Returns **HTTP 451 "Service unavailable from a restricted location"** to US IPs, and reportedly to some cloud/datacenter ranges (a US Linode got 451, Frankfurt did not; Railway reports US/NL/SG ranges affected). Restrictions on public market data date from late 2022. **Measured (sandbox egress, US):** 451 on every endpoint, from CloudFront PoP ORD56, with the body quoted in §1.2. | Measured + community reports: [Linode](https://www.linode.com/community/questions/23972/linode-and-binancecom), [Vercel](https://community.vercel.com/t/binance-api-calls-on-vercel/29895), [Railway](https://station.railway.com/questions/deployment-is-crashing-7b190d57), [CryptoDataDownload](https://www.cryptodatadownload.com/blog/posts/binance-download-data-python-usa-residents/) |
+| Binance `data-api.binance.vision` | Official market-data-only host (no key); docs list no geo limits. **Measured (sandbox egress, US): 200 on tickers/klines/depth/bookTicker** while `api.binance.com` returned 451. Residential and other regions not yet verified. | Measured + [market_data_only.md](https://github.com/binance/binance-spot-api-docs/blob/master/faqs/market_data_only.md) |
+| **Bybit** | The service agreement excludes the US, Canada, Singapore, Hong Kong and Mainland China, among others ([help center](https://bybit.com/en/help-center/article/Service-Restricted-Countries)). Cloud/US IPs reportedly get **HTTP 403 at the CDN edge** before auth ([QuotaGuard, vendor blog](https://quotaguard.com/blog/bybit-api-403-cloud-platform-cdn-block-fix)). **Measured (sandbox egress, US): 403 on every endpoint** from CloudFront IAD61, body "The Amazon CloudFront distribution is configured to block access from your country". Docs tell NL users to use `api.bybit.nl` and HK users `api.bybit.com.hk`; `api.bybit.com` "has the possibility to be shutdown at any time" for them ([guide.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/guide.mdx)). Note: Bybit's *rate-limit* ban is also a 403, so a 403 is ambiguous. Treat 403 with no JSON body as geo/edge-block and 403 after a burst as rate ban. | Official + vendor |
+| **OKX** | Separate regional platforms: global `www.okx.com`, EEA `my.okx.com`, US `app.okx.com` / `us.okx.com` ([okx-api SDK regions](https://www.mintlify.com/tiagosiebler/okx-api/guides/regions), [ccxt OKX US](https://docs.ccxt.com/docs/comparisons/ccxt-vs-okxus-api)). Global service is restricted for US residents. **Measured (sandbox egress, US): 200 on all public market endpoints** (`x-routed-to: TKY`). Residential US behaviour is unverified. | Measured + secondary |
+| **KuCoin** | Announced on 2025-01-16 that **access from US IP addresses is restricted** effective 2025-01-23 ([announcement](https://kucoin.com/announcement/us-ip-access-restrictions-and-guidance-on-asset-withdrawals-for-users-in-the-united-states)). **Measured (sandbox egress, US): 200 on public market endpoints**, so the restriction appears to target the site and accounts rather than the public REST API, at least for this IP. | Measured + official (web) |
 | Frankfurter / currency-api | No geo restrictions documented. | Docs |
 
 **Implications for our topology:**
 
-* **Browser-direct:** the user's own IP decides. A US user will likely get 451/403 from all four crypto exchanges. That is the reason for the region-fallback route in §3.2. Whether US users are a target audience at all is a product and compliance question; see D6.
+* **Browser-direct:** the user's own IP decides. From US datacenter egress, `api.binance.com` (451) and Bybit (403) failed, while Vision and OKX (both CORS-enabled) and KuCoin (no CORS) worked. So the browser chain Vision → OKX plausibly covers US users too, but this is **unverified for residential IPs** (§1.6). The region-fallback route in §3.2 stays as the safety net. Whether US users are a target audience at all is a product and compliance question; see D6.
 * **Cloudflare Workers** run in the PoP nearest the user by default, so a Worker hit by a US user that misses cache fetches upstream from a **US** PoP and may get 451. Mitigation: a **Placement Hint** `placement.region = "aws:eu-central-1"` (or `aws:ap-northeast-1`) on the md Worker. Its `fetch` handler then runs near that region on cache misses ([placement docs](https://github.com/cloudflare/cloudflare-docs/blob/production/src/content/docs/workers/configuration/placement.mdx)). Workers Cache lower and upper tiers are consulted *before* placement, so hits stay local ([Workers Cache: Smart placement and the cache](https://github.com/cloudflare/cloudflare-docs/blob/production/src/content/docs/workers/cache/index.mdx)). Cloudflare egress IPs can still be flagged as "datacenter" by exchanges, so this must be measured.
 * **Supabase Edge Functions** run nearest the caller unless pinned via `x-region`. Pin the oracle to an EU region and measure from it.
 * **Compliance note:** using placement or regions to *circumvent* an exchange's geo-restriction for users in restricted jurisdictions may violate that exchange's terms. AureonX only displays public reference data for a simulator and never trades on these exchanges, but legal should confirm. This is D6.
 
 ### Browser-direct websockets (alternative, not the default)
 
-Binance `wss://data-stream.binance.vision/ws/<sym>@kline_1m`, Bybit `wss://stream.bybit.com/v5/public/spot`, OKX `wss://ws.okx.com:8443/ws/v5/public`. KuCoin requires a `POST /api/v1/bullet-public` token first, which needs CORS or a server.
+Binance `wss://data-stream.binance.vision/ws/<sym>@kline_1m`, Bybit `wss://stream.bybit.com/v5/public/spot`, OKX `wss://ws.okx.com:8443/ws/v5/public`. KuCoin requires a `POST /api/v1/bullet-public` token first, which needs CORS (measured: absent for our origin) or a server.
 
 * Pros: true real-time; no polling cost; no Worker involvement; CORS does not apply (WebSocket has no CORS, though servers may check `Origin`).
 * Cons: same geo-blocks; reconnect, heartbeat and resubscribe logic for each provider; a hidden tab still holds sockets unless explicitly closed; harder to share across tabs (the leader must own the socket); and the previous build removed a websocket proxy, so the team's preference is REST.
@@ -393,7 +495,7 @@ export interface SettlementPrice {
 | BTC/USDT | `BTCUSDT` | `BTC-USDT` | `BTCUSDT` | `BTC-USDT` |
 | ETH/USDT | `ETHUSDT` | `ETH-USDT` | `ETHUSDT` | `ETH-USDT` |
 | PAXG/USDT (XAU proxy) | `PAXGUSDT` | `PAXG-USDT` | `PAXGUSDT` | `PAXG-USDT` |
-| XAUT/USDT (XAU proxy) | `XAUTUSDT` (spot listing to verify) | `XAUT-USDT` | `XAUTUSDT` | `XAUT-USDT` |
+| XAUT/USDT (XAU proxy) | `XAUTUSDT` (spot listing confirmed on Vision) | `XAUT-USDT` (live) | `XAUTUSDT` (unverified: 403) | `XAUT-USDT` (live) |
 
 Rule: `binance/bybit = base+quote`, `okx/kucoin = base-quote`. Listings are verified at startup against `exchangeInfo` / `instruments` (cached 24 h). A symbol not listed at a provider goes to the next provider (`unsupported_symbol`).
 
@@ -429,7 +531,7 @@ Normalization:
 
 | Data | Fresh (`live`) | `delayed` badge | Switch provider | Money path |
 |---|---|---|---|---|
-| Crypto ticker | `now − sourceTs ≤ 15 s` | 15–60 s | > 60 s or 2 failed cycles | **never** uses client data; server needs ≤ 10 s (fills; data-model agent) / ≤ 30 s per input (settlement) |
+| Crypto ticker | `now − sourceTs ≤ 15 s`. For illiquid pairs (PAXG/XAUT), `sourceTs` = fetch time of a book-derived mid, because last-trade time lagged 27 s while the book was live | 15–60 s | > 60 s or 2 failed cycles | **never** uses client data; server needs ≤ 10 s (fills; data-model agent) / ≤ 30 s per input (settlement) |
 | Crypto depth | ≤ 6 s (3 cycles) | grey out book > 6 s | > 15 s | never |
 | Crypto klines | last closed candle ≤ 2 × interval old | badge | > 3 × interval | never |
 | XAU/XAG near-real-time | ≤ 60 s | 60–300 s | > 300 s → fall back to `indicative` token-gold | XAU settlement via token-gold only (§3.5) |
@@ -440,14 +542,18 @@ UI copy, which the UI agent owns: "Live", "Delayed", "Indicative", "Daily refere
 
 ### 6.4 Fallback order per asset class
 
-* **Crypto (browser):** `binanceVision → okx → bybit → kucoin`, then the md Worker region-fallback route.
-  * `binanceVision` comes first because it is the official market-data-only host with high limits. `api.binance.com` is used only if Vision fails *and* returns non-geo errors.
+* **Crypto (browser):** `binanceVision → okx`, then the md Worker region-fallback route. Updated after Round 2, which removed `bybit` and `kucoin` from the browser chain.
+  * `binanceVision` comes first: official market-data-only host, `ACAO: *`, weight headers present. Its p50 latency was 0.72 s vs OKX 0.33 s from the sandbox; re-measure from browsers before fixing the order.
+  * `okx` reflects the origin and answers preflights, but returns no rate-limit headers.
+  * `kucoin` is excluded because it sends no ACAO to our origin. `bybit` and `api.binance.com` are excluded until §1.6 #1–2 show 200 **and** ACAO from real browsers.
   * The provider that succeeded is remembered per browser (per-viewer localStorage convenience, wrapped in try/catch), with a 1 h TTL. `geo_blocked` and `cors` mark a provider *unusable for this session*.
-  * The order is not final until the probe data from §1.4 is in.
-* **Crypto (server / settlement):** query `binanceVision, okx, bybit, kucoin` **in parallel** and take the median of qualifying inputs (§3.5).
+* **Crypto (Worker fallback route):** `binanceVision, okx, kucoin`, plus `bybit` / `binance` if they answer from the placement region.
+* **Crypto (server / `price-ingest`):** query `binanceVision, okx, kucoin, bybit, binance` **in parallel** and take the median of qualifying inputs (§3.5). Geo-blocked responses (451, Bybit CloudFront 403) are classified `geo_blocked` and skipped without counting as failures.
 * **XAU:** near-real-time source (D1) → token-gold median (`PAXG/USDT`, `XAUT/USDT`) → currency-api daily (`reference`).
 * **XAG:** near-real-time source (D1) → currency-api daily (`reference`).
-* **FX:** intraday source (D3, if any) → Frankfurter `.dev` → Frankfurter `.app` → currency-api jsDelivr → currency-api `pages.dev` (the README recommends this fallback).
+* **FX:** intraday source (D3, if any) → Frankfurter `.dev` → currency-api jsDelivr → currency-api `pages.dev` (the README recommends this fallback).
+  * Frankfurter `.app` was removed as a fallback: Round 2 showed it is only a 301 redirect to `.dev`, so it is not independent.
+  * All FX calls are server-side in the md Worker. None of these hosts has been measured live yet (§1.6 #6–7).
 
 ### 6.5 Retry, backoff, negative cache
 
@@ -462,7 +568,7 @@ UI copy, which the UI agent owns: "Live", "Delayed", "Indicative", "Daily refere
 | 451 / geo-403 / CORS | provider unusable for session; try next | provider unusable for 1 h (per PoP isolate) | alert + skip |
 | Negative cache on failure | 10 s per (provider, endpoint) | return last-good or an error envelope `{ok:false}` with `Cache-Control: public, max-age=10`, so the edge absorbs a stampede; Workers Cache request collapsing also helps | 10 s |
 | Circuit breaker | 3 consecutive failures → open 30 s | same | same |
-| Budget guard | Binance: if `X-MBX-USED-WEIGHT-1M` > 3000, halve cadence; Bybit: if `X-Bapi-Limit-Status` < 20%, halve | same | same |
+| Budget guard | Binance: if `X-MBX-USED-WEIGHT-1M` > 3000, halve cadence. Bybit: if `X-Bapi-Limit-Status` < 20%, halve. KuCoin: if `gw-ratelimit-remaining` < 400 of 2000, halve. **OKX sends no RL headers**: cap at ≤ 5 req/s per IP client-side and treat HTTP 429 / code `50011` as `rate_limited`. On shared egress (Worker, Supabase), the weight header reflects other tenants on the same IP too (seen in the sandbox), so act on it rather than on our own count | same | same |
 
 ### 6.6 Polling cadences and the cross-tab model
 
@@ -504,7 +610,15 @@ Assumptions (upper bound):
 | Klines: 60 closes + 10 switches | 70 | **84,000** | ~1.2 × 2 ≈ 2.4 |
 | **Total** | 2,590 | **≈ 3.11 M upstream calls/month**, spread across 10 user IPs | **≈ 176 / 6,000 (2.9%)** |
 
-Bybit check: 2,590 calls/h ≈ 3.6 calls per 5 s, against a limit of 600 per 5 s.
+OKX fallback check: 2,590 calls/h ≈ 0.7 req/s per user IP, under the ≤ 5 req/s self-limit.
+
+Bandwidth (measured payload sizes, sandbox egress):
+
+| Call | Size | Per user-hour |
+|---|---|---|
+| Vision 4-symbol ticker | 683 B | ≈ 0.5 MB/h |
+| Vision depth (limit 50; limit 20 is smaller) | 629 B | ≈ 1.1 MB/h |
+| OKX all-SPOT tickers, if used | 100.8 KB | **≈ 72 MB/h at 5 s**, which is why §3.2 limits it to 10 s or to per-symbol calls |
 
 **FX/metals (shared md Worker route): Worker requests**
 
@@ -545,7 +659,7 @@ Bybit check: 2,590 calls/h ≈ 3.6 calls per 5 s, against a limit of 600 per 5 s
 
 **D1 — Near-real-time XAU/XAG source for display**
 - (a) gold-api.com (free, claimed no key): *good:* simple, likely CORS-friendly · *bad:* unverified freshness and SLA; single hobby provider.
-- (b) Tokenized gold (PAXG/XAUT) for XAU, plus daily currency-api for XAG: *good:* already in the crypto pipeline, 24/7, verifiable · *bad:* proxy basis ±0.1–0.2%; no real-time silver.
+- (b) Tokenized gold (PAXG/XAUT) for XAU, plus daily currency-api for XAG: *good:* already in the crypto pipeline, 24/7, **measured live on 3 venues with browser CORS on 2** (§1.2a) · *bad:* proxy basis ±0.1–0.2% (PAXG–XAUT spread ~25 bp); no real-time silver. **This is now the strongest option on evidence**, since (a) and (c) remain unmeasured.
 - (c) TwelveData free key, server-side only: *good:* official quotes · *bad:* 800/day cap allows about one refresh every 4 min for 2 symbols; key management.
 
 **D2 — Forex terminal order book**
@@ -569,9 +683,16 @@ Bybit check: 2,590 calls/h ≈ 3.6 calls per 5 s, against a limit of 600 per 5 s
 - (c) Paid FX feed: *good:* full product · *bad:* cost and licence, out of scope for "free".
 
 **D6 — Users in exchange-restricted regions (e.g. the US)**
+
+Round-2 context (sandbox egress, US datacenter IP): Vision, OKX and KuCoin answered; `api.binance.com` and Bybit did not. If §1.6 confirms the same for US residential browsers, the Vision → OKX browser chain may serve US users without the fallback route.
 - (a) Fallback Worker route with a Placement Hint in an EU region: *good:* works for everyone · *bad:* possible exchange-ToS concern; Worker requests grow.
 - (b) Add a US-accessible crypto source to the chain (e.g. Coinbase Exchange or Kraken public REST; CORS and limits to measure): *good:* compliant data path · *bad:* more adapters.
 - (c) Geo-gate the app: *good:* simplest compliance · *bad:* loses users.
+
+**D8 — Primary browser provider for crypto (new after Round 2)**
+- (a) Vision first, OKX second: *good:* `ACAO: *`, weight headers for self-throttling, batched multi-symbol tickers · *bad:* no preflight support; 2× higher latency from the sandbox (0.72 s vs 0.33 s).
+- (b) OKX first, Vision second: *good:* lower latency, preflights work · *bad:* no rate-limit headers; the all-tickers payload is large (100 KB); global OKX is restricted for US residents.
+- (c) Race both on the first cycle per session and keep the faster healthy one: *good:* adapts per user region · *bad:* doubles the first-cycle load; more code.
 
 **D7 — Where the md routes live**
 - (a) Separate `aureonx-md` Worker on a route `app.example.com/md/*`, with Workers Cache and a Placement Hint: *good:* isolated billing, cache and placement; no cookies · *bad:* a second deployable.
@@ -596,4 +717,6 @@ Bybit check: 2,590 calls/h ≈ 3.6 calls per 5 s, against a limit of 600 per 5 s
 * **Platform/infra:**
   * The md Worker needs `cache.enabled`, `placement.region`, and no Set-Cookie or auth middleware on `/md/*`.
   * The Supabase project or oracle region must be one the exchanges serve (EU suggested; measure).
-  * The sandbox allowlist must be extended to re-run §1.4.
+  * The sandbox allowlist now covers the exchanges and `api.frankfurter.app`. FX/metals hosts (`api.frankfurter.dev`, gold-api, jsDelivr, …) are still blocked, so they must be measured from a deployed Worker (§1.6).
+  * Before launch, run the §1.6 checks from a real browser on the production origin and from the deployed md Worker and `price-ingest` function.
+* **All agents (md client code):** browser requests to Vision must be CORS-simple GETs: no custom headers, no `Content-Type`, no `Cache-Control` request header, because Vision rejects every preflight with 403. Any shared fetch wrapper that injects headers (auth, tracing, Supabase `apikey`) must not wrap market-data calls.

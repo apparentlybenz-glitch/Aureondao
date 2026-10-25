@@ -14,7 +14,7 @@ Rules for every slice:
 ## Slice 0: Unblock and foundations
 **Scope**
 - Allow the hosts the sandbox blocked: `ui.shadcn.com`, the exchange and FX hosts in `docs/market-data.md` §1.2, and `supabase.com`.
-- Run `shadcn init` (Radix, `nova` preset).
+- ~~Run `shadcn init`~~ (done in Phase 1 after the host was allowed).
 - Wire next-intl with `en` only (no `[locale]` segment).
 - Add Sentry (`@sentry/nextjs`: `instrumentation.ts` + `instrumentation-client.ts`, no `tunnelRoute`).
 - Create the Supabase project with asymmetric JWT signing keys.

@@ -19,8 +19,8 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `server.ts`: cookie-bound server client, `server-only`.
   - `service.ts`: secret-key client, `server-only`, never imported by client code.
 - Pages: `/` (static placeholder) and the default not-found. No features exist yet.
+- shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. `cn()` comes from the `cn` package (shadcn's replacement for clsx + tailwind-merge), re-exported by `src/lib/utils.ts`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@latest add <name>`.
 - Not shipped yet:
-  - shadcn/ui: `init` was blocked by the sandbox network.
   - Supabase migrations: `supabase/migrations/*` is a **proposal, not applied**.
   - Also not installed: next-intl, Sentry, Lightweight Charts, Motion.
 

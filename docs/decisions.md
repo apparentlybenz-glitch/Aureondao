@@ -1,6 +1,6 @@
 # AureonX: merged decisions (Phase 1)
 
-This file merges the three planning docs:
+This file merges the three planning docs (including the market-data re-probe of 2026-10-25, round 2):
 
 - `data-model.md` (DM)
 - `market-data.md` (MD)
@@ -32,6 +32,8 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | C14 | Symbol format | **Id `BTC-USDT` (DB, URLs, code); display `BTC/USDT` (UI only).** | Hyphenated ids are URL-safe; both docs already used them. |
 | C15 | Proxy file. UI called OpenNext's `proxy.ts` support "experimental"; the OpenNext changelog lists it as a shipped feature (#1309) without that label | **Use `proxy.ts`, and smoke-test it on Workers in slice 1** (`pnpm preview`); fall back to `middleware.ts` if it fails (O17). | Cheap to verify; the fallback is the same code. |
 | C16 | KYC gating | **No conflict:** UI D7-A and DM D9 agree (KYC approved + AAL2 if MFA is enrolled, for withdrawals only). Implemented in the proposed migration. | |
+| C18 | Market-data fetches vs shared fetch wrappers. The round-2 re-probe found that `data-api.binance.vision` answers every CORS preflight with 403 | **Market-data calls are CORS-simple GETs**: no custom headers, no `Content-Type`, and never routed through a wrapper that adds Supabase `apikey`/auth or tracing headers. Applies to the UI store and Sentry fetch instrumentation (no trace-propagation headers to exchange hosts). | Any custom header would trigger a preflight, which fails. Re-checked by hand on 2026-10-25 from sandbox egress. |
+| C19 | Browser provider chain. MD round 1 planned Binance Vision → OKX → Bybit → KuCoin in the browser; round 2 measured from sandbox egress (US-located datacenter IP): KuCoin sends no `Access-Control-Allow-Origin` for our origin, `api.binance.com` returns 451 and Bybit returns 403 | **Browser chain: Vision → OKX → shared `/md/v1` fallback.** KuCoin is server-side only (`price-ingest`, Worker fallback). Bybit and `api.binance.com` are server-side candidates only, until a real browser or deployed Worker shows them reachable. | CORS is the deciding evidence for browser-direct. Sandbox egress does not prove browser or Worker reachability; see `docs/market-data.md` §1.6. |
 | C17 | `cacheComponents` / `partialPrefetching` (on by default in the Next 16.4 template) | **Off in the scaffold**; open as O16. | With them off, a page with no request data is plain SSG and maps onto OpenNext's read-only static-assets cache. PPR adds a resume path through the Worker. |
 
 ---
@@ -59,7 +61,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 
 **O4. Options underlyings in v1** (MD D5, DM D2).
 - ★ (a) Crypto only. *Good:* ≥2 fresh independent sources for every settlement. *Bad:* the "I expect XAU/USD will…" example is unavailable.
-- (b) Crypto + XAU via a tokenized-gold proxy. *Good:* gold available 24/7. *Bad:* a proxy basis of about ±0.15%, which must be disclosed.
+- (b) Crypto + XAU via a tokenized-gold proxy. *Good:* gold available 24/7, and live on 3 venues in the round-2 probe (agreeing within ~2.5 bp). *Bad:* the proxy differs from spot gold (PAXG ran ~25 bp above XAUT), which must be disclosed.
 - (c) Daily-fixing FX options. *Good:* honest with free data. *Bad:* breaks the 30–300 s cycle UX.
 
 **O5. Options entry price** (DM D5).
@@ -107,7 +109,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - ★ (a) A separate small `aureonx-md` Worker with Workers Cache and a Placement Hint. *Good:* caching never touches app responses or cookies, and static assets stay unbilled. *Bad:* a second deployable.
 - (b) Route handlers in the OpenNext Worker. *Good:* one deployable. *Bad:* enabling Workers Cache there bills static-asset requests and risks caching app responses.
 
-**O14. Users in exchange-restricted regions (e.g. US 451s)** (MD D6).
+**O14. Users in exchange-restricted regions (e.g. US 451s)** (MD D6). From the sandbox's US-located IP, `api.binance.com` returned 451 and Bybit 403, while Vision, OKX and KuCoin answered.
 - ★ (a) Add a US-accessible public source to the fallback chain. *Good:* a compliant data path. *Bad:* more adapters to maintain.
 - (b) Fallback through an EU-placed Worker. *Good:* works for everyone. *Bad:* possible exchange-ToS concern.
 - (c) Geo-gate the app. *Good:* simplest. *Bad:* loses users.
@@ -131,6 +133,11 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 **O19. Supabase plan.**
 - ★ (a) Free during build; revisit before real users. *Good:* $0. *Bad:* projects pause after a week idle, and the 500 MB database fills in about a year at the estimated rate.
 - (b) Pro from day one. *Good:* no pausing, backups, Advanced MFA available. *Bad:* monthly cost.
+
+**O20. Primary browser crypto provider** (MD D8, new in round 2).
+- ★ (a) Vision first, OKX on failure. *Good:* `ACAO: *` and a documented weight budget. *Bad:* reachability for non-US residential browsers is unproven (preflights are not supported).
+- (b) OKX first. *Good:* echoes any origin, and its order book sends `*`. *Bad:* no rate-limit headers, a ~100 KB all-tickers response, and global OKX is restricted for US residents.
+- (c) Race both on the first cycle each session, then keep the faster healthy one. *Good:* adapts to each user's region. *Bad:* doubles the first-cycle load; more code.
 
 ### Lower-stakes defaults (taken unless you object)
 
