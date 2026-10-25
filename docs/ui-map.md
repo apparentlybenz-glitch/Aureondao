@@ -1,5 +1,7 @@
 # AureonX: UI map (planning)
 
+> **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
+
 > AureonX is a **simulated** multi-asset trading platform. An admin credits demo funds and no real money moves. This file maps every screen to its route, layout, rendering mode, auth requirement, components and data source. It is a plan only: no app code exists yet.
 >
 > Research date: 2026-10-25. Versions found on npm on that date: `next@16.4.3` (the scaffold already pins this), `@opennextjs/cloudflare@1.20.13` (peer range `next >=15.5.28 <16 || >=16.4.1`), `@supabase/supabase-js@2.118.0`, `@supabase/ssr@0.12.7`, `lightweight-charts@5.2.1`, `next-intl@4.14.9`, `motion`/`framer-motion@14.6.0`, `@sentry/nextjs@11.9.0`, `tailwindcss@4.3.3`, `shadcn@4.22.1`.
@@ -92,7 +94,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
   1. Create `createServerClient` (`@supabase/ssr`).
   2. Call `supabase.auth.getClaims()`.
   3. If there are no claims, redirect to `/sign-in?next=<path>`.
-  4. For `/admin/*`, require `claims.app_metadata.role === 'admin'` and redirect to `/spot` otherwise.
+  4. For `/admin/*`, require `claims.user_role === 'admin'` (top-level claim set by the custom access token hook, `docs/data-model.md` §4.5) and redirect to `/spot` otherwise.
   5. For `/admin/*`, also require `claims.aal === 'aal2'`, and redirect to `/sign-in/mfa` otherwise. Regular users who have enrolled factors are stepped up client-side: `(app)/layout` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The withdraw RPCs also check `auth.jwt()->>'aal' = 'aal2'` in SQL.
   6. Return the `supabaseResponse` that carries the refreshed cookies and cache headers.
 - **Is it a network call?** In the common case, no. In `@supabase/auth-js@2.118.0`, `getClaims()` decodes the JWT, then calls `fetchJwk(kid)`. That function reads an in-memory `GLOBAL_JWKS` (TTL `JWKS_TTL = 10 min`) and fetches `/.well-known/jwks.json` only when the key is missing or stale. It then verifies with `crypto.subtle.verify`. It falls back to `getUser()` (a network call) only if `alg` is HS* (a legacy symmetric secret) or WebCrypto is missing. Separately, it refreshes the session first (a network call) if the access token is expired or about to expire, which happens once per token lifetime. To remove the cold-isolate JWKS fetch entirely, pass the project JWKS from an env var: `getClaims(undefined, { jwks: JSON.parse(env.SUPABASE_JWKS) })` ("this JSON Web Key Set is going to have precedence over the cached value"). The cost is redeploying when keys rotate; Supabase warns that long caching makes revocation harder.
@@ -126,14 +128,14 @@ Legend:
 | Forex terminal | `/forex?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(forex), DrawingToolbar, PriceChart (timeframes 1m–1M, volume + MA5/10/20, Native/Depth toggle, AureonX watermark), OrderBook + LatestTrades, ForexOrderForm (the Spot form with the forex wallet; see D6), UserOrdersPanel |
 | Options terminal | `/options?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(options), PriceChart (compact, entry-price line + expiry markers), OptionsTicket (Rise/Fall, CycleSelector, PremiumPresets + custom, fee/expected profit, SlideToConfirm), OptionsPositionsTabs (Positions with ExpiryCountdown, Filled Orders, Statistics) |
 | My Assets | `/assets` | (app) | S+C | U | TotalBalanceHeader, SubWalletCards (Capital/Spot/Forex/Options), ProfitChart (1D/1W/1M/6M), AssetTable (per coin), QuickActions (Deposit/Withdraw/Transfer) |
-| Deposit crypto | `/assets/deposit/crypto` | (app) | S+C | U (KYC optional, D7) | Stepper: CoinSelect → NetworkSelect → AddressDisplay (platform address + QR + copy) → AmountAndTxRef → Submit; RecentRequestsTable |
+| Deposit crypto | `/assets/deposit/crypto` | (app) | S+C | U (KYC optional, D7) | Stepper: CoinSelect → NetworkSelect → DemoDepositNotice (no receiving address is shown: this is a simulated request, decisions.md C9) → Amount → Submit; RecentRequestsTable |
 | Withdraw crypto | `/assets/withdraw/crypto` | (app) | S+C | U + MFA + KYC approved | Stepper: CoinSelect → NetworkSelect → DestinationAddress → Amount (fee, min, available) → Confirm (TOTP/phone code) ; RecentRequestsTable |
 | Deposit fiat | `/assets/deposit/fiat` | (app) | S+C | U | Stepper: Currency → Method (bank transfer, simulated) → Amount → Reference shown → Submit |
 | Withdraw fiat | `/assets/withdraw/fiat` | (app) | S+C | U + MFA + KYC approved | Stepper: Currency → BeneficiaryForm → Amount → Confirm |
 | Transfer | `/assets/transfer` | (app) | S+C | U | TransferForm (From wallet ⇄ To wallet swap button, asset, amount, Max), RecentTransfers |
 | Bills | `/assets/bills` | (app) | S+C | U | BillsFilters (wallet, type, asset, date range), BillsTable (keyset pagination), BillDetailSheet |
 | Profile | `/account` | (app) | S+C | U | ProfileCard (nickname editable, UID copy, email, phone, country, KycStatusBadge) |
-| Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone), Email verification status, Change password; SecurityScore |
+| Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone; needs Supabase's paid Advanced MFA add-on, decisions.md O8), Email verification status, Change password; SecurityScore |
 | KYC | `/account/kyc` | (app) | S+C | U | KycStepper: Country → DocType → PersonalInfo → DocumentUpload (front/back) + Selfie → Review & submit; KycStatusPanel (pending/approved/rejected + reason) |
 | Admin dashboard | `/admin` | admin | S+C | A + MFA | QueueCountCards (pending deposits, withdrawals, KYC), RecentAuditList |
 | Admin users | `/admin/users` (`?id=`) | admin | S+C | A | UsersTable (search, filters, pagination), UserDetailSheet (profile, KYC, wallets, BalanceAdjustDialog credit/debit, orders, bills, ban/unban → D9) |
@@ -294,7 +296,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 | Component | Data source |
 |---|---|
 | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, CtaBand, Footer, Legal pages, NotFound | static |
-| LiveMarketPreview | browser → shared cached Worker route ⚑ (one `GET /api/market/tickers?set=home`, edge-cached a few seconds; the store's bulk ticker; optionally a public exchange WS after first paint) |
+| LiveMarketPreview | browser → shared cached Worker route ⚑ (one `GET /md/v1/tickers?set=home`, edge-cached a few seconds; the store's bulk ticker; optionally a public exchange WS after first paint) |
 | SupportWidget (placeholder) | static (opens a Sheet with a contact email / "coming soon"; no third-party script in v1) |
 | "Signed in?" CTA swap on the homepage | browser → Supabase (local session read from cookie storage via `getSession()`, no network) |
 | SignInForm / SignUpForm / ResetRequestForm / UpdatePasswordForm | Supabase Auth client (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`). Counts as **Supabase RPC (write)** class: a browser call to Supabase |
@@ -312,7 +314,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 | MarketList: prices, change | market store ⚑ (crypto spot: browser → public exchange API (WS/REST); forex/metals: browser → shared cached Worker route) |
 | MarketList: favorites | browser → Supabase (RLS read `favorites`); toggle = Supabase RPC `toggle_favorite` |
 | SymbolHeader ticker | market store ⚑ |
-| PriceChart history candles | market store ⚑ (crypto: public exchange REST klines; forex: shared cached Worker route `/api/market/candles?symbol&tf`, edge-cached per (symbol, tf, bucket)) |
+| PriceChart history candles | market store ⚑ (crypto: public exchange REST klines; forex: shared cached Worker route `/md/v1/candles?symbol&tf`, edge-cached per (symbol, tf, bucket)) |
 | PriceChart live updates | market store ⚑ (crypto: public WS; forex: the store derives candle updates from ticker polling **of the Worker route at the store level, once per symbol across all components and tabs**. This is a market-data refresh, not polling of user data) |
 | Volume + MA5/10/20 | derived client-side from candles (static computation) |
 | DepthChart | market store order book ⚑ |
@@ -348,7 +350,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 | KycStepper: text fields | Supabase RPC (write) `submit_kyc` |
 | KycStepper: document + selfie upload | browser → Supabase Storage (direct `upload()` to private bucket `kyc/{uid}/…`, Storage RLS insert-own-folder). **Not** through a server action (1 MB default `serverActions.bodySizeLimit`, and it would waste Worker CPU) |
 | KycStatusPanel | browser → Supabase (RLS read `kyc_submissions`) + Supabase Realtime |
-| Admin tables (users, queues, audit) | browser → Supabase (RLS read; admin policies via `is_admin()` reading the JWT `app_metadata.role`) + Supabase Realtime (new pending items) |
+| Admin tables (users, queues, audit) | browser → Supabase (RLS read; admin policies via `private.is_admin()` reading `user_roles`) + Supabase Realtime (new pending items) |
 | Admin approve/reject, credit/debit, cycle config | Supabase RPC (write) `admin_review_deposit`, `admin_review_withdrawal`, `admin_review_kyc`, `admin_adjust_balance`, `admin_upsert_option_cycle` (SECURITY DEFINER + `is_admin()` check + audit row) |
 | Admin KYC image viewer | browser → Supabase Storage `createSignedUrl` (Storage RLS select policy for admins; 60 s URLs) |
 | Admin ban/unban, reset a user's MFA, force sign-out | **server action (secret: `SUPABASE_SECRET_KEY` for `auth.admin.*`)**. These are the only admin operations Postgres RLS cannot do (D9) |
@@ -359,13 +361,13 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 2. `/auth/callback` and `/auth/confirm` route handlers. No secret.
 3. Server actions in `src/app/admin/_actions.ts`: `banUser`, `unbanUser`, `resetUserMfa`, `signOutUser`. Secret: `SUPABASE_SECRET_KEY`. Each action re-verifies `getClaims()` admin role and AAL2 before acting.
 4. *(Only if D4 = self-hosted WebAuthn)* `src/app/account/security/_passkey-actions.ts`.
-5. The shared market-data Worker route `/api/market/*` belongs to the market-data agent. The UI consumes it only through the store.
+5. The shared market-data Worker route `/md/v1/*` belongs to the market-data agent. The UI consumes it only through the store.
 
 ### 5.5 Explicit confirmation: no Next route is polled
 **No UI component polls a Next.js route.**
 - User data (balances, orders, positions, requests, KYC, admin queues) is read once from Supabase and then kept fresh by Supabase Realtime. No `setInterval` + `fetch('/api/...')` exists for user data.
 - Realtime channel names are `user:${uid}:wallets:${crypto.randomUUID()}` and similar. They are created in `useEffect`, and the cleanup calls `supabase.removeChannel(ch)`.
-- The only repeated network activity against the Worker is the market-data store's refresh of the **shared, edge-cached** forex/metals endpoint, owned by the market-data agent. It has one timer per symbol per browser (leader tab via `BroadcastChannel`), it is not per component, and it is served from Cloudflare cache, so most hits never reach Worker code (`caches.default` or Cache Rules). Page visibility pauses it (`document.visibilityState`).
+- The only repeated network activity against the Worker is the market-data store's refresh of the **shared, edge-cached** forex/metals endpoint, owned by the market-data agent. It has one timer per symbol per browser (leader tab via `BroadcastChannel`), it is not per component, and it is served from Workers Cache in front of the market-data Worker: hits run no Worker code but are still billed as Worker requests (`docs/market-data.md` §5; Cache Rules cannot sit in front of a Worker). Page visibility pauses it (`document.visibilityState`).
 - Countdown timers are local `requestAnimationFrame`/interval renders against `expires_at`; they make no network calls.
 
 ---
@@ -465,6 +467,8 @@ Sources: OpenNext Cloudflare docs <https://opennext.js.org/cloudflare> (repo `op
 
 ### 9.1 Data-model agent: tables, views and RPCs the UI expects
 
+> **Superseded at merge.** This list was the UI agent's request. The authoritative names and shapes are in `docs/data-model.md`, and its §12 maps each item below to what was adopted.
+
 Tables (all RLS; "public read" means readable by `anon` and `authenticated`):
 - `profiles(id uuid pk = auth.uid, uid_display text unique /* short numeric UID shown in UI */, nickname, email, phone, country, kyc_status enum('none','pending','approved','rejected'), role enum('user','admin'), created_at)`. Email/phone are mirrored from `auth.users` by trigger. `role` must also be copied to `app_metadata.role` (custom access token hook or admin RPC) so the proxy and `is_admin()` can read it from the JWT.
 - `wallets(user_id, wallet enum('capital','spot','forex','options'), asset text, available numeric, locked numeric, updated_at, pk(user_id, wallet, asset))`
@@ -507,9 +511,9 @@ Realtime: the UI subscribes to `postgres_changes` filtered by `user_id=eq.<uid>`
 1. **Server-trusted prices for settlement and fills (data-model ↔ market-data).** Browser-fetched prices cannot be trusted to settle options, fill market/limit orders, or value `portfolio_snapshots`. Someone must own a **server-side price source**: a Supabase Edge Function or pg_cron + `http` fetching the same public APIs and writing `price_ticks`/`settlement_prices`, or the shared Worker route writing into Supabase. The UI assumes `place_*` RPCs read the price server-side and that settlement arrives via Realtime.
 2. **Forex order book, trades and volume do not exist publicly.** Spot FX/metals have no consolidated public order book, tape or volume. The Forex terminal spec (order book, latest trades, volume MA5/10/20, depth chart) therefore needs **synthetic** data generated around the mid price, or tick-count volume, from the market-data agent. Otherwise the UI must hide those panels for forex. Probes in this session showed several free FX/metal APIs blocked from the sandbox, so availability is unconfirmed.
 3. **Options terminal symbols.** "Options" here means binary up/down on an underlying. `instruments.category = 'options'` needs an underlying price feed, which is likely the same crypto/forex feeds. Agree whether options symbols reuse spot/forex symbols (`BTC-USDT`, `XAU-USD`) or are separate rows.
-4. **USD valuation of balances.** The Assets total needs a price for every held asset, including assets not on screen. The market store must support a cheap bulk ticker (`useTickers`) or the Worker route `/api/market/tickers?symbols=`. Otherwise the data-model agent must expose a server-valued `wallet_totals_v`.
-5. **Admin role claim.** The proxy reads `app_metadata.role` from the JWT. The data-model agent must set it (a custom access token hook or `auth.admin.updateUserById`), not only `profiles.role`.
+4. **USD valuation of balances.** The Assets total needs a price for every held asset, including assets not on screen. The market store must support a cheap bulk ticker (`useTickers`) or the Worker route `/md/v1/tickers?symbols=`. Otherwise the data-model agent must expose a server-valued `wallet_totals_v`.
+5. **Admin role claim.** Resolved: the proxy reads the top-level `user_role` claim, set by the custom access token hook from `user_roles`.
 6. **Asymmetric JWT keys** must be enabled on the Supabase project, or R4 degrades into a network call per request.
 7. **Realtime channel naming.** The UI uses `crypto.randomUUID()` suffixes. If the data-model agent chooses private broadcast channels with RLS on `realtime.messages`, policies must match by topic **prefix** (e.g. `split_part(topic, ':', 2) = auth.uid()::text`) and not by exact name.
-8. **Decimal handling.** The UI sends amounts as strings and expects `numeric` columns returned as strings (PostgREST does this). RPC args should be `numeric` and not `float8`.
+8. **Decimal handling.** The UI sends amounts as strings and expects `numeric` columns returned as strings. Resolved: PostgREST returns `numeric` as JSON numbers, so every select of a numeric or money column casts with `::text`. RPC args should be `numeric` and not `float8`.
 9. **Chart attribution vs. the "no third-party brands" rule.** Lightweight Charts' Apache-2.0 NOTICE requires crediting TradingView as the product creator, with a link. That is a license obligation and not exchange branding, but the main agent should confirm (D10).

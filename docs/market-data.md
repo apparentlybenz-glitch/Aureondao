@@ -1,5 +1,7 @@
 # AureonX — Market Data Plan (planning phase)
 
+> **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
+
 > Status: **planning only**. Nothing here is implemented. AureonX is a **simulated** trading platform (demo funds, no real money).
 > "Money path" below means any code that changes simulated balances, positions, fills, margin, liquidation, or options settlement.
 > Provider names appear here only as data sources. **UI copy must never show provider names or branding** (use labels like "Live", "Delayed", "Indicative", "Daily reference rate").
@@ -187,7 +189,7 @@ Cloudflare: "aureonx-md" Worker (separate from the OpenNext app Worker)
  └─ fetch(): upstream FX/metals; returns normalized JSON + Cache-Control: public, max-age=N, stale-while-revalidate=M
 
 Supabase (settlement; owned by the settlement agent)
- └─ Edge Function "price-oracle" invoked with x-region: eu-central-1 (pg_cron) → ≥2 exchanges → median → settlement row
+ └─ Edge Function "price-ingest" (data-model.md §7) invoked with x-region: eu-central-1 (pg_cron, 10 s, demand-gated) → ≥2 exchanges → median → ingest_prices
 ```
 
 ### 3.2 Tickers
@@ -220,7 +222,7 @@ Supabase (settlement; owned by the settlement agent)
 
 ### 3.5 Settlement price (input to the settlement agent's design)
 
-* **Server-side only.** Use a Supabase Edge Function (`price-oracle`) invoked from pg_cron with `x-region` / `forceFunctionRegion` pinned to a region the exchanges serve (EU first; measure). Region pinning is documented in [Supabase regional invocation](https://supabase.com/docs/guides/functions/regional-invocation). Without pinning, a function runs nearest the caller. Verify via the `x-sb-edge-region` response header.
+* **Server-side only.** Merged with the data model: there is one Edge Function, `price-ingest` (`docs/data-model.md` §7), run every 10 s by pg_cron while there is demand. The validation rules below run inside it before it calls `ingest_prices`; the database then applies its own freshness checks (≤15 s for entry and fills, at-or-after expiry and ≤60 s for settlement). It is invoked from pg_cron with `x-region` / `forceFunctionRegion` pinned to a region the exchanges serve (EU first; measure). Region pinning is documented in [Supabase regional invocation](https://supabase.com/docs/guides/functions/regional-invocation). Without pinning, a function runs nearest the caller. Verify via the `x-sb-edge-region` response header.
 * **Crypto options:**
   * Price = **median** of the mid (or last) from ≥2 of {Binance `data-api.binance.vision`, OKX, Bybit, KuCoin}.
   * Each source must have an exchange timestamp ≤ **30 s** old and a fetch ≤ **10 s** ago.
@@ -519,7 +521,7 @@ Bybit check: 2,590 calls/h ≈ 3.6 calls per 5 s, against a limit of 600 per 5 s
 * Daily FX: TTL 900 s gives ≤ 4/h, so ≤ 96/day ≈ **2,900/month**.
 * Tiered cache and request collapsing hold this to about one fill per TTL per cache key. A small multiple is possible across upper tiers. Placement can raise the miss count slightly but does not change the order of magnitude.
 
-**Settlement oracle (Supabase)**
+**Settlement oracle (Supabase)** — superseded at merge by the 10 s demand-gated `price-ingest` (`docs/data-model.md` §14: about 115 k invocations/month; 259 k if it ran nonstop). The 60 s figures below are kept for comparison only.
 * pg_cron every 60 s, running only while unexpired options exist: 1,440 runs/day → **43,200 Edge Function invocations/month**.
 * Each run makes 4 parallel batch-ticker calls: **172,800 upstream calls/month** from one IP. Binance weight is about 2 per minute, which is negligible.
 * At-expiry captures add a few extra calls each.
