@@ -6,11 +6,13 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (Phase 1: bare scaffold)
+## Shipped state (slice 1: auth, profile, Security Center)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
   - `wrangler.jsonc` sets `nodejs_compat` and `global_fetch_strictly_public`, with compatibility date 2026-10-15.
+  - `wrangler.jsonc` turns on Workers Logs, invocation logs and traces, with `redact_query_string: true` so auth tokens in query strings are never logged.
+  - Deploying with Workers Builds (settings, build vs runtime variables, Supabase redirect URLs, post-deploy checks, log checks): `docs/deploy.md`. Not deployed yet.
   - `open-next.config.ts` uses the read-only static-assets incremental cache, so no R2/KV/D1/Queue bindings are needed.
   - `public/_headers` makes `/_next/static/*` immutable.
 - `next.config.ts` sets `images.unoptimized: true`. `cacheComponents` and `partialPrefetching` are **off**, so a page with no request data is plain SSG.
@@ -18,7 +20,16 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `client.ts`: browser client.
   - `server.ts`: cookie-bound server client, `server-only`.
   - `service.ts`: secret-key client, `server-only`, never imported by client code.
-- Pages: `/` (static placeholder) and the default not-found. No features exist yet.
+- Pages (all static prerenders; user data loads in client components):
+  - `/` (placeholder) and the default not-found.
+  - `(auth)`: `/sign-in`, `/sign-in/mfa` (TOTP step-up to AAL2), `/sign-up`, `/forgot-password`, `/update-password`. The layout exports `dynamic = "error"`.
+  - `(app)`: `/account` (UID, email, KYC status read only; nickname, phone and country edited through `update_profile`) and `/account/security` (email verification status, TOTP enroll/verify/remove, password change; passkeys and phone show "Not available yet"). The layout exports `dynamic = "error"`, shows the "VIRTUAL FUNDS" badge, and runs a client guard that sends AAL1 sessions with a verified factor to `/sign-in/mfa`.
+  - Route handlers: `/auth/confirm` (`verifyOtp` with `token_hash`) and `/auth/callback` (PKCE `exchangeCodeForSession`). Both redirect only to same-origin paths (`src/lib/safe-next.ts`).
+- `src/proxy.ts`: matcher is `/account/:path*` only (later slices add their paths). It verifies the session with `getClaims()` (ES256, cached JWKS), refreshes cookies, logs errors and fails closed to `/sign-in?next=`. Smoke-tested on workerd with `pnpm preview` (C15): `proxy.ts` works, no `middleware.ts` fallback needed.
+- Supabase (project on the Free plan), applied through the Management API and recorded in migration history:
+  - `supabase/migrations/20261025190257_auth_profiles.sql`: `profiles`, `user_roles`, `wallets`, `ledger`; `private.is_admin`, `private.lock_wallets`, `private.wallet_apply`, the balance-write guard trigger; the signup trigger (profile + random 8-digit UID + 4 wallets at 0, no starting credit); the email-mirror trigger; `public.update_profile`; `public.custom_access_token_hook` (top-level `user_role` claim, `'admin'` or `'user'`). RLS on all four tables, SELECT-only grants, `wallets` and `profiles` in the Realtime publication.
+  - Dashboard-only settings (the Management API token has no `auth_config_write`): the Custom Access Token hook is enabled there. Custom email templates need custom SMTP, which is not set up, so emails still use the default `{{ .ConfirmationURL }}` links.
+  - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
 - shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
   - `shadcn` is a devDependency only (for the `shadcn/tailwind.css` import).
@@ -35,7 +46,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - Without a DSN the SDK stays off. No `tunnelRoute`.
   - **Sentry does not capture errors inside `proxy.ts` on Workers:** OpenNext stubs the instrumentation loader in the Node middleware bundle. Handle and log errors there explicitly.
 - Not shipped yet:
-  - Supabase migrations: `supabase/migrations/*` is a **proposal, not applied**.
+  - `supabase/migrations/20261025000000_initial_schema.sql` is a **proposal, not applied**. Each slice cuts its own migration from it.
   - Also not installed: Lightweight Charts, Motion.
 
 Planning docs are **proposals, not shipped behavior**:
@@ -59,7 +70,7 @@ Planning docs are **proposals, not shipped behavior**:
 
 Gate before any commit: `pnpm typecheck && pnpm lint && pnpm build && pnpm build:worker`.
 
-Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 0 it is 2,061 KiB. Sentry accounts for about 1.2 MiB of that: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper.
+Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 1 it is 3,582 KiB (2,061 KiB after slice 0). Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
 
 ## Hard rules (non-negotiable)
 

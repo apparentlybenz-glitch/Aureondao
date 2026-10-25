@@ -1,5 +1,7 @@
 -- =============================================================================
 -- PROPOSED — NOT APPLIED. Review in Phase 1 sign-off.
+-- Slices cut their own migrations from this file (O18). Slice 1 shipped as
+-- 20261025190257_auth_profiles.sql (profiles, user_roles, wallets, ledger).
 -- =============================================================================
 -- AureonX initial schema (multi-asset trading on virtual funds; no real money).
 -- Design doc: docs/data-model.md  (read it first; this file implements it).
@@ -2097,7 +2099,7 @@ begin
                   where r.user_id = (event ->> 'user_id')::uuid and r.role = 'admin')
     into v_admin;
   v_claims := jsonb_set(v_claims, '{user_role}',
-                        case when v_admin then '"admin"'::jsonb else 'null'::jsonb end);
+                        to_jsonb(case when v_admin then 'admin' else 'user' end));
   return jsonb_set(event, '{claims}', v_claims);
 end;
 $$;
