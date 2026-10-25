@@ -52,6 +52,7 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | O19 Supabase | Free plan |
 | KYC files | Full multi-step UI, but no uploaded file is stored anywhere; the admin reviews text fields only |
 | Wording | The words for "not real" funds are **virtual funds** / **virtual balance** everywhere |
+| Signup credit (slice 1) | None. The signup trigger creates 4 wallets at 0 and writes no ledger row; an admin credits virtual funds. Supersedes the starting-credit line once in `build-order.md` |
 
 ## Part 2: Open decisions for sign-off
 

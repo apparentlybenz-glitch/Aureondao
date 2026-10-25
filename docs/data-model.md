@@ -298,7 +298,7 @@ Legend:
 - `guard_balance_write()`
 
 ### 4.5 Auth hook
-`public.custom_access_token_hook(event jsonb)` adds a top-level JWT claim `user_role: "admin" | null`, read from `user_roles`. It is for **routing only** (the UI proxy). SQL authorization always calls `private.is_admin()`, which reads the table live, so revoking an admin takes effect immediately in the database even while an old JWT is still valid. Enable it in Dashboard → Authentication → Hooks. Only `supabase_auth_admin` may execute it.
+`public.custom_access_token_hook(event jsonb)` adds a top-level JWT claim `user_role: "admin" | "user"`, read from `user_roles`. It is for **routing only** (the UI proxy). SQL authorization always calls `private.is_admin()`, which reads the table live, so revoking an admin takes effect immediately in the database even while an old JWT is still valid. Enable it in Dashboard → Authentication → Hooks. Only `supabase_auth_admin` may execute it.
 
 ---
 

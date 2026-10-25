@@ -53,7 +53,7 @@ Rules for every slice:
 **Scope**
 - Pages: sign-up, sign-in, reset password, `/auth/callback`, `/auth/confirm`.
 - `proxy.ts`: matcher covers protected routes only, verifies with `getClaims()` (local JWT verification).
-- Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets, with the starting virtual balance credited through `wallet_apply` so seeding writes a ledger row), and the custom access token hook (`user_role` claim).
+- Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets at 0; no starting credit, see `docs/decisions.md` Part 1b), and the custom access token hook (`user_role` claim).
 - Auth: email confirmation through `verifyOtp({ token_hash, type })`, not PKCE; `emailRedirectTo` on sign-up.
 - `/account`: nickname, UID, email, phone, country, KYC status (read only).
 - `/account/security`: TOTP enroll/verify, password change, email verification status. Passkeys (O9, deferred) and phone MFA (O8: profile field only) show as unavailable.
