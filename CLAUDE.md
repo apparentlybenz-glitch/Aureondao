@@ -6,7 +6,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (slice 1: auth, profile, Security Center; slice 2 Part A: money RPCs)
+## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
@@ -15,17 +15,21 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - Deploying with Workers Builds (settings, build vs runtime variables, Supabase redirect URLs, post-deploy checks, log checks): `docs/deploy.md`. Not deployed yet.
   - `open-next.config.ts` uses the read-only static-assets incremental cache, so no R2/KV/D1/Queue bindings are needed.
   - `public/_headers` makes `/_next/static/*` immutable.
+- `globals.css` maps `--font-sans` to `--font-geist-sans` (the `shadcn init` value pointed at itself, so text fell back to a serif font).
 - `next.config.ts` sets `images.unoptimized: true`. `cacheComponents` and `partialPrefetching` are **off**, so a page with no request data is plain SSG.
 - Supabase helpers in `src/lib/supabase/`:
   - `client.ts`: browser client.
   - `server.ts`: cookie-bound server client, `server-only`.
   - `service.ts`: secret-key client, `server-only`, never imported by client code.
 - Pages (all static prerenders; user data loads in client components):
-  - `/` (placeholder) and the default not-found.
+  - The default not-found. `/` is the signed-in Home (below); the public homepage is slice 9.
+  - `(app)` shell (slice 2): top bar (avatar, VIRTUAL pill, search, globe, bell, support) and a fixed bottom tab bar (Home, Market, raised Trade, Options, Assets). Dark theme for the whole app. Screen tags and assumptions: `docs/ui-map.md` §4.10.
+  - `(app)` pages (slice 2): `/` Home (total with hide-eye, quick actions; 6 tiles "Soon"), `/assets`, `/assets/transfer`, `/assets/bills`, `/admin`, and "Coming soon" at `/market`, `/spot`, `/options`, `/support`, `/notifications`.
+  - Money in the UI: `src/lib/money.ts` (BigInt cents, `::text` selects), `src/lib/wallets.ts` (`useWallets`, Realtime on `wallets`), `src/lib/attempt-key.ts` (one idempotency key per confirm attempt).
   - `(auth)`: `/sign-in`, `/sign-in/mfa` (TOTP step-up to AAL2), `/sign-up`, `/forgot-password`, `/update-password`. The layout exports `dynamic = "error"`.
-  - `(app)`: `/account` (UID, email, KYC status read only; nickname, phone and country edited through `update_profile`) and `/account/security` (email verification status, TOTP enroll/verify/remove, password change; passkeys and phone show "Not available yet"). The layout exports `dynamic = "error"`, shows the "VIRTUAL FUNDS" badge, and runs a client guard that sends AAL1 sessions with a verified factor to `/sign-in/mfa`.
-  - Route handlers: `/auth/confirm` (`verifyOtp` with `token_hash`) and `/auth/callback` (PKCE `exchangeCodeForSession`). Both redirect only to same-origin paths (`src/lib/safe-next.ts`).
-- `src/proxy.ts`: matcher is `/account/:path*` only (later slices add their paths). It verifies the session with `getClaims()` (ES256, cached JWKS), refreshes cookies, logs errors and fails closed to `/sign-in?next=`. Smoke-tested on workerd with `pnpm preview` (C15): `proxy.ts` works, no `middleware.ts` fallback needed.
+  - `(app)`: `/account` (UID, email, KYC status read only; nickname, phone and country edited through `update_profile`) and `/account/security` (email verification status, TOTP enroll/verify/remove, password change; passkeys and phone show "Not available yet"). The layout exports `dynamic = "error"`, shows the VIRTUAL pill in the top bar, and runs a client guard that sends AAL1 sessions with a verified factor to `/sign-in/mfa`.
+  - Route handlers: `/auth/confirm` (`verifyOtp` with `token_hash`) and `/auth/callback` (PKCE `exchangeCodeForSession`). Both redirect only to same-origin paths (`src/lib/safe-next.ts`); the default target after sign-in is `/` (Home).
+- `src/proxy.ts`: matcher covers `/`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications` (later slices add their paths). It does not check the admin role; RLS and the RPCs do. It verifies the session with `getClaims()` (ES256, cached JWKS), refreshes cookies, logs errors and fails closed to `/sign-in?next=`. Smoke-tested on workerd with `pnpm preview` (C15): `proxy.ts` works, no `middleware.ts` fallback needed.
 - Supabase (project on the Free plan), applied through the Management API and recorded in migration history:
   - `supabase/migrations/20261025190257_auth_profiles.sql`: `profiles`, `user_roles`, `wallets`, `ledger`; `private.is_admin`, `private.lock_wallets`, `private.wallet_apply`, the balance-write guard trigger; the signup trigger (profile + random 8-digit UID + 4 wallets at 0, no starting credit); the email-mirror trigger; `public.update_profile`; `public.custom_access_token_hook` (top-level `user_role` claim, `'admin'` or `'user'`). RLS on all four tables, SELECT-only grants, `wallets` and `profiles` in the Realtime publication.
   - Dashboard-only settings (the Management API token has no `auth_config_write`): the Custom Access Token hook is enabled there. Custom email templates need custom SMTP, which is not set up, so emails still use the default `{{ .ConfirmationURL }}` links.
@@ -36,9 +40,10 @@ This file is the single source of truth. It describes **what has shipped**, and 
     - `ledger.counter_account` is set on transfer legs. The UI renders Bills text from `en.json`; the DB stores no display copy.
     - `transfers` and `admin_audit_log`: RLS on, no policies, no grants.
     - Tests: `supabase/tests/slice2_part_a.sh` (needs a write-capable Management API token).
+  - `supabase/migrations/20261025234445_admin_adjust_description.sql` (slice 2): admin adjustments write the Bills text "Balance adjustment" (`ledger.memo`); the reason stays in the audit log. Slice 2 therefore has two migrations.
   - First admin: one owner-approved `insert into public.user_roles` for a confirmed account. There is no admin yet.
   - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
-- shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
+- shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Components: `badge`, `button`, `input`, `label`. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
   - `shadcn` is a devDependency only (for the `shadcn/tailwind.css` import).
 - next-intl 4.14, English only, no locale segment in URLs:
@@ -78,7 +83,7 @@ Planning docs are **proposals, not shipped behavior**:
 
 Gate before any commit: `pnpm typecheck && pnpm lint && pnpm build && pnpm build:worker`.
 
-Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 1 it is 3,582 KiB (2,061 KiB after slice 0). Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
+Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 2 it is 3,584 KiB (3,582 KiB after slice 1, 2,061 KiB after slice 0). `wrangler check startup` after slice 2: 43.4 ms active CPU locally. Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
 
 ## Hard rules (non-negotiable)
 
