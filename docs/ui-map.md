@@ -298,7 +298,7 @@ Motion: use `motion/react` with `LazyMotion` + `domAnimation` and the `m.*` comp
 - **Described:** specified in the brief's text only; the layout is our interpretation.
 - **Designed:** neither; we designed it.
 
-Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its "Demo trading" tile (wording rule).
+Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its practice-account shortcut tile (wording rule).
 
 #### App shell: Captured
 - **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is white with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
