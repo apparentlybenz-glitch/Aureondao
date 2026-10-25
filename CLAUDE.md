@@ -19,10 +19,24 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `server.ts`: cookie-bound server client, `server-only`.
   - `service.ts`: secret-key client, `server-only`, never imported by client code.
 - Pages: `/` (static placeholder) and the default not-found. No features exist yet.
-- shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. `cn()` comes from the `cn` package (shadcn's replacement for clsx + tailwind-merge), re-exported by `src/lib/utils.ts`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@latest add <name>`.
+- shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
+  - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
+  - `shadcn` is a devDependency only (for the `shadcn/tailwind.css` import).
+- next-intl 4.14, English only, no locale segment in URLs:
+  - `src/i18n/request.ts` hard-codes `en`.
+  - Strings live in `messages/en.json`, and `src/i18n/messages.d.ts` types the keys.
+  - The plugin is wired in `next.config.ts`.
+  - Public pages stay static.
+- Sentry (`@sentry/nextjs` 11.9), errors only (no tracing), every data-collection category off (`src/lib/sentry-options.ts`):
+  - Browser: `src/instrumentation-client.ts`.
+  - Server errors: `src/instrumentation.ts` (`onRequestError`). `sentry.server.config.ts` runs under `next dev`.
+  - Workers: `wrangler.jsonc` `main` is `worker.ts`, which wraps the OpenNext handler with `withSentry`. `open-next-worker.d.ts` types the generated module.
+  - Root errors: `src/app/global-error.tsx`.
+  - Without a DSN the SDK stays off. No `tunnelRoute`.
+  - **Sentry does not capture errors inside `proxy.ts` on Workers:** OpenNext stubs the instrumentation loader in the Node middleware bundle. Handle and log errors there explicitly.
 - Not shipped yet:
   - Supabase migrations: `supabase/migrations/*` is a **proposal, not applied**.
-  - Also not installed: next-intl, Sentry, Lightweight Charts, Motion.
+  - Also not installed: Lightweight Charts, Motion.
 
 Planning docs are **proposals, not shipped behavior**:
 - `docs/decisions.md`: resolved conflicts and open decisions. Wins over the other docs.
@@ -45,7 +59,7 @@ Planning docs are **proposals, not shipped behavior**:
 
 Gate before any commit: `pnpm typecheck && pnpm lint && pnpm build && pnpm build:worker`.
 
-Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. At this scaffold it is 839 KiB.
+Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 0 it is 2,061 KiB. Sentry accounts for about 1.2 MiB of that: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper.
 
 ## Hard rules (non-negotiable)
 
@@ -77,3 +91,5 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 - Market ids look like `BTC-USDT`. Display them as `BTC/USDT`.
 - Git author for every commit: `apparentlybenz-glitch <apparentlybenz@gmail.com>`.
 - `AGENTS.md` is written by `next dev`. Keep it committed.
+- Wording: funds are **virtual funds** / a **virtual balance**. Never describe the funds or the platform as a trial or imitation version anywhere: files, UI copy, comments, docs and commit messages. The banned words are listed in the Phase 2 brief.
+- User-facing strings go in `messages/en.json`, never hard-coded.
