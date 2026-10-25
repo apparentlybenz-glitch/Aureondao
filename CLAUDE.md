@@ -6,7 +6,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (slice 1: auth, profile, Security Center)
+## Shipped state (slice 1: auth, profile, Security Center; slice 2 Part A: money RPCs)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
@@ -29,6 +29,14 @@ This file is the single source of truth. It describes **what has shipped**, and 
 - Supabase (project on the Free plan), applied through the Management API and recorded in migration history:
   - `supabase/migrations/20261025190257_auth_profiles.sql`: `profiles`, `user_roles`, `wallets`, `ledger`; `private.is_admin`, `private.lock_wallets`, `private.wallet_apply`, the balance-write guard trigger; the signup trigger (profile + random 8-digit UID + 4 wallets at 0, no starting credit); the email-mirror trigger; `public.update_profile`; `public.custom_access_token_hook` (top-level `user_role` claim, `'admin'` or `'user'`). RLS on all four tables, SELECT-only grants, `wallets` and `profiles` in the Realtime publication.
   - Dashboard-only settings (the Management API token has no `auth_config_write`): the Custom Access Token hook is enabled there. Custom email templates need custom SMTP, which is not set up, so emails still use the default `{{ .ConfirmationURL }}` links.
+  - `supabase/migrations/20261025233700_wallets_transfer_admin.sql` (slice 2, money only; no UI yet):
+    - `public.transfer_between_wallets(from, to, amount_cents, client_request_id)`: both legs go through `wallet_apply` in one transaction (two Bills rows), idempotent on `client_request_id`.
+    - `public.admin_adjust_balance(user_id, account, delta_cents, reason, client_request_id)`: checks the `user_role` claim, `aal2` and the live `user_roles` row; writes an `admin_audit_log` row and one Bills row. The reason stays in the audit log.
+    - `private.is_admin()` requires `aal2`, so admin RLS reads need a second factor too.
+    - `ledger.counter_account` is set on transfer legs. The UI renders Bills text from `en.json`; the DB stores no display copy.
+    - `transfers` and `admin_audit_log`: RLS on, no policies, no grants.
+    - Tests: `supabase/tests/slice2_part_a.sh` (needs a write-capable Management API token).
+  - First admin: one owner-approved `insert into public.user_roles` for a confirmed account. There is no admin yet.
   - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
 - shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Only `src/components/ui/button.tsx` exists. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.

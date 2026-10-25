@@ -2,8 +2,6 @@
 -- Slice 2: transfers between own wallets, admin credit/debit, Bills fields.
 -- Cut from the proposal in 20261025000000_initial_schema.sql (O18). Applied
 -- through the Management API.
--- STATUS: written, NOT APPLIED YET (the API token is read-only). Tests:
--- supabase/tests/slice2_part_a.sh (setup, t1..t8, cleanup).
 --
 -- Owner decisions (slice 2):
 --   * Bills text is rendered by the UI from en.json. The ledger row carries
