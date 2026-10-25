@@ -11,6 +11,8 @@ This file is the single source of truth. It describes **what has shipped**, and 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
   - `wrangler.jsonc` sets `nodejs_compat` and `global_fetch_strictly_public`, with compatibility date 2026-10-15.
+  - `wrangler.jsonc` turns on Workers Logs, invocation logs and traces, with `redact_query_string: true` so auth tokens in query strings are never logged.
+  - Deploying with Workers Builds (settings, build vs runtime variables, Supabase redirect URLs, post-deploy checks, log checks): `docs/deploy.md`. Not deployed yet.
   - `open-next.config.ts` uses the read-only static-assets incremental cache, so no R2/KV/D1/Queue bindings are needed.
   - `public/_headers` makes `/_next/static/*` immutable.
 - `next.config.ts` sets `images.unoptimized: true`. `cacheComponents` and `partialPrefetching` are **off**, so a page with no request data is plain SSG.

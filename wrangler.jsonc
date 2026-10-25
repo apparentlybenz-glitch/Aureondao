@@ -7,5 +7,14 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  // Workers Logs + traces (docs/deploy.md §5). Query strings are redacted so
+  // one-time auth tokens (/auth/confirm?token_hash=, /auth/callback?code=)
+  // never reach the logs.
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": true }
   }
 }
