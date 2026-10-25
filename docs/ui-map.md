@@ -238,29 +238,35 @@ Non-shadcn pieces to build: `Stepper` (KYC, deposit and withdraw flows, built on
 
 ## 4. Responsive behavior
 
-Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280. Three target widths are specified concretely.
+**Mobile first (C20).** The primary viewport is 390–430 px, and desktop is secondary. Every screen is designed and built at **390 px first**. Its 390 px column is the base layout, and the 768 px and 1280 px columns are enhancements layered on with `md:` / `xl:` utilities. Unprefixed Tailwind classes always describe the phone layout.
+
+Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
+
+**Bottom padding rule:** every scrollable page reserves bottom padding equal to the tab bar height plus `env(safe-area-inset-bottom)`, so the last row is never hidden behind the tab bar or the home indicator.
+
+**Phone review gate:** each UI slice ends with a review on a real phone (390–430 px, iOS Safari and Android Chrome) before sign-off. A desktop browser's device emulation does not count.
 
 ### 4.1 Spot terminal
 
-| 390 px (phone) | 768 px (tablet) | 1280 px (desktop) |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | Header: logo, "VIRTUAL" pill, hamburger (Sheet). `SymbolHeader` is one row: symbol (tap ⇒ MarketList Sheet from left), last price, change %. **MobileTerminalTabs** (sticky under the header): **Chart / Book / Trades / Orders**. Chart tab: chart at 55vh with the timeframe bar scrolling horizontally. Book tab: 12 asks / spread / 12 bids, with grouping select. A sticky bottom bar holds two full-width buttons, **Buy** (green) and **Sell** (red), which open an **OrderSheet** (Drawer, ~85vh) with Limit/Market tabs, one side panel for the chosen side, a side switch at the top, the slider and submit. Orders tab: open orders as cards, not a table. | Two columns. Left (≈62%): SymbolHeader, Chart (420 px) and, beneath it, Tabs Book/Trades (book 10 + 10). Right (≈38%): the order form with Buy/Sell **stacked as tabs** (not side-by-side) and Limit/Market. Below both, full width: UserOrdersPanel. MarketList is a Sheet opened from SymbolHeader. | Three-pane grid: **MarketList (280 px)** · **Chart (flex)** · **OrderBook/LatestTrades tabs (320 px)**. Under chart and book is the order form with **Buy and Sell panels side by side**, Limit/Market tabs above them. Under the market list is space for favorites/recent. Full-width UserOrdersPanel at the bottom. Panes are `resizable` and the layout is saved in localStorage. |
 
 ### 4.2 Forex terminal
 
-| 390 px | 768 px | 1280 px |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | Same tab model: **Chart / Book / Trades / Order**. The DrawingToolbar collapses into a single "✎" button that opens a horizontal tool strip over the chart's top edge. Drawing needs tap-tap placement; long-press shows a magnifier only if time allows. Volume pane and MA legend stay, at 20% of chart height. Native/Depth toggle sits in the chart header. Watermark font scales to 28 px. Order via bottom-sheet. | Chart full width (480 px) with a vertical DrawingToolbar (40 px) on the left. Below it, Book and Trades **side by side** (50/50), then the order form. | **DrawingToolbar (44 px, left)** · **Chart (flex; volume pane with MA5/10/20; tf bar 1m…1M; Native/Depth)** · **right column 340 px: OrderBook on top (60%), LatestTrades below (40%)**. Order form and positions sit under the chart. MarketList is a collapsible left drawer with forex pairs (XAU/USD, EUR/USD, AUD/USD, AUD/JPY, AUD/CAD, CAD/JPY …). |
 
 ### 4.3 Options terminal
 
-| 390 px | 768 px | 1280 px |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | Tabs: **Chart / Trade / Positions**. Trade tab: "I expect **BTC/USDT** will…" headline; two large buttons, **Rise ▲** (green) and **Fall ▼** (red), each 50% wide and 56 px tall. A horizontally scrolling cycle chip row (30s 60s 90s 120s 300s, each with "+85%" from the DB). Premium preset chips and a custom input. Fee and expected profit live. **SlideToConfirm** is full width and pinned to the bottom (safe-area aware). Positions tab: cards with a big countdown. | Chart (60% width) and Ticket (40%) side by side. Positions tabs full width below. | MarketList (260) · Chart (flex, with entry-price lines and expiry vertical markers for open positions) · **Ticket (360)**. Positions / Filled Orders / Statistics tabs full width below. |
 
 ### 4.4 Assets (all asset pages)
 
-| 390 px | 768 px | 1280 px |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | TotalBalanceHeader (amount in USDT-equivalent, eye toggle to hide amounts, "VIRTUAL"). Sub-wallets are a **horizontal snap carousel** of 4 cards. Quick actions are a 3-icon row (Deposit / Withdraw / Transfer). Profit chart at 180 px with the 1D/1W/1M/6M toggle. The asset table becomes a card list. Steppers show one step per screen with a "Step 2 of 4" header and Back/Next in a sticky footer. Bills render as list items; tapping one opens a bottom drawer with the detail. | Sub-wallet cards in a 2×2 grid. Profit chart full width at 240 px. Tables use horizontal scroll with a sticky first column. Steppers show a horizontal step indicator above a single form column. | Header plus a 4-card row. Two columns: profit chart (2/3) and allocation/donut chart or quick actions (1/3). Full table below. Deposit/withdraw use a vertical stepper at left (240 px) with a form at right and a "Recent requests" table under it. Transfer is a centered 480 px card. |
 
@@ -271,19 +277,25 @@ Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280. 
 
 ### 4.6 Admin
 
-| 390 px | 768 px | 1280 px |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | Supported but secondary. The sidebar becomes an off-canvas Sheet. Queue tables become cards (user, amount, status, Approve/Reject buttons). The detail view is a full-screen Sheet. KYC images stack vertically with pinch-zoom (native). | Collapsed icon sidebar (56 px). Tables scroll horizontally. Detail is a right Sheet at 90% width. | Full sidebar (240 px). Tables use sticky headers and a filter bar. Detail is a right Sheet (640 px) or a split view. The KYC review shows the document and selfie side by side with the personal data. |
 
 ### 4.7 Homepage
 
-| 390 px | 768 px | 1280 px |
+| 390 px (base) | 768 px (enhancement) | 1280 px (enhancement) |
 |---|---|---|
 | Navbar: logo, "Sign in" ghost button, hamburger Sheet holding the nav links. Hero is a single column: H1 at 36 px, subcopy, two stacked CTAs (Get started / Explore markets), and an illustration below. Benefits and Features are single-column cards. LiveMarketPreview shows the top 5 symbols as a compact list (symbol, last, change). Footer link groups become an accordion. The SupportWidget FAB sits bottom-right at 56 px, offset by the safe area. | Hero in two columns (text / illustration). Benefits in a 2×2 grid. LiveMarketPreview as a table of 8 rows. Footer in 3 columns. | Hero with a 56 px H1 and a side visual. Benefits in 4 columns; Security uses alternating rows. LiveMarketPreview shows a tabbed table (Spot / Forex / Options, 10 rows) with sparklines. CTA band. Footer in 5 columns, with the legal disclosure and chart-library attribution line. |
 
 Motion: use `motion/react` with `LazyMotion` + `domAnimation` and the `m.*` components on marketing sections, for scroll-reveal and hero entrance. Respect `prefers-reduced-motion` (`useReducedMotion`). Terminals use **no** Motion animations except SlideToConfirm and Drawer; price flashes are CSS transitions.
 
 ---
+
+### 4.8 App shell, Home and Options (mobile-first reference screens): PENDING INPUT
+
+The owner's reference screens for the app shell, Home and Options were referenced in the Phase 2 docs request, but were not included in the message. These specs are deliberately left unwritten until the screens arrive. They will replace the shell rows in §1.4 and §4.3 at 390 px base.
+
+Evidence tagging (Captured / Described / Designed) and the per-screen Assumptions lists are also pending. They depend on the brief's "Other modules and their evidence level" section, which was not included either.
 
 ## 5. Data sources per component
 

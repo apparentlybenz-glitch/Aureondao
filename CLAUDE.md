@@ -93,3 +93,5 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 - `AGENTS.md` is written by `next dev`. Keep it committed.
 - Wording: funds are **virtual funds** / a **virtual balance**. Never describe the funds or the platform as a trial or imitation version anywhere: files, UI copy, comments, docs and commit messages. The banned words are listed in the Phase 2 brief.
 - User-facing strings go in `messages/en.json`, never hard-coded.
+- Mobile first: build every screen at 390 px first; `md:` and `xl:` add the tablet and desktop layouts.
+- Every scrollable page reserves bottom padding equal to the tab bar height plus the safe-area inset (`env(safe-area-inset-bottom)`).

@@ -34,6 +34,7 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | C16 | KYC gating | **No conflict:** UI D7-A and DM D9 agree (KYC approved + AAL2 if MFA is enrolled, for withdrawals only). Implemented in the proposed migration. | |
 | C18 | Market-data fetches vs shared fetch wrappers. The round-2 re-probe found that `data-api.binance.vision` answers every CORS preflight with 403 | **Market-data calls are CORS-simple GETs**: no custom headers, no `Content-Type`, and never routed through a wrapper that adds Supabase `apikey`/auth or tracing headers. Applies to the UI store and Sentry fetch instrumentation (no trace-propagation headers to exchange hosts). | Any custom header would trigger a preflight, which fails. Re-checked by hand on 2026-10-25 from sandbox egress. |
 | C19 | Browser provider chain. MD round 1 planned Binance Vision → OKX → Bybit → KuCoin in the browser; round 2 measured from sandbox egress (US-located datacenter IP): KuCoin sends no `Access-Control-Allow-Origin` for our origin, `api.binance.com` returns 451 and Bybit returns 403 | **Browser chain: Vision → OKX → shared `/md/v1` fallback.** KuCoin is server-side only (`price-ingest`, Worker fallback). Bybit and `api.binance.com` are server-side candidates only, until a real browser or deployed Worker shows them reachable. | CORS is the deciding evidence for browser-direct. Sandbox egress does not prove browser or Worker reachability; see `docs/market-data.md` §1.6. |
+| C20 | Layout priority. Phase 1 docs specified desktop and phone equally, with desktop-first three-pane terminals | **Mobile first:** the primary viewport is 390–430 px and desktop is secondary. Every screen's 390 px layout is the base, and 768 and 1280 px are enhancements (`docs/ui-map.md` §4). Each UI slice ends with a phone review before sign-off. | Owner direction (Phase 2). |
 | C17 | `cacheComponents` / `partialPrefetching` (on by default in the Next 16.4 template) | **Off in the scaffold**; open as O16. | With them off, a page with no request data is plain SSG and maps onto OpenNext's read-only static-assets cache. PPR adds a resume path through the Worker. |
 
 ---
@@ -152,6 +153,25 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - ★ (a) Vision first, OKX on failure. *Good:* `ACAO: *` and a documented weight budget. *Bad:* reachability for non-US residential browsers is unproven (preflights are not supported).
 - (b) OKX first. *Good:* echoes any origin, and its order book sends `*`. *Bad:* no rate-limit headers, a ~100 KB all-tickers response, and global OKX is restricted for US residents.
 - (c) Race both on the first cycle each session, then keep the faster healthy one. *Good:* adapts to each user's region. *Bad:* doubles the first-cycle load; more code.
+
+**O21. Perpetual** (not in the v1 scope).
+- ★ (a) Defer with Forex (after day 6). *Good:* keeps the 6-day core on Spot and Options. *Bad:* the nav item is hidden or shows "coming soon".
+- (b) Build a minimal perpetual on the Options price pipeline. *Good:* matches a common exchange layout. *Bad:* needs funding, margin and liquidation logic, the largest money-path risk.
+
+**O22. Display names vs internal ids** (due slice 3).
+- ★ (a) Internal ids stay `BTC-USDT`; the UI shows a `display_name` column from `markets` (e.g. `BTCUSD`). *Good:* ids stay stable and URL-safe, and the label can change freely. *Bad:* one more column to keep in sync.
+- (b) Use `BTCUSD` everywhere. *Good:* one name. *Bad:* loses the quote asset (USDT vs USD) and breaks provider symbol mapping.
+- (c) Derive the label in the UI (`BTC-USDT` → `BTC/USDT`, current convention). *Good:* no schema change. *Bad:* can't express `BTCUSD`-style names.
+
+**O23. Bid/ask source for the Sell and Buy columns** (due slice 3).
+- ★ (a) Best bid/ask from the browser store (exchange book ticker), display-only. *Good:* real, no Worker cost. *Bad:* differs slightly from the server fill price.
+- (b) Server `price_snapshots` with a fixed spread. *Good:* matches what fills use. *Bad:* the spread is invented, and refreshes only every 10 s.
+- (c) Show last price only, with no Sell/Buy split. *Good:* simplest and honest. *Bad:* doesn't match the reference layout.
+
+**O24. Trade tab destination** (due slice 3).
+- ★ (a) The bottom-bar Trade tab opens the last-used terminal (Spot by default). *Good:* one tap back to where the user was. *Bad:* less predictable for new users.
+- (b) Always opens Spot. *Good:* predictable. *Bad:* Options users need an extra tap.
+- (c) Opens a chooser sheet (Spot / Options). *Good:* explicit. *Bad:* an extra tap every time.
 
 ### Lower-stakes defaults (taken unless you object)
 
