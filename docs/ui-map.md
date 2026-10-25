@@ -291,11 +291,51 @@ Motion: use `motion/react` with `LazyMotion` + `domAnimation` and the `m.*` comp
 
 ---
 
-### 4.8 App shell, Home and Options (mobile-first reference screens): PENDING INPUT
+### 4.8 App shell, Home and Options (mobile-first, from owner reference screens)
 
-The owner's reference screens for the app shell, Home and Options were referenced in the Phase 2 docs request, but were not included in the message. These specs are deliberately left unwritten until the screens arrive. They will replace the shell rows in §1.4 and §4.3 at 390 px base.
+**Evidence levels** (used to tag every screen below and in §1.4):
+- **Captured:** the owner supplied a reference screenshot; the layout follows it, with AureonX branding only.
+- **Described:** specified in the brief's text only; the layout is our interpretation.
+- **Designed:** neither; we designed it.
 
-Evidence tagging (Captured / Described / Designed) and the per-screen Assumptions lists are also pending. They depend on the brief's "Other modules and their evidence level" section, which was not included either.
+Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its "Demo trading" tile (wording rule).
+
+#### App shell: Captured
+- **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is white with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
+- **Trade** destination: O24.
+- **Top bar (Home only):** avatar (→ /account) · symbol search pill (→ market search sheet) · language globe · notifications bell · support headset.
+- Dark theme by default.
+
+#### Home (`/`, signed in; the public homepage stays separate, slice 9): Captured
+1. Top bar as above.
+2. **Total asset value** with an eye toggle (hide amounts); large figure plus `USD`. Source: wallets (RLS) valued with the store's prices.
+3. **Shortcut grid**, 4 × 2 round icons: Deposit · Options · Forex · Perpetual / Spot · Transfer · Support · (8th slot: Bills). Forex and Perpetual show a "coming soon" state while deferred (O21).
+4. **Market table** with tabs Favorites · Popular · Gainers · Losers, plus a category select (Spot / Options / …). Columns: Symbol (with icon, display name per O22, and last-update time) · Sell · Buy (O23) · Change % (green/red).
+5. Bottom tab bar; the list reserves the bottom padding.
+
+#### Options (`/options`): Captured
+1. **Header:** market-switch icon · symbol (display name, O22) with an info icon · chart-type icon.
+2. **Timeframe row:** 1M 5M 15M 30M 1H 4H More▾.
+3. **Candlestick chart** with a price axis, high/low markers and a dashed last-price line with a label.
+4. "{SYMBOL} Current price {price}" (store price, display only).
+5. "I expect {SYMBOL} will **Rise**/**Fall**" with a large green up button and a red down button; the selected side tints the word.
+6. **Option period(s)** stepped slider: 30 · 60 · 90 · 120 · 300 s; **PnL n%** on the right = `cycle_config.profit_rate_bps` for the chosen cycle.
+7. **Premium Amount (USD)**, available Options-wallet balance and a transfer icon (→ Transfer); preset chips (from config) and a numeric input.
+8. **Transaction fee n%** (`cycle_config.fee_bps`) and **Est. return** computed live from the input.
+9. Full-width primary button (label per side) → **slide-to-confirm** step (spec), then `open_option`.
+10. **Positions (n)** · **Filled** tabs, with a stats icon and a "Current instrument only" checkbox.
+
+### 4.9 Evidence tags for the other screens
+| Screen | Evidence |
+|---|---|
+| Spot, Forex terminals; Assets; Bills; Transfer; Deposit/Withdraw; Account; Security Center; KYC; Admin; public homepage | Described |
+| Auth pages, error/404 pages, Market tab list, notifications, support placeholder | Designed |
+
+**Assumptions** for every Described or Designed screen:
+- Same dark theme, bottom tab bar and top-bar patterns as the Captured screens.
+- 390 px layouts follow §4.1–4.7; any owner screenshot that arrives later replaces them.
+- Copy follows `messages/en.json` and the wording rule.
+- Market tab = the full-screen version of the Home market table with search.
 
 ## 5. Data sources per component
 
