@@ -1,6 +1,6 @@
 # AureonX
 
-AureonX is a simulated multi-asset trading platform. An admin credits demo funds, and no real money moves through the app. Never use reference-exchange names, logos, watermarks or copy anywhere.
+AureonX is a multi-asset trading platform that runs on virtual funds. Users practice with a virtual balance that an admin credits, and no real money moves through the app. Never use reference-exchange names, logos, watermarks or copy anywhere.
 
 This file is the single source of truth. It describes **what has shipped**, and nothing planned. Update it in the same change that ships something.
 

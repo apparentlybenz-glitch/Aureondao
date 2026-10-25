@@ -1,6 +1,6 @@
 # AureonX
 
-Simulated multi-asset trading platform (demo funds only). Next.js 16 on Cloudflare Workers via OpenNext, with Supabase.
+Multi-asset trading platform on virtual funds (no real money). Next.js 16 on Cloudflare Workers via OpenNext, with Supabase.
 
 Start with `CLAUDE.md` (what has shipped and the rules), then `docs/decisions.md` and `docs/build-order.md`.
 

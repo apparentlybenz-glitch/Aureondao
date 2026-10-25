@@ -1,10 +1,25 @@
-# AureonX: build order (proposed vertical slices)
+# AureonX: build order (vertical slices)
+
+## Schedule (6-day core, set at Phase 2 start)
+
+| Day | Work |
+|---|---|
+| 1 | Slice 0 (foundation), slice 1 (auth) |
+| 2 | Slice 2 (wallets, assets, transfer, bills) |
+| 3 | Slice 3 (market data), start slice 4 (Spot) |
+| 4 | Finish slice 4 |
+| 5 | Slice 5 (Options and settlement) |
+| 6 | Slice 9 (homepage), then a full bug pass |
+
+**Deferred until after day 6:** slice 6 (Forex), slice 7 (deposit and withdraw queues), slice 8 (KYC), slice 10 (locales). Their sections stay below, marked deferred.
+
+Each slice ends at a STOP gate: report, then wait for sign-off before the next slice.
 
 Each slice ships end to end (DB → RPC → UI) and leaves `main` deployable. Slices follow the brief's order. Slice 0 is new: it clears the blockers found in Phase 1.
 
 Rules for every slice:
 - **Gate:** `pnpm typecheck && pnpm lint && pnpm build && pnpm build:worker`, then record the gzip Worker size from `pnpm exec wrangler deploy --dry-run --outdir /tmp/wd` (budget: 10 MiB).
-- **Migrations:** each slice adds its own migration, cut from the proposed `supabase/migrations/20261025000000_initial_schema.sql` (O18 ★). Apply it to a Supabase branch first, then run Supabase advisors (security + performance): zero errors.
+- **Migrations:** each slice adds its own migration, cut from the proposed `supabase/migrations/20261025000000_initial_schema.sql` (O18 ★). Apply only that slice's tables (the Free plan, O19, has no Supabase branching, so apply to the project directly), then run Supabase advisors (security + performance): zero errors.
 - **Money paths:** add SQL tests for every RPC (happy path, every error code, idempotent replay) and a concurrency test (N parallel calls; `wallet = Σ ledger` afterwards).
 - **Docs:** update CLAUDE.md in the same PR, describing what shipped and nothing planned.
 - **Open decisions:** a slice that depends on a `docs/decisions.md` item starts only after the owner decides it.
@@ -36,10 +51,11 @@ Rules for every slice:
 **Scope**
 - Pages: sign-up, sign-in, reset password, `/auth/callback`, `/auth/confirm`.
 - `proxy.ts`: matcher covers protected routes only, verifies with `getClaims()` (local JWT verification).
-- Tables `profiles` and `user_roles`, the signup trigger (profile + UID + 4 wallets: the wallet rows are created now, but money RPCs come in slice 2), and the custom access token hook (`user_role` claim).
+- Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets, with the starting virtual balance credited through `wallet_apply` so seeding writes a ledger row), and the custom access token hook (`user_role` claim).
+- Auth: email confirmation through `verifyOtp({ token_hash, type })`, not PKCE; `emailRedirectTo` on sign-up.
 - `/account`: nickname, UID, email, phone, country, KYC status (read only).
-- `/account/security`: TOTP enroll/verify, password change, email verification status, and passkeys per O9; phone per O8.
-- The "DEMO FUNDS" header badge.
+- `/account/security`: TOTP enroll/verify, password change, email verification status. Passkeys (O9, deferred) and phone MFA (O8: profile field only) show as unavailable.
+- The "VIRTUAL FUNDS" header badge.
 
 **Files:** `src/proxy.ts`, `src/app/(auth)/**`, `src/app/(app)/layout.tsx`, `src/app/(app)/account/**`, `supabase/migrations/*_auth_profiles.sql`.
 
@@ -68,7 +84,7 @@ Rules for every slice:
 - Replaying a `client_request_id` returns the same row.
 - Balances render from `::text` selects.
 
-**Done when:** an admin credits demo funds, the user sees it live, moves it between sub-wallets, and every movement appears in Bills.
+**Done when:** an admin credits virtual funds, the user sees it live, moves it between sub-wallets, and every movement appears in Bills.
 
 ## Slice 3: Market data provider and the markets list
 **Scope**
@@ -110,7 +126,7 @@ Rules for every slice:
 - Rounding goes against the user (SQL tests).
 - Layout checked at 390, 768 and 1280 px.
 
-**Done when:** a user can buy and sell any spot market with demo funds, and every fill appears in Bills.
+**Done when:** a user can buy and sell any spot market with virtual funds, and every fill appears in Bills.
 
 ## Slice 5: Options terminal plus settlement
 **Scope**
@@ -135,7 +151,7 @@ Rules for every slice:
 
 **Done when:** a 30 s option opens, counts down in sync with the server, settles within about 10 s of expiry at a real fetched price, and pays exactly once.
 
-## Slice 6: Forex terminal
+## Slice 6: Forex terminal (deferred until after day 6)
 **Scope** (depends on O1, O2 and O3):
 - Full chart: timeframes 1m–1M, left drawing toolbar (ported plugin primitives), volume with MA5/MA10/MA20, Native/Depth toggle, AureonX watermark.
 - Book/trades panel per O3.
@@ -151,12 +167,12 @@ Rules for every slice:
 
 **Done when:** the terminal matches the spec's layout, with every unavailable panel handled as decided.
 
-## Slice 7: Deposit and withdraw requests with admin review
+## Slice 7: Deposit and withdraw requests with admin review (deferred until after day 6)
 **Scope**
 - `payment_networks`, `deposits`, `withdrawals`.
 - `request_deposit`, `request_withdrawal` (freezes funds; requires KYC + AAL2), `cancel_withdrawal`, `admin_review_deposit`, `admin_review_withdrawal`.
 - Steppers:
-  - Deposit: coin → network → demo notice (O10) → amount.
+  - Deposit: coin → network → virtual-funds notice (O10) → amount.
   - Withdraw: coin → network → address → amount.
 - Fiat variants.
 - Admin review queues with Realtime.
@@ -172,24 +188,25 @@ Rules for every slice:
 
 **Done when:** the full request → review → ledger loop works for crypto and fiat.
 
-## Slice 8: KYC
+## Slice 8: KYC (deferred until after day 6)
+
+> Locked: the full multi-step UI is built, but uploaded files are **not stored**. The admin reviews text fields only. No ID photo or selfie is persisted anywhere, so there is no `kyc` bucket.
 **Scope**
-- `kyc_submissions`, private `kyc` bucket (path `<uid>/…`), `submit_kyc`, `admin_review_kyc`.
-- Steps: country → document type → personal info → document upload + selfie. Files upload directly from the browser to Storage, never through a server action.
-- Admin queue with signed-URL previews.
-- Retention policy for rejected files.
+- `kyc_submissions` (text fields only), `submit_kyc`, `admin_review_kyc`. No storage bucket.
+- Steps: country → document type → personal info → document upload + selfie. The upload steps run in the browser only; files are never sent to Storage, a server action or any API.
+- Admin queue showing the text fields only.
 
 **Files:** `src/app/(app)/account/kyc/**`, `src/app/admin/kyc/**`, `supabase/migrations/*_kyc.sql`.
 
 **Verify:**
-- User A cannot read user B's files (storage policy test).
-- Anon cannot list the bucket.
+- User A cannot read user B's submission (RLS test).
+- No request carrying file bytes leaves the browser during KYC (network tab), and no storage bucket exists.
 - Approving sets `profiles.kyc_status` and unlocks withdrawals.
 
 **Done when:** a user submits KYC, an admin approves or rejects it, and the status gates withdrawals.
 
 ## Slice 9: Public homepage
-**Scope:** Navbar, Hero, Benefits, Security, Features, Live Market Preview (store bulk ticker), CTA, support-widget placeholder, Footer (demo disclosure, chart attribution per O15), and `/legal/*`. Everything static.
+**Scope:** Navbar, Hero, Benefits, Security, Features, Live Market Preview (store bulk ticker), CTA, support-widget placeholder, Footer (virtual-funds disclosure, chart attribution per O15), and `/legal/*`. Everything static.
 
 **Files:** `src/app/(marketing)/**`, `src/components/marketing/**`.
 
@@ -200,7 +217,7 @@ Rules for every slice:
 
 **Done when:** the homepage ships static, with copy reviewed.
 
-## Slice 10: Additional locales
+## Slice 10: Additional locales (deferred until after day 6)
 **Scope:** add locales to next-intl. First revisit the i18n routing default in `docs/decisions.md` (lower-stakes table): a second locale probably means adding `[locale]` routing, and translate `messages/*.json`.
 
 **Verify:** public pages stay static, and the proxy matcher still covers protected routes only.

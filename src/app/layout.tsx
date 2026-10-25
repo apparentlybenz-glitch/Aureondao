@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AureonX",
-  description: "Simulated multi-asset trading platform. Demo funds only.",
+  description: "Multi-asset trading on a virtual balance. No real money.",
 };
 
 export default function RootLayout({

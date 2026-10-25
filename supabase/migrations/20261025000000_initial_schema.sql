@@ -1,7 +1,7 @@
 -- =============================================================================
 -- PROPOSED — NOT APPLIED. Review in Phase 1 sign-off.
 -- =============================================================================
--- AureonX initial schema (simulated multi-asset trading; demo funds only).
+-- AureonX initial schema (multi-asset trading on virtual funds; no real money).
 -- Design doc: docs/data-model.md  (read it first; this file implements it).
 --
 -- Conventions (enforced throughout):
@@ -284,7 +284,7 @@ create table public.options_positions (
 create index options_open_due_idx on public.options_positions (expires_at) where status = 'open';
 create index options_user_created_idx on public.options_positions (user_id, created_at desc);
 
--- 2.14 deposits (simulated: no chain interaction; admin approval credits demo funds)
+-- 2.14 deposits (virtual: no chain interaction; admin approval credits virtual funds)
 create table public.deposits (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references public.profiles (id) on delete cascade,
@@ -308,7 +308,7 @@ create table public.deposits (
 create index deposits_pending_idx on public.deposits (created_at) where status = 'pending';
 create index deposits_user_idx on public.deposits (user_id, created_at desc);
 
--- 2.15 withdrawals (simulated: approval removes demo funds; nothing is sent)
+-- 2.15 withdrawals (virtual: approval removes virtual funds; nothing is sent)
 create table public.withdrawals (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references public.profiles (id) on delete cascade,
@@ -330,7 +330,10 @@ create table public.withdrawals (
 create index withdrawals_pending_idx on public.withdrawals (created_at) where status = 'pending';
 create index withdrawals_user_idx on public.withdrawals (user_id, created_at desc);
 
--- 2.16 kyc_submissions (files live in private Storage bucket "kyc" under "<uid>/...")
+-- 2.16 kyc_submissions
+-- LOCKED (Phase 2): no KYC file is ever stored. The slice 8 cut must drop the
+-- *_path columns, the "kyc" bucket checks in submit_kyc and the storage.objects
+-- policies below. The admin reviews text fields only.
 create table public.kyc_submissions (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references public.profiles (id) on delete cascade,
@@ -1448,7 +1451,7 @@ begin
 end;
 $$;
 
--- 5.12 request_deposit (simulated; no address is issued)
+-- 5.12 request_deposit (virtual credit request; no address is issued)
 create or replace function public.request_deposit(
   p_asset             text,
   p_network           text,
@@ -2277,7 +2280,7 @@ values
   ('AUD-CAD', 'forex', 'AUD/CAD', 'AUD', 'CAD', false, 'fx_intraday_tbd', 'TBD', 0.00001, 1000, 5, 160),
   ('CAD-JPY', 'forex', 'CAD/JPY', 'CAD', 'JPY', false, 'fx_intraday_tbd', 'TBD', 0.001,   1000, 5, 170);
 
--- Deposit/withdraw options (simulated). Fees/minimums are PLACEHOLDERS.
+-- Deposit/withdraw options (virtual funds only). Fees/minimums are PLACEHOLDERS.
 insert into public.payment_networks (asset, network, usd_pegged, min_deposit, min_withdraw_cents,
                                      withdraw_fee_cents, sort_order)
 values

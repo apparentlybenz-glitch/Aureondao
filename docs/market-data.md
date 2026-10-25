@@ -2,8 +2,8 @@
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
 
-> Status: **planning only**. Nothing here is implemented. AureonX is a **simulated** trading platform (demo funds, no real money).
-> "Money path" below means any code that changes simulated balances, positions, fills, margin, liquidation, or options settlement.
+> Status: **planning only**. Nothing here is implemented. AureonX runs on **virtual funds** (no real money).
+> "Money path" below means any code that changes virtual balances, positions, fills, margin, liquidation, or options settlement.
 > Provider names appear here only as data sources. **UI copy must never show provider names or branding** (use labels like "Live", "Delayed", "Indicative", "Daily reference rate").
 
 ---
@@ -181,7 +181,7 @@ URLS=(
  "open.er-api latest https://open.er-api.com/v6/latest/USD"
  "yahoo EURUSD_1m https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1m&range=1d"
  "yahoo GC=F_1m https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1m&range=1d"
- "twelvedata XAU/USD https://api.twelvedata.com/price?symbol=XAU/USD&apikey=demo"
+ "twelvedata XAU/USD https://api.twelvedata.com/price?symbol=XAU/USD&apikey=<key>"
  "stooq xauusd https://stooq.com/q/l/?s=xauusd&f=sd2t2ohlcv&h&e=csv"
 )
 printf "utc\tprovider\tkind\tmethod\thttp\ttime_s\tbytes\tacao\tacam\theaders\n"
@@ -351,7 +351,7 @@ Supabase (settlement; owned by the settlement agent)
 * **Browser-direct:** the user's own IP decides. From US datacenter egress, `api.binance.com` (451) and Bybit (403) failed, while Vision and OKX (both CORS-enabled) and KuCoin (no CORS) worked. So the browser chain Vision → OKX plausibly covers US users too, but this is **unverified for residential IPs** (§1.6). The region-fallback route in §3.2 stays as the safety net. Whether US users are a target audience at all is a product and compliance question; see D6.
 * **Cloudflare Workers** run in the PoP nearest the user by default, so a Worker hit by a US user that misses cache fetches upstream from a **US** PoP and may get 451. Mitigation: a **Placement Hint** `placement.region = "aws:eu-central-1"` (or `aws:ap-northeast-1`) on the md Worker. Its `fetch` handler then runs near that region on cache misses ([placement docs](https://github.com/cloudflare/cloudflare-docs/blob/production/src/content/docs/workers/configuration/placement.mdx)). Workers Cache lower and upper tiers are consulted *before* placement, so hits stay local ([Workers Cache: Smart placement and the cache](https://github.com/cloudflare/cloudflare-docs/blob/production/src/content/docs/workers/cache/index.mdx)). Cloudflare egress IPs can still be flagged as "datacenter" by exchanges, so this must be measured.
 * **Supabase Edge Functions** run nearest the caller unless pinned via `x-region`. Pin the oracle to an EU region and measure from it.
-* **Compliance note:** using placement or regions to *circumvent* an exchange's geo-restriction for users in restricted jurisdictions may violate that exchange's terms. AureonX only displays public reference data for a simulator and never trades on these exchanges, but legal should confirm. This is D6.
+* **Compliance note:** using placement or regions to *circumvent* an exchange's geo-restriction for users in restricted jurisdictions may violate that exchange's terms. AureonX only displays public reference data for a virtual-funds platform and never trades on these exchanges, but legal should confirm. This is D6.
 
 ### Browser-direct websockets (alternative, not the default)
 
@@ -704,7 +704,7 @@ Round-2 context (sandbox egress, US datacenter IP): Vision, OKX and KuCoin answe
 
 * **Data-model agent:**
   * Prices and quantities must be `numeric` in Postgres and strings on the wire. JS floats must never be used.
-  * Simulated order fills, margin and liquidation must use a **server-fetched** price with freshness ≤ 10 s, never a price submitted by the client.
+  * Order fills, margin and liquidation must use a **server-fetched** price with freshness ≤ 10 s, never a price submitted by the client.
   * A table such as `price_snapshots(symbol, price, method, as_of, inputs jsonb, status)` is needed for settlement audit.
   * Options symbols must be limited to the v1-viable set (crypto + XAU-proxy) unless D5 changes.
   * Canonical symbol format `BASE/QUOTE` must be agreed.

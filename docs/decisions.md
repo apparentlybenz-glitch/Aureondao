@@ -24,7 +24,7 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | C6 | Freshness thresholds. MD: source timestamp ≤30 s, fetch ≤10 s. DM: entry and fills ≤15 s; settlement at or after expiry and ≤60 s | **Both apply, in layers.** The Edge Function drops any source older than 30 s or outside the dispersion limit. The DB then enforces its own checks (≤15 s for entry and fills; at-or-after expiry and ≤60 s for settlement). | Defense in depth. The DB never trusts the function's own judgement of freshness. |
 | C7 | Edge caching. The brief and UI §5.5 assumed cached hits never reach the Worker; MD verified that Cache Rules sit behind a Worker, and that **Workers Cache** serves hits without running code but **still bills each hit as a request** | **MD is correct.** UI §5.5 updated. The budget counts every market-data hit as a Worker request (with 0 CPU). | Cloudflare pricing doc: "Cache hits count as requests but do not consume CPU time." |
 | C8 | Market-data route path. UI used `/api/market/*` in the app Worker; MD used `/md/v1/*` on a separate Worker | **Path is `/md/v1/*` in all docs.** Which Worker hosts it is open decision O13. | One name everywhere; the host is a real trade-off. |
-| C9 | Deposit "address" step. UI had AddressDisplay (platform address + QR); DM stores no address | **No receiving address is ever shown** (DM D1 ★). The step becomes a "Demo: no real funds are received" notice. UI route table updated. The flow is coin → network → notice → amount. | The brief says no real money moves. Showing an address invites people to send real funds to a platform that can't credit them. The withdraw flow keeps its destination-address step: the address is recorded but nothing is sent. |
+| C9 | Deposit "address" step. UI had AddressDisplay (platform address + QR); DM stores no address | **No receiving address is ever shown** (DM D1 ★). The step becomes a "Virtual funds: no real funds are received" notice. UI route table updated. The flow is coin → network → notice → amount. | The brief says no real money moves. Showing an address invites people to send real funds to a platform that can't credit them. The withdraw flow keeps its destination-address step: the address is recorded but nothing is sent. |
 | C10 | Phone MFA. UI said phone MFA is built in; Supabase billing docs list phone MFA under the paid **Advanced MFA** add-on, unavailable on the Free plan | **Corrected.** Phone MFA is open decision O8. UI security row annotated. | Source: <https://supabase.com/docs/guides/platform/billing-on-supabase> (add-ons list). |
 | C11 | Profit chart. UI wanted hourly `portfolio_snapshots` via pg_cron; DM uses realized PnL from `ledger.pnl_cents` | **DM default** (no table, no cron); the choice stays open as O11. | Snapshots need server prices for every held asset every hour, and deposits netted out. |
 | C12 | Forex order model. UI D6 wanted spot-like conversion; DM implements percentage-return margin positions, no leverage | **DM default** (the migration implements it); open as O2. | Spot-like FX needs JPY/CAD/XAU balances, which breaks the single-currency-cents model. |
@@ -37,6 +37,20 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | C17 | `cacheComponents` / `partialPrefetching` (on by default in the Next 16.4 template) | **Off in the scaffold**; open as O16. | With them off, a page with no request data is plain SSG and maps onto OpenNext's read-only static-assets cache. PPR adds a resume path through the Worker. |
 
 ---
+
+## Part 1b: Decisions locked by the owner (Phase 2 start)
+
+| Decision | Locked choice |
+|---|---|
+| O8 phone MFA | Phone is a profile field only |
+| O9 passkeys | Deferred; TOTP is the only second factor |
+| O10 deposit address | None. A deposit is a request an admin fulfills with virtual credit; no address is shown or stored |
+| O16 Next caching flags | Off |
+| O17 proxy | `proxy.ts`; fall back to `middleware.ts` only if the Workers smoke test fails |
+| O18 migrations | One migration per slice; only that slice's tables are applied |
+| O19 Supabase | Free plan |
+| KYC files | Full multi-step UI, but no uploaded file is stored anywhere; the admin reviews text fields only |
+| Wording | The words for "not real" funds are **virtual funds** / **virtual balance** everywhere |
 
 ## Part 2: Open decisions for sign-off
 
@@ -90,8 +104,8 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (c) Defer. *Good:* smallest scope. *Bad:* the spec item stays unchecked.
 
 **O10. Deposit flow meaning** (DM D1; resolved as C9 unless you choose otherwise).
-- ★ (a) No address; a labelled simulated request. *Good:* nobody sends real funds. *Bad:* less realistic.
-- (b) Placeholder address marked "DEMO, DO NOT SEND". *Good:* realistic stepper. *Bad:* looks real; someone will send funds.
+- ★ (a) No address; a labelled virtual-credit request. *Good:* nobody sends real funds. *Bad:* less realistic.
+- (b) Placeholder address marked "NOT A REAL ADDRESS, DO NOT SEND". *Good:* realistic stepper. *Bad:* looks real; someone will send funds.
 - (c) A real address. *Bad:* real custody and regulatory exposure, contradicting "no real money". Not recommended.
 
 **O11. Profit chart source** (C11).

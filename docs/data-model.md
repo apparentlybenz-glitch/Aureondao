@@ -3,7 +3,7 @@
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins.
 
 > Status: **PROPOSED, NOT APPLIED.** The SQL is in `supabase/migrations/20261025000000_initial_schema.sql`.
-> Scope: AureonX is a **simulated** trading platform. Admins credit demo funds, and no real money or chain transaction ever passes through the app.
+> Scope: AureonX runs on **virtual funds**. Admins credit virtual balances, and no real money or chain transaction ever passes through the app.
 > Research date: 2026-10-25. Sources are cited inline. They were read through the Supabase docs search tool because direct HTTP fetches of supabase.com are blocked from this sandbox.
 
 ---
@@ -25,7 +25,7 @@
 
 | Quantity | Type | Unit | Why |
 |---|---|---|---|
-| Cash balances, holds, fees, premiums, payouts, PnL, margins, deposit credits, withdrawal amounts | `bigint` | USDT cents (1 USDT = 100) | Integer math. Every sub-wallet is a single USDT cash balance, so one unit is used everywhere. USDT is treated as USD 1:1 in this demo. Sub-cent precision (USDT has 6 on-chain decimals) has no product value here, and cents keep every balance in JS-safe integers (`2^53` cents ≈ $90 trillion). |
+| Cash balances, holds, fees, premiums, payouts, PnL, margins, deposit credits, withdrawal amounts | `bigint` | USDT cents (1 USDT = 100) | Integer math. Every sub-wallet is a single USDT cash balance, so one unit is used everywhere. USDT is treated as USD 1:1 in this app. Sub-cent precision (USDT has 6 on-chain decimals) has no product value here, and cents keep every balance in JS-safe integers (`2^53` cents ≈ $90 trillion). |
 | Spot asset quantity (BTC, ETH, …) | `numeric(38,18)` | base units | Quantities need up to 18 decimals and arbitrary precision. In TS they are always strings. |
 | Prices, limit prices, entry/settle/exit prices | `numeric(38,18)` | quote per base | These are rates, not balances. Converting to cents happens only at fill time, with explicit rounding. |
 | Deposit `amount` (coin units the user typed) | `numeric(38,18)` | coin units | Informational. What is credited is `credit_cents`, which the admin sets (it defaults to `floor(amount × 100)` for USD-pegged coins). |
@@ -267,7 +267,7 @@ Legend:
 | RPC | Locks | Idempotency | Effect / errors |
 |---|---|---|---|
 | `admin_review_deposit(p_deposit_id, p_approve bool, p_credit_cents bigint default null, p_note text default null) → deposits` | deposit (guarded `pending→approved/rejected`) → capital wallet | Same outcome again → returns the row | Approve credits `credit_cents`. It defaults to `floor(amount×100)` for `usd_pegged` networks; otherwise it is required (`CREDIT_AMOUNT_REQUIRED`). Max 1e11 cents. Reject requires a note (`NOTE_REQUIRED`). Errors: `REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, INVALID_AMOUNT`. Writes an audit row. |
-| `admin_review_withdrawal(p_withdrawal_id, p_approve, p_note) → withdrawals` | withdrawal (guarded) → capital wallet | Same outcome again → returns the row | Approve: `withdrawal_paid` (held −amount) plus `fee` (held −fee). The demo funds leave the platform and nothing is sent anywhere. Reject: `withdrawal_release` (available +, held −). Reject needs a note. |
+| `admin_review_withdrawal(p_withdrawal_id, p_approve, p_note) → withdrawals` | withdrawal (guarded) → capital wallet | Same outcome again → returns the row | Approve: `withdrawal_paid` (held −amount) plus `fee` (held −fee). The virtual funds leave the platform and nothing is sent anywhere. Reject: `withdrawal_release` (available +, held −). Reject needs a note. |
 | `admin_adjust_balance(p_user_id, p_account, p_delta_cents, p_reason, p_client_request_id) → admin_audit_log` | target wallet | `client_request_id` UNIQUE on audit log | Credit or debit **available** only. A debit can never touch held funds (`INSUFFICIENT_FUNDS`). `INVALID_AMOUNT` (0 or > 1e11), `NOTE_REQUIRED` (reason < 3 chars), `WALLET_NOT_FOUND`, `IDEMPOTENCY_CONFLICT`. |
 | `admin_review_kyc(p_submission_id, p_approve, p_note) → kyc_submissions` | submission (guarded) → profile | Same outcome again → returns the row | Sets `profiles.kyc_status`. Reject needs a note. |
 | `admin_set_cycle_config(p_duration_s, p_profit_rate_bps, p_fee_bps, p_min_premium_cents, p_max_premium_cents, p_premium_presets_cents bigint[], p_enabled) → cycle_config` | none (upsert) | Upsert | `INVALID_ARGUMENT` when a value is out of range or a preset falls outside [min, max]. Writes an audit row. Open positions keep their snapshotted rate. |
@@ -302,10 +302,10 @@ Legend:
 
 ---
 
-## 5. Trading models (simulated matching)
+## 5. Trading models (internal matching)
 
 ### 5.1 Spot
-- **Market order:** fills immediately and in full at the latest `price_snapshots` price, provided it is ≤ `max_price_age_s` (15 s) old. Otherwise `PRICE_STALE` and nothing is written. There is no slippage or order-book walk: this is a demo, and the price the user saw differs from the fill price by at most the snapshot age.
+- **Market order:** fills immediately and in full at the latest `price_snapshots` price, provided it is ≤ `max_price_age_s` (15 s) old. Otherwise `PRICE_STALE` and nothing is written. There is no slippage or order-book walk: balances are virtual, and the price the user saw differs from the fill price by at most the snapshot age.
 - **Limit order:** if it is marketable against a fresh snapshot at placement, it fills immediately at the snapshot price, which is never worse than the limit. Otherwise it **rests**: a buy freezes `ceil(qty×limit×100) + fee` cash (the fee is frozen at placement), and a sell freezes `qty`. `match_open_orders` fills it **at the limit price** once a later fresh price crosses it. Resting orders never fail on a stale price; they just wait.
 - **Why fill at the limit and not the crossing price?** It is simple and conservative, the hold is exact (no refunds), and users get no price improvement they could game from snapshot gaps.
 - **Realized PnL:** a buy adds cost plus fee to `cost_basis_cents`. A sell removes `floor(basis × qty / (available+held))` of basis, and realized PnL = proceeds − fee − removed basis.
@@ -337,7 +337,7 @@ The UI computes the "expected profit" and fee it shows live with the same formul
 3. **Non-negativity** is enforced three times: by a pre-check (to return a friendly `INSUFFICIENT_FUNDS`), by `CHECK (available_cents >= 0, held_cents >= 0)`, and by the ledger's `balance_after_cents >= 0`.
 4. **Inter-wallet transfers** write two rows that share `ref_id = transfers.id`.
 
-Double-entry would add a platform or counterparty account per movement and double the rows, and in a single-tenant demo nothing would ever reconcile against it.
+Double-entry would add a platform or counterparty account per movement and double the rows, and in a single-tenant virtual-funds app nothing would ever reconcile against it.
 
 **Holds are ledger rows.** `order_hold`, `withdrawal_hold` and their releases or consumption show "frozen" movements in Bills. Spot **asset** holds (sell limits) are not ledger rows: the order row is the record, and the fill's ledger row carries the asset leg.
 
@@ -398,7 +398,7 @@ fallback  UI countdown hits 0 and no update arrives → rpc settle_my_expired_op
 
 There is **never** a fallback to a random, synthetic, last-known-good or client price.
 
-**Entry freshness at open time.** Snapshots refresh every 10 s while demand exists, so a snapshot's age is about 0–11 s and `max_price_age_s = 15` normally passes. After an idle period (no demand), the first `open_option` within about 10 s of opening the terminal gets `PRICE_STALE`. To prevent this, the terminal calls `request_price_feed()` on mount, and the next tick (≤ 10 s) warms the feed; the UI shows "syncing price" until a fresh snapshot exists. The UI can poll `price_snapshots.fetched_at` once, or subscribe. The residual risk is that a 30 s option's entry price can be up to about 11 s old while the user watches a live feed, which gives a small look-ahead edge. That is acceptable for demo funds; D5 lists the stricter variant.
+**Entry freshness at open time.** Snapshots refresh every 10 s while demand exists, so a snapshot's age is about 0–11 s and `max_price_age_s = 15` normally passes. After an idle period (no demand), the first `open_option` within about 10 s of opening the terminal gets `PRICE_STALE`. To prevent this, the terminal calls `request_price_feed()` on mount, and the next tick (≤ 10 s) warms the feed; the UI shows "syncing price" until a fresh snapshot exists. The UI can poll `price_snapshots.fetched_at` once, or subscribe. The residual risk is that a 30 s option's entry price can be up to about 11 s old while the user watches a live feed, which gives a small look-ahead edge. That is acceptable for virtual funds; D5 lists the stricter variant.
 
 **Failure modes:**
 
@@ -460,6 +460,8 @@ Functions: EXECUTE is revoked from `public, anon, authenticated` on every functi
 `private.is_admin()` is `language sql stable security definer set search_path = ''` and returns `exists(select 1 from public.user_roles where user_id = (select auth.uid()) and role = 'admin')`. It runs as the function owner (`postgres`), who owns `user_roles` and therefore bypasses its RLS (the table is **not** `FORCE ROW LEVEL SECURITY`). That means the `user_roles` SELECT policy, which itself calls `is_admin()`, is never evaluated inside `is_admin()`, so there is no recursion. It lives in the unexposed `private` schema: `authenticated` gets `USAGE` on the schema and EXECUTE on this one function so policies can call it, but it is not an RPC endpoint. The UI learns admin status from the `user_role` JWT claim or by reading its own `user_roles` row.
 
 ### 9.3 Storage (KYC)
+
+> **Superseded (locked in Phase 2):** no KYC file is stored anywhere, so there is no `kyc` bucket and `submit_kyc` takes no file paths. The admin reviews text fields only. This section is kept only as a record of the earlier proposal.
 - **Bucket `kyc`:** private, 10 MiB limit, `image/jpeg, image/png, image/webp, application/pdf`.
 - **Paths:** `<auth.uid()>/<anything>`. The client uploads directly from the browser with `upsert: false`.
 
@@ -476,7 +478,7 @@ Functions: EXECUTE is revoked from `public, anon, authenticated` on every functi
 1. Inserts the profile with a random 8-digit UID, retrying up to 10× on a unique collision.
 2. Inserts the 4 zero-balance wallets.
 
-It does nothing else: no HTTP, no welcome credit. Demo funds are credited by an admin, and if auto-credit is wanted later it should be an explicit `admin_adjust_balance`-style function, not more trigger logic. **If the trigger fails, the signup fails** (Auth returns "Database error saving new user"). That is deliberate: a user without wallets would break every RPC. The trigger is kept tiny so it cannot fail for business reasons. A second trigger mirrors email changes into `profiles.email`.
+It does nothing else: no HTTP, no welcome credit. Virtual funds are credited by an admin, and if auto-credit is wanted later it should be an explicit `admin_adjust_balance`-style function, not more trigger logic. **If the trigger fails, the signup fails** (Auth returns "Database error saving new user"). That is deliberate: a user without wallets would break every RPC. The trigger is kept tiny so it cannot fail for business reasons. A second trigger mirrors email changes into `profiles.email`.
 
 ---
 
@@ -565,7 +567,7 @@ Upgrade path: broadcast-from-trigger to private `user:<uid>` channels (D8) when 
 
 | # | Decision | Options (★ = recommended) |
 |---|---|---|
-| D1 | **What the deposit "address" means in a demo app** | ★ **(a) Show no receiving address.** The deposit is a simulated request (coin → network → amount → optional reference), clearly labeled "Demo: no real funds are received". *Good:* nobody can send real crypto to a platform that can't credit it. *Bad:* less realistic UX. · (b) Show a fixed placeholder labeled "DEMO, DO NOT SEND". *Good:* realistic stepper. *Bad:* it looks like a real address and someone will send funds. · (c) A real platform address. *Bad:* implies real custody, plus legal/regulatory exposure; rejected. |
+| D1 | **What the deposit "address" means when funds are virtual** | ★ **(a) Show no receiving address.** The deposit is a virtual-credit request (coin → network → amount → optional reference), clearly labeled "Virtual funds: no real funds are received". *Good:* nobody can send real crypto to a platform that can't credit it. *Bad:* less realistic UX. · (b) Show a fixed placeholder labeled "NOT A REAL ADDRESS, DO NOT SEND". *Good:* realistic stepper. *Bad:* it looks like a real address and someone will send funds. · (c) A real platform address. *Bad:* implies real custody, plus legal/regulatory exposure; rejected. |
 | D2 | **Forex/metal price source** | ★ **(a) v1: forex/metals are trade-only once an intraday (≤ 60 s) source exists, and excluded from options.** *Good:* no stale-price exploits. *Bad:* the forex terminal is inert until the market-data agent finds a source. · (b) A free intraday FX/metal API in `price-ingest`. *Good:* full feature set. *Bad:* availability, rate limits and terms unverified (the UI agent saw several blocked). · (c) Frankfurter/ECB daily rates. *Good:* free and stable. *Bad:* daily rates are unusable for fills or 30 s settlement (the schema caps freshness at 60 s); display or valuation only. |
 | D3 | **Forex order model** | ★ **(a) Percentage-return positions, no leverage.** *Good:* works for JPY/CAD-quoted pairs with one USDT wallet; losses capped; no liquidation. *Bad:* not "real" FX. · (b) Spot-like conversion (UI D6-A). *Good:* reuses the spot form exactly. *Bad:* needs multi-currency forex balances (JPY, CAD, XAU …) and FX valuation, which breaks the single-currency-cents rule. · (c) Leveraged margin with SL/TP and liquidation. *Bad:* engine plus edge cases; out of v1. |
 | D4 | **Profit chart source** | ★ **(a) Realized PnL from `ledger.pnl_cents`.** *Good:* exact, zero extra writes, excludes deposits by construction. *Bad:* no unrealized component. · (b) Hourly `portfolio_snapshots` (UI D8) net of external flows. *Good:* includes unrealized PnL. *Bad:* needs server prices for every held asset every hour, a new table and cron, and deposits must be netted out. · (c) Client-computed. *Bad:* historical holdings can't be valued without historical prices. |
@@ -573,7 +575,7 @@ Upgrade path: broadcast-from-trigger to private `user:<uid>` channels (D8) when 
 | D6 | **Settlement after a long price outage** | ★ **(a) Settle at the first valid post-expiry price whenever it arrives.** *Good:* never uses a stale price; no extra code. *Bad:* after a 10 min outage, the settle price is 10 min late. · (b) Auto-void (refund premium + fee) if no valid price within `expires_at + 2 min`. *Good:* fair to users. *Bad:* one more status, ledger kind and RPC. · (c) Admin manual void. *Good:* rare and controlled. *Bad:* needs ops attention. |
 | D7 | **Tie (settle = entry)** | ★ (a) Draw: refund the premium, keep the fee. · (b) Loss. *Bad:* feels unfair. · (c) Full refund including the fee. *Good:* friendliest. *Bad:* fee-free retries. |
 | D8 | **Realtime transport** | ★ (a) postgres_changes (current). *Good:* no extra triggers. *Bad:* per-subscriber RLS on a single thread doesn't scale far. · (b) Trigger → `realtime.broadcast_changes` to private `user:<uid>` channels. *Good:* scales; Supabase recommends it. *Bad:* `realtime.messages` policies and topic-prefix matching. |
-| D9 | **Withdrawal gating** | ★ (a) KYC approved + AAL2 if MFA is enrolled (implemented, matches UI D7-A). · (b) No gating (pure demo). *Good:* frictionless. *Bad:* the KYC flow loses its purpose. |
+| D9 | **Withdrawal gating** | ★ (a) KYC approved + AAL2 if MFA is enrolled (implemented, matches UI D7-A). · (b) No gating (practice only). *Good:* frictionless. *Bad:* the KYC flow loses its purpose. |
 
 ---
 

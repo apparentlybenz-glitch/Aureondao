@@ -2,7 +2,7 @@
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
 
-> AureonX is a **simulated** multi-asset trading platform. An admin credits demo funds and no real money moves. This file maps every screen to its route, layout, rendering mode, auth requirement, components and data source. It is a plan only: no app code exists yet.
+> AureonX is a multi-asset trading platform on **virtual funds**. An admin credits virtual balances and no real money moves. This file maps every screen to its route, layout, rendering mode, auth requirement, components and data source. It is a plan only: no app code exists yet.
 >
 > Research date: 2026-10-25. Versions found on npm on that date: `next@16.4.3` (the scaffold already pins this), `@opennextjs/cloudflare@1.20.13` (peer range `next >=15.5.28 <16 || >=16.4.1`), `@supabase/supabase-js@2.118.0`, `@supabase/ssr@0.12.7`, `lightweight-charts@5.2.1`, `next-intl@4.14.9`, `motion`/`framer-motion@14.6.0`, `@sentry/nextjs@11.9.0`, `tailwindcss@4.3.3`, `shadcn@4.22.1`.
 
@@ -46,9 +46,9 @@ src/
       page.tsx                 /
       legal/terms/page.tsx     /legal/terms
       legal/privacy/page.tsx   /legal/privacy
-      legal/risk/page.tsx      /legal/risk  ("simulated platform" disclosure + chart library attribution notice)
+      legal/risk/page.tsx      /legal/risk  ("virtual funds" disclosure + chart library attribution notice)
     (auth)/
-      layout.tsx               AuthShell (centered card, logo, DemoFundsNote)
+      layout.tsx               AuthShell (centered card, logo, VirtualFundsNote)
       sign-in/page.tsx         /sign-in
       sign-in/mfa/page.tsx     /sign-in/mfa  (AAL2 challenge: TOTP / phone / passkey)
       sign-up/page.tsx         /sign-up
@@ -57,7 +57,7 @@ src/
       auth/callback/route.ts   /auth/callback  (PKCE code exchange, sets cookies, redirects)
       auth/confirm/route.ts    /auth/confirm   (verifyOtp token_hash for email confirm/recovery links)
     (app)/
-      layout.tsx               AppShell: AppHeader (TopNav + AssetMgmtMenu + DemoFundsBadge + UserMenu), MobileTabBar
+      layout.tsx               AppShell: AppHeader (TopNav + AssetMgmtMenu + VirtualFundsBadge + UserMenu), MobileTabBar
       error.tsx                Segment error boundary
       spot/page.tsx            /spot?symbol=BTC-USDT
       spot/loading.tsx
@@ -119,7 +119,7 @@ Legend:
 | Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | — | LegalArticle (MDX or TSX), Footer |
 | Sign in | `/sign-in` | (auth) | S | — (redirects to `/spot` client-side if a session exists) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
 | MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP via InputOTP, phone OTP, passkey) |
-| Sign up | `/sign-up` | (auth) | S | — | SignUpForm (email, password, country, nickname, terms checkbox, DemoFundsNote) |
+| Sign up | `/sign-up` | (auth) | S | — | SignUpForm (email, password, country, nickname, terms checkbox, VirtualFundsNote) |
 | Forgot password | `/forgot-password` | (auth) | S | — | ResetRequestForm |
 | Update password | `/update-password` | (auth) | S | recovery session | UpdatePasswordForm |
 | Auth callback | `/auth/callback` | — | RH | — | `exchangeCodeForSession` and redirect to `next` |
@@ -128,9 +128,9 @@ Legend:
 | Forex terminal | `/forex?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(forex), DrawingToolbar, PriceChart (timeframes 1m–1M, volume + MA5/10/20, Native/Depth toggle, AureonX watermark), OrderBook + LatestTrades, ForexOrderForm (the Spot form with the forex wallet; see D6), UserOrdersPanel |
 | Options terminal | `/options?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(options), PriceChart (compact, entry-price line + expiry markers), OptionsTicket (Rise/Fall, CycleSelector, PremiumPresets + custom, fee/expected profit, SlideToConfirm), OptionsPositionsTabs (Positions with ExpiryCountdown, Filled Orders, Statistics) |
 | My Assets | `/assets` | (app) | S+C | U | TotalBalanceHeader, SubWalletCards (Capital/Spot/Forex/Options), ProfitChart (1D/1W/1M/6M), AssetTable (per coin), QuickActions (Deposit/Withdraw/Transfer) |
-| Deposit crypto | `/assets/deposit/crypto` | (app) | S+C | U (KYC optional, D7) | Stepper: CoinSelect → NetworkSelect → DemoDepositNotice (no receiving address is shown: this is a simulated request, decisions.md C9) → Amount → Submit; RecentRequestsTable |
+| Deposit crypto | `/assets/deposit/crypto` | (app) | S+C | U (KYC optional, D7) | Stepper: CoinSelect → NetworkSelect → VirtualDepositNotice (no receiving address is shown: this is a virtual-credit request, decisions.md C9) → Amount → Submit; RecentRequestsTable |
 | Withdraw crypto | `/assets/withdraw/crypto` | (app) | S+C | U + MFA + KYC approved | Stepper: CoinSelect → NetworkSelect → DestinationAddress → Amount (fee, min, available) → Confirm (TOTP/phone code) ; RecentRequestsTable |
-| Deposit fiat | `/assets/deposit/fiat` | (app) | S+C | U | Stepper: Currency → Method (bank transfer, simulated) → Amount → Reference shown → Submit |
+| Deposit fiat | `/assets/deposit/fiat` | (app) | S+C | U | Stepper: Currency → Method (bank transfer, virtual credit) → Amount → Reference shown → Submit |
 | Withdraw fiat | `/assets/withdraw/fiat` | (app) | S+C | U + MFA + KYC approved | Stepper: Currency → BeneficiaryForm → Amount → Confirm |
 | Transfer | `/assets/transfer` | (app) | S+C | U | TransferForm (From wallet ⇄ To wallet swap button, asset, amount, Max), RecentTransfers |
 | Bills | `/assets/bills` | (app) | S+C | U | BillsFilters (wallet, type, asset, date range), BillsTable (keyset pagination), BillDetailSheet |
@@ -150,12 +150,12 @@ Legend:
 
 **Static enforcement:** `cacheComponents` is off in the current `next.config.ts`. Put `export const dynamic = 'error'` in `(marketing)/layout.tsx`, `(auth)/layout.tsx`, `(app)/layout.tsx` and `admin/layout.tsx`, so that an accidental `cookies()` or `headers()` call fails the build instead of silently switching on SSR. Do not put it in `(auth)/auth/*/route.ts`. If `cacheComponents` is turned on later, Next 16.4 adds `export const ensureStatic = 'navigation'` for the same guarantee (<https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic>, added in v16.4.0). Server components may only render static chrome; everything user-specific is a client component.
 
-**Demo funds indicator (recommended placement):**
-1. A persistent amber `Badge` reading "DEMO FUNDS" in the `AppHeader`, directly left of the total-balance/UserMenu cluster. It is visible on every (app) and admin screen at every width; on mobile it collapses to a "DEMO" pill next to the logo.
+**Virtual funds indicator (recommended placement):**
+1. A persistent amber `Badge` reading "VIRTUAL FUNDS" in the `AppHeader`, directly left of the total-balance/UserMenu cluster. It is visible on every (app) and admin screen at every width; on mobile it collapses to a "VIRTUAL" pill next to the logo.
 2. The same text inside every order confirmation: SlideToConfirm label and order sheet footer.
 3. A one-line disclosure in the marketing Footer and on the (auth) cards.
 
-Clicking the badge opens a Popover explaining "Simulated balances credited by an administrator; no real money is involved." The placement avoids a dismissible banner, because a dismissed banner would no longer be persistent.
+Clicking the badge opens a Popover explaining "Virtual balances credited by an administrator; no real money is involved." The placement avoids a dismissible banner, because a dismissed banner would no longer be persistent.
 
 ---
 
@@ -244,7 +244,7 @@ Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280. 
 
 | 390 px (phone) | 768 px (tablet) | 1280 px (desktop) |
 |---|---|---|
-| Header: logo, "DEMO" pill, hamburger (Sheet). `SymbolHeader` is one row: symbol (tap ⇒ MarketList Sheet from left), last price, change %. **MobileTerminalTabs** (sticky under the header): **Chart / Book / Trades / Orders**. Chart tab: chart at 55vh with the timeframe bar scrolling horizontally. Book tab: 12 asks / spread / 12 bids, with grouping select. A sticky bottom bar holds two full-width buttons, **Buy** (green) and **Sell** (red), which open an **OrderSheet** (Drawer, ~85vh) with Limit/Market tabs, one side panel for the chosen side, a side switch at the top, the slider and submit. Orders tab: open orders as cards, not a table. | Two columns. Left (≈62%): SymbolHeader, Chart (420 px) and, beneath it, Tabs Book/Trades (book 10 + 10). Right (≈38%): the order form with Buy/Sell **stacked as tabs** (not side-by-side) and Limit/Market. Below both, full width: UserOrdersPanel. MarketList is a Sheet opened from SymbolHeader. | Three-pane grid: **MarketList (280 px)** · **Chart (flex)** · **OrderBook/LatestTrades tabs (320 px)**. Under chart and book is the order form with **Buy and Sell panels side by side**, Limit/Market tabs above them. Under the market list is space for favorites/recent. Full-width UserOrdersPanel at the bottom. Panes are `resizable` and the layout is saved in localStorage. |
+| Header: logo, "VIRTUAL" pill, hamburger (Sheet). `SymbolHeader` is one row: symbol (tap ⇒ MarketList Sheet from left), last price, change %. **MobileTerminalTabs** (sticky under the header): **Chart / Book / Trades / Orders**. Chart tab: chart at 55vh with the timeframe bar scrolling horizontally. Book tab: 12 asks / spread / 12 bids, with grouping select. A sticky bottom bar holds two full-width buttons, **Buy** (green) and **Sell** (red), which open an **OrderSheet** (Drawer, ~85vh) with Limit/Market tabs, one side panel for the chosen side, a side switch at the top, the slider and submit. Orders tab: open orders as cards, not a table. | Two columns. Left (≈62%): SymbolHeader, Chart (420 px) and, beneath it, Tabs Book/Trades (book 10 + 10). Right (≈38%): the order form with Buy/Sell **stacked as tabs** (not side-by-side) and Limit/Market. Below both, full width: UserOrdersPanel. MarketList is a Sheet opened from SymbolHeader. | Three-pane grid: **MarketList (280 px)** · **Chart (flex)** · **OrderBook/LatestTrades tabs (320 px)**. Under chart and book is the order form with **Buy and Sell panels side by side**, Limit/Market tabs above them. Under the market list is space for favorites/recent. Full-width UserOrdersPanel at the bottom. Panes are `resizable` and the layout is saved in localStorage. |
 
 ### 4.2 Forex terminal
 
@@ -262,7 +262,7 @@ Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280. 
 
 | 390 px | 768 px | 1280 px |
 |---|---|---|
-| TotalBalanceHeader (amount in USDT-equivalent, eye toggle to hide amounts, "DEMO"). Sub-wallets are a **horizontal snap carousel** of 4 cards. Quick actions are a 3-icon row (Deposit / Withdraw / Transfer). Profit chart at 180 px with the 1D/1W/1M/6M toggle. The asset table becomes a card list. Steppers show one step per screen with a "Step 2 of 4" header and Back/Next in a sticky footer. Bills render as list items; tapping one opens a bottom drawer with the detail. | Sub-wallet cards in a 2×2 grid. Profit chart full width at 240 px. Tables use horizontal scroll with a sticky first column. Steppers show a horizontal step indicator above a single form column. | Header plus a 4-card row. Two columns: profit chart (2/3) and allocation/donut chart or quick actions (1/3). Full table below. Deposit/withdraw use a vertical stepper at left (240 px) with a form at right and a "Recent requests" table under it. Transfer is a centered 480 px card. |
+| TotalBalanceHeader (amount in USDT-equivalent, eye toggle to hide amounts, "VIRTUAL"). Sub-wallets are a **horizontal snap carousel** of 4 cards. Quick actions are a 3-icon row (Deposit / Withdraw / Transfer). Profit chart at 180 px with the 1D/1W/1M/6M toggle. The asset table becomes a card list. Steppers show one step per screen with a "Step 2 of 4" header and Back/Next in a sticky footer. Bills render as list items; tapping one opens a bottom drawer with the detail. | Sub-wallet cards in a 2×2 grid. Profit chart full width at 240 px. Tables use horizontal scroll with a sticky first column. Steppers show a horizontal step indicator above a single form column. | Header plus a 4-card row. Two columns: profit chart (2/3) and allocation/donut chart or quick actions (1/3). Full table below. Deposit/withdraw use a vertical stepper at left (240 px) with a form at right and a "Recent requests" table under it. Transfer is a centered 480 px card. |
 
 ### 4.5 Account and KYC
 - 390: single column. Security items are a vertical list of rows (icon, title, status badge, chevron), and each opens a full-screen Sheet. Camera capture for the selfie uses `<input type="file" accept="image/*" capture="user">`.
@@ -303,7 +303,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 | Passkey sign-in button | Supabase Auth client `signInWithPasskey()` (experimental opt-in; see D4) |
 | MfaChallenge | Supabase Auth client `mfa.challenge`/`mfa.verify` (write) |
 | `/auth/callback`, `/auth/confirm` | route handler (no secret; uses the publishable key + cookies) |
-| AppHeader balance pill, DemoFundsBadge | browser → Supabase (RLS read `wallets`) + Supabase Realtime |
+| AppHeader balance pill, VirtualFundsBadge | browser → Supabase (RLS read `wallets`) + Supabase Realtime |
 | UserMenu (nickname, avatar, KYC badge) | browser → Supabase (RLS read `profiles`) |
 
 ### 5.2 Terminals
@@ -452,8 +452,8 @@ Sources: OpenNext Cloudflare docs <https://opennext.js.org/cloudflare> (repo `op
 | | | C. Persist drawings in Supabase (`chart_drawings` table) instead of localStorage | Syncs across devices | One more table plus RLS; write traffic on every edit |
 | D6 | Forex order mechanics | **A. Same as spot (buy/sell base against quote in the Forex wallet) (recommended for v1)** | Reuses SpotOrderForm + `place_order` RPC | Not "real" FX (no leverage or margin) |
 | | | B. Margin positions with leverage, SL/TP | Realistic | New data model, liquidation engine and UI; out of v1 scope |
-| D7 | KYC gating | **A. Require KYC=approved for withdrawals only (recommended)** | Low friction for the demo | Users may deposit before verifying |
-| | | B. Require KYC before any trading | Strict | Blocks onboarding in a demo product |
+| D7 | KYC gating | **A. Require KYC=approved for withdrawals only (recommended)** | Low friction for practice | Users may deposit before verifying |
+| | | B. Require KYC before any trading | Strict | Blocks onboarding in a practice product |
 | D8 | Profit chart source | **A. `portfolio_snapshots` from an hourly pg_cron job valued with server-side prices (recommended)** | Cheap reads; consistent history | Needs a server-side price source (see conflicts) |
 | | | B. Compute from the ledger on the client | No cron | Can't value historical holdings without historical prices |
 | D9 | Admin auth-level operations (ban, reset MFA) | **A. A few server actions with `SUPABASE_SECRET_KEY` (recommended)** | Small surface; the secret stays in a Worker secret | One secret-holding code path to audit |
@@ -478,7 +478,7 @@ Tables (all RLS; "public read" means readable by `anon` and `authenticated`):
 - `orders(id, user_id, market enum('spot','forex'), symbol, side, type enum('limit','market'), price, qty, filled_qty, avg_price, status enum('open','partially_filled','filled','canceled','rejected'), created_at, updated_at)` and `fills(id, order_id, user_id, symbol, side, price, qty, fee, fee_asset, created_at)`
 - `option_cycles(seconds pk, profit_rate numeric, fee_rate numeric, min_premium, max_premium, enabled, updated_at)`. Public read; admin write.
 - `option_orders(id, user_id, symbol, direction enum('rise','fall'), cycle_seconds, premium, fee, profit_rate /*snapshot*/, entry_price, opened_at, expires_at, settle_price, status enum('open','won','lost','draw','canceled'), payout, settled_at)`
-- `asset_networks(asset, network, deposit_address /* platform demo address */, memo, min_deposit, min_withdraw, withdraw_fee, enabled)`. Public read. Fiat equivalent: `fiat_methods(currency, method, instructions, min, max, fee)`.
+- `asset_networks(asset, network, deposit_address /* removed: no address is ever stored (O10) */, memo, min_deposit, min_withdraw, withdraw_fee, enabled)`. Public read. Fiat equivalent: `fiat_methods(currency, method, instructions, min, max, fee)`.
 - `deposit_requests(id, user_id, kind enum('crypto','fiat'), asset, network, amount, tx_ref, status enum('pending','approved','rejected'), reviewer_id, review_note, created_at, reviewed_at)`
 - `withdrawal_requests(id, user_id, kind, asset, network, address /* or beneficiary jsonb */, amount, fee, status enum('pending','approved','rejected','canceled'), reviewer_id, review_note, created_at, reviewed_at)`. Funds move to `locked` on create.
 - `kyc_submissions(id, user_id, country, doc_type enum('passport','id_card','driver_license'), first_name, last_name, dob, address jsonb, doc_front_path, doc_back_path, selfie_path, status, reviewer_id, review_note, created_at, reviewed_at)`, plus Storage bucket `kyc` (private; path `kyc/{uid}/...`; insert-own, select-own, select-admin).
