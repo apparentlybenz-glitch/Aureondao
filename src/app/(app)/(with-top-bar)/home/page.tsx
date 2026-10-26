@@ -64,7 +64,7 @@ export default function HomePage() {
           const body = (
             <>
               <span className="relative flex size-12 items-center justify-center rounded-full bg-muted">
-                <Icon className="size-5" />
+                <Icon className="size-5 text-accent-green" />
                 {"href" in action ? null : (
                   <span className="absolute -top-1 -right-2 rounded-full bg-secondary px-1.5 text-[9px] font-semibold text-muted-foreground ring-1 ring-border">
                     {c("soon")}
