@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SupportFab } from "@/components/app/support-fab";
 import { formatPrice, toSortNumber } from "@/lib/market/decimal";
 import { DEFAULT_MARKET, readLastMarket, saveLastMarket } from "@/lib/market/last-symbol";
 import { isDelayed } from "@/lib/market/types";
@@ -58,7 +59,7 @@ export function SpotTerminal() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+2rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+5rem+env(safe-area-inset-bottom))]">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <MarketPicker market={market} ticker={ticker} onPick={pick} />
@@ -126,6 +127,7 @@ export function SpotTerminal() {
           <AccountPanel markets={markets} orders={account.orders} holdings={account.holdings} error={account.error} />
         ) : null}
       </section>
+      <SupportFab />
     </div>
   );
 }

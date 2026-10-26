@@ -26,6 +26,8 @@ export type Market = {
   // Order rules (slice 4): decimals allowed in a quantity, minimum order value in cents.
   qtyDecimals: number;
   minNotionalCents: bigint;
+  // Options underlying (slice 5, O4).
+  optionsEnabled: boolean;
 };
 
 export type MarketRow = {
@@ -39,10 +41,11 @@ export type MarketRow = {
   sort_order: number;
   qty_decimals: number;
   min_notional_cents: string;
+  options_enabled: boolean;
 };
 
 export const MARKET_COLUMNS =
-  "id, base, quote, display_symbol, vision_symbol, kucoin_symbol, price_decimals, sort_order, qty_decimals, min_notional_cents::text";
+  "id, base, quote, display_symbol, vision_symbol, kucoin_symbol, price_decimals, sort_order, qty_decimals, min_notional_cents::text, options_enabled";
 
 export function toMarket(row: MarketRow): Market {
   return {
@@ -56,6 +59,7 @@ export function toMarket(row: MarketRow): Market {
     sortOrder: row.sort_order,
     qtyDecimals: row.qty_decimals,
     minNotionalCents: BigInt(row.min_notional_cents),
+    optionsEnabled: row.options_enabled,
   };
 }
 

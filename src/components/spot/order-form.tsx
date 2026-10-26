@@ -309,6 +309,7 @@ export function OrderForm({
 
       <Button
         type="submit"
+        data-fab-avoid=""
         disabled={!canSubmit}
         className={cn(
           "h-11 w-full text-base font-semibold",

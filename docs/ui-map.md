@@ -328,7 +328,15 @@ Dark only. The shell uses the shadcn tokens: `background` `#050505`, `card` and 
 9. Full-width primary button (label per side), then `open_option`.
 10. **Positions (n)** · **Filled** tabs, with a stats icon and a "Current instrument only" checkbox.
 
-Assumption (owner, slice 5): the Fall side was never captured. Every layout uses one plain button (no slide-to-confirm) reading **Call** for Rise and **Put** for Fall; the enum stays `rise`/`fall`.
+Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured layout, these are the assumptions):
+- **Put:** the Fall side was never captured. One plain full-width button on every layout: **Call** (up colour) for Rise, **Put** (dark red, `down` at 80%) for Fall. The enum stays `rise`/`fall`.
+- **Symbol list:** the `options_enabled` markets (BTC, ETH, SOL) by `display_symbol`, in a bottom sheet; no prices or search. The choice is not remembered.
+- **Info sheet:** each enabled period with its profit rate, the fee rate (first enabled period's `fee_bps`) and one line on settlement and the 90 s refund.
+- **Statistics icon:** captured next to the Positions/Fill tabs, not built (hidden).
+- **Floating support:** a brand-green headset button (→ `/support`, like the top bar) bottom right, 12 px above the tab bar, on Options and Spot. It fades out while an element marked `data-fab-avoid` (the Call/Put and Spot confirm buttons, the fee/return row) passes under it. These pages pad the bottom by tab bar + 5rem + safe area so the last row clears it.
+- **Desktop:** Spot's approach: from `md:` the chart and the ticket sit side by side (ticket 340 px), Positions/Fill full width below; with the chart hidden the ticket is centred at 480 px. No three-column terminal.
+- **Current price:** the browser ticker's bid/ask mid at `price_decimals`, display only; `—` without a valid bid and ask. Its colour follows the selected direction.
+- **Periods:** the slider has a stop per `option_periods` row in duration order; disabled stops are greyed and cannot be selected. Premium chips are UI only; the input takes up to two decimals; "Est. return" is premium × rate only, the fee is shown beside it with its amount.
 
 ### 4.9 Evidence tags for the other screens
 | Screen | Evidence |

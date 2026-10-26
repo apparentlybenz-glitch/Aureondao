@@ -18,6 +18,7 @@ export function seededMarkets() {
       sortOrder: i + 1,
       qtyDecimals: 5,
       minNotionalCents: 500n,
+      optionsEnabled: false,
     };
   });
 }
