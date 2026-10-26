@@ -4,8 +4,8 @@ export default function WithTopBarLayout({ children }: { children: React.ReactNo
   return (
     <>
       <TopBar />
-      {/* Bottom padding = tab bar (56 px) + raised Trade button room + safe-area inset. */}
-      <main className="mx-auto w-full max-w-[880px] flex-1 px-4 pt-4 pb-[calc(56px+2rem+env(safe-area-inset-bottom))]">
+      {/* pb-tabbar clears the tab bar, the raised Trade button and the home indicator. */}
+      <main className="mx-auto w-full max-w-[880px] flex-1 px-4 pt-4 pb-tabbar">
         {children}
       </main>
     </>
