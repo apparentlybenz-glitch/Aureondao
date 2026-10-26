@@ -301,10 +301,13 @@ Motion: use `motion/react` with `LazyMotion` + `domAnimation` and the `m.*` comp
 Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its practice-account shortcut tile (wording rule).
 
 #### App shell: Captured
-- **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is white with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
+- **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is `primary` (brand green) with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
 - **Trade** destination: O24.
 - **Top bar (Home only):** avatar (→ /account) · symbol search pill (→ market search sheet) · language globe · notifications bell · support headset.
 - Dark theme by default.
+
+#### Shell palette
+Dark only. The shell uses the shadcn tokens: `background` `#050505`, `card` and `popover` `#121212`, `border` `#262626`, `foreground` `#F5F5F5`, `muted-foreground` `#A3A3A3` and `primary` brand green `#1BA04A` with black text. Up and down amounts use the `up` (`#3DD68C`) and `down` (`#F0505A`) tokens. Roles, contrast and usage rules: `docs/brand.md`.
 
 #### Home (`/home`, signed in; the public homepage stays at `/`, slice 9): Captured
 1. Top bar as above.
@@ -351,7 +354,7 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 | "Coming soon" placeholders | `/market`, `/spot` (Trade), `/options`, `/support`, `/notifications` | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
-- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use the `--accent-green` token; up/down amounts keep their own green/red. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
+- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
 - **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Only Transfer and Bills tiles are live; the other 6 show a "Soon" badge and are not links. The avatar is a generic icon (no extra profile fetch).

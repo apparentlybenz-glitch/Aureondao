@@ -144,7 +144,7 @@ export default function BillsPage() {
                 <p
                   className={cn(
                     "shrink-0 font-semibold tabular-nums",
-                    delta > ZERO_CENTS ? "text-emerald-500" : delta < ZERO_CENTS ? "text-red-500" : "",
+                    delta > ZERO_CENTS ? "text-up" : delta < ZERO_CENTS ? "text-down" : "",
                   )}
                 >
                   {formatCents(delta, { sign: true })}
