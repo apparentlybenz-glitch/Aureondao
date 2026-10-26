@@ -6,7 +6,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4 Part A: server price feed and Spot market orders, no UI yet)
+## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4: server price feed, Spot market orders and the Spot terminal)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
@@ -23,8 +23,9 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `service.ts`: secret-key client, `server-only`, never imported by client code.
 - Pages (all static prerenders; user data loads in client components):
   - `/` public root (placeholder until the slice 9 homepage; a client check sends signed-in visitors to `/home`) and the default not-found.
-  - `(app)` shell (slice 2): the `(app)` layout has the session guard and a fixed bottom tab bar; the top bar (avatar, VIRTUAL pill, search, globe, bell, support) comes from the `(app)/(with-top-bar)` group layout, so trading screens placed directly in `(app)` skip it. Bottom tab bar (Home, Market, raised Trade with a label, Options, Assets). Dark theme for the whole app. One brand accent token, `--accent-green` (`text-accent-green`), colors the active tab and the Home quick-action icons; up/down amounts keep `emerald-500` / `red-500`. Screen tags and assumptions: `docs/ui-map.md` §4.10.
-  - `(app)/(with-top-bar)` pages (slice 2): `/home` Home (total with hide-eye, quick actions; 6 tiles "Soon"; the market table from slice 3 below them), `/assets`, `/assets/transfer`, `/assets/bills`, `/admin`, `/market` (slice 3, below), and "Coming soon" at `/spot` (the Trade tab opens it, O24), `/options`, `/support`, `/notifications`.
+  - `(app)` shell (slice 2): the `(app)` layout has the session guard and a fixed bottom tab bar; the top bar (avatar, VIRTUAL pill, search, globe, bell, support) comes from the `(app)/(with-top-bar)` group layout, so trading screens placed directly in `(app)` skip it. Bottom tab bar (Home, Market, raised Trade with a label, Options, Assets). Dark theme for the whole app. Brand green is `primary` (`text-primary`, `border-primary`, `accent-primary`): active tab, Home quick-action icons, active tab underlines and links. The old `--accent-green` token was retired by the brand palette; slice 4 moved the market table's leftover `accent-green` classes (which had rendered with no color) to `primary`. Up/down use the `up` / `down` tokens (`emerald-500` / `red-500` in the market table). Screen tags and assumptions: `docs/ui-map.md` §4.10.
+  - `(app)/(with-top-bar)` pages (slice 2): `/home` Home (total with hide-eye, quick actions; 6 tiles "Soon"; the market table from slice 3 below them), `/assets`, `/assets/transfer`, `/assets/bills`, `/admin`, `/market` (slice 3, below), and "Coming soon" at `/options`, `/support`, `/notifications`.
+  - `(app)/spot` (slice 4, no top bar; its own header with the market picker and the VIRTUAL pill): the Spot terminal at `/spot?symbol=BTC-USDT`. Without `?symbol` it opens the last viewed market (`aureonx.lastMarket`); the Trade tab and the Home Spot tile link to `/spot` (O24). Chart, order form, then Book / Trades / Orders tabs. Details below under Market data and Supabase; tags and assumptions: `docs/ui-map.md` §4.12.
   - Money in the UI: amounts are labelled USD. `src/lib/money.ts` (BigInt cents, `::text` selects), `src/lib/wallets.ts` (`useWallets`, Realtime on `wallets`), `src/lib/attempt-key.ts` (one idempotency key per confirm attempt).
   - `(auth)`: `/sign-in`, `/sign-in/mfa` (TOTP step-up to AAL2), `/sign-up`, `/forgot-password`, `/update-password`. The layout exports `dynamic = "error"`.
   - `(app)`: `/account` (UID, email, KYC status read only; nickname, phone and country edited through `update_profile`) and `/account/security` (email verification status, TOTP enroll/verify/remove, password change; passkeys and phone show "Not available yet"). The layout exports `dynamic = "error"`, shows the VIRTUAL pill in the top bar, and runs a client guard that sends AAL1 sessions with a verified factor to `/sign-in/mfa`.
@@ -35,6 +36,12 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `GET /md/v1/tickers` (route handler in the app Worker, forced dynamic, outside the proxy matcher): fetches KuCoin `allTickers`, returns only enabled markets (publishable key, RLS), at most 2 retries with jitter. In-memory caches (`stale-cache.ts`): tickers 5 s, failure 10 s, markets list 60 s. While KuCoin fails it answers 200 with `stale: true` and the old tickers (original `ts`, so the client marks them delayed) for up to 60 s after the last good fetch, then 502; the 10 s window keeps KuCoin from being called while it fails. Every failed refresh logs a JSON line and goes to Sentry with the upstream status and retry count. The Cache API does not work on workers.dev; move to it when a custom domain is attached. When `/md/v1` errors the client store keeps the last good tickers on screen and they turn delayed.
   - Keep **at most 20 enabled `markets` rows**: Vision `ticker/24hr` costs weight 2 for 1 to 20 symbols and 40 above that. One invalid symbol fails the whole Vision request (the store then falls back).
   - Screens: the Home market table (`MarketTable` variant `home`, first 8 rows and a link) and `/market` (variant `market`: search field, star toggles, `?q=` from the top bar search). Tabs Optional, Popular, Gainer, Down. The type dropdown has Spot enabled; Options, Forex and Perpetual show Soon. Sell is the best bid, Buy the best ask. Coin icons are initials badges. A row tap saves the last viewed symbol and does not navigate. Tags and assumptions: `docs/ui-map.md` §4.11.
+  - Slice 4 terminal data (display only; details `docs/market-data.md` §11). Every exchange call is `getJson` (a plain GET with only a signal, no headers):
+    - `klines.ts`: Vision klines (limit 300) with the `GET /md/v1/klines?symbol=&interval=` fallback (KuCoin candles through the Worker, same caches and stale rules as `/md/v1/tickers`, only enabled markets and the 8 intervals). The chart refetches just after each candle closes (at least once a minute) and patches the open candle from the ticker store between refetches. Timeframes 1m, 5m, 15m, 30m, 1h, 4h, More (1D, 1W).
+    - `book.ts`: Vision `depth` (20 levels, weight 5) and `aggTrades` (30, weight 4) for the selected symbol only, every 5 s, only while that tab is open and the page visible. No fallback: Vision failing shows "unavailable". The note under them says practice orders do not enter this book.
+    - `Ticker` carries 24 h `high` and `low` (strings) from both normalizers and `/md/v1/tickers`; the terminal shows them with the quote volume under the header.
+    - `poller.ts` (framework-free, unit-tested) and `use-poll.ts`: one repeating load that pauses while the page is hidden and reloads at once when shown.
+    - Lightweight Charts 5.2.1 (Apache-2.0), loaded on demand by the chart only; its attribution logo stays on (O15).
   - **Owner check in DevTools (Network):** no `OPTIONS` request goes to `data-api.binance.vision`. Trace headers are attached only to same-origin requests while `tracePropagationTargets` is unset (verified in `@sentry/browser` 11.9.0). If an `OPTIONS` request ever appears, the fix is `tracePropagationTargets: []` in `src/instrumentation-client.ts`.
 - `src/proxy.ts`: matcher covers `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications` (later slices add their paths). It does not check the admin role; RLS and the RPCs do. It verifies the session with `getClaims()` (ES256, cached JWKS), refreshes cookies, logs errors and fails closed to `/sign-in?next=`. Smoke-tested on workerd with `pnpm preview` (C15): `proxy.ts` works, no `middleware.ts` fallback needed.
 - Supabase (project on the Free plan), applied through the Management API and recorded in migration history:
@@ -56,8 +63,11 @@ This file is the single source of truth. It describes **what has shipped**, and 
     - `public.spot_market_order(market_id, side, qty text, client_request_id)`: **no price argument**; buys at the snapshot ask, sells at the bid, refuses a snapshot older than 60 s, checks `qty_decimals` and the minimum order value, rounds cents against the user, idempotent on the key. Bills rows "Bought 0.001 BTC at 50,000.10" / "Sold …" plus a separate "Trading fee".
     - `public.request_price_feed()` (heartbeat, 5 min window). `public.ingest_prices(jsonb)` (`service_role` only).
     - Extensions `pg_cron` and `pg_net`. pg_cron `aureonx-price-tick` every 10 s calls `private.price_tick()`, which posts to the `price-ingest` Edge Function only while the demand window is open; `aureonx-cron-history-cleanup` daily.
-    - Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`, single file; `supabase/functions/deno.d.ts` types the Deno globals for `pnpm typecheck`). Deployed through the Management API with `verify_jwt: false`; it checks the `x-aureonx-cron-secret` header. **The shared secret is not set yet** (`docs/deploy.md` §7), so the feed is off and orders get `PRICE_STALE` until the owner sets it.
+    - Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`, single file; `supabase/functions/deno.d.ts` types the Deno globals for `pnpm typecheck`). Deployed through the Management API with `verify_jwt: false`; it checks the `x-aureonx-cron-secret` header. The owner set `PRICE_INGEST_SECRET` and the two Vault entries (2026-10-26, `docs/deploy.md` §7); verified end to end: every tick 200, all 20 markets from Vision, snapshots about 5 s old.
+    - **Feed cost:** a feed kept running nonstop at 10 s is about 259,000 Edge Function invocations a month against the Free plan's 500,000. **Any signed-in user can keep the feed alive**: a visible trading screen calls `request_price_feed()` every minute, and each call keeps it running for 5 more minutes.
+    - The Spot terminal heartbeats `request_price_feed()` once on show and every 60 s, only while the screen is mounted and the tab visible; it stops on hide (`usePriceFeedDemand` in `src/lib/spot.ts`).
     - Tests: `supabase/tests/slice4_part_a.sh`.
+  - `supabase/migrations/20261026165953_ingest_prices_ignored_count.sql` (slice 4 fix): replaces `ingest_prices` only. A valid price the forward-only upsert did not write (not newer than the stored snapshot) is reported as `ignored`, not `accepted`. Slice 4 therefore has two migrations.
   - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
 - shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Components: `badge`, `button`, `input`, `label`. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
@@ -76,7 +86,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - **Sentry does not capture errors inside `proxy.ts` on Workers:** OpenNext stubs the instrumentation loader in the Node middleware bundle. Handle and log errors there explicitly.
 - Not shipped yet:
   - `supabase/migrations/20261025000000_initial_schema.sql` is a **proposal, not applied**. Each slice cuts its own migration from it.
-  - Also not installed: Lightweight Charts, Motion.
+  - Also not installed: Motion.
 
 Planning docs are **proposals, not shipped behavior**:
 - `docs/decisions.md`: resolved conflicts and open decisions. Wins over the other docs.
@@ -91,7 +101,7 @@ Planning docs are **proposals, not shipped behavior**:
 |---|---|
 | `pnpm dev` | Next dev server (Node) |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`, `supabase/functions/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache, the `price-ingest` function. Needs Node 22.18 or newer (built-in TypeScript stripping) |
+| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`, `supabase/functions/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache, the `price-ingest` function, kline/depth/trade normalizers, the poller, the Spot estimate math. Needs Node 22.18 or newer (built-in TypeScript stripping) |
 | `pnpm lint` | ESLint (`eslint-config-next`) |
 | `pnpm build` | `next build` |
 | `pnpm build:worker` | OpenNext Cloudflare build into `.open-next/` |
@@ -100,7 +110,7 @@ Planning docs are **proposals, not shipped behavior**:
 
 Gate before any commit: `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm build:worker`.
 
-Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After the slice 3 follow-up it is 3,606 KiB (3,600 KiB on `main` with the brand assets; 3,534 KiB at the end of slice 3 before them; 3,584 KiB after slice 2, 3,582 KiB after slice 1, 2,061 KiB after slice 0). Server code must import Sentry from `@sentry/nextjs/cloudflare`, as `worker.ts` does: importing the full `@sentry/nextjs` in a route handler added 362 KiB. `wrangler check startup` after the follow-up: 51 to 53 ms active CPU locally (43.4 ms after slice 2). Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
+Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 4 it is 3,718 KiB (the `/md/v1/klines` route and the terminal; Lightweight Charts is a browser-only chunk). After the slice 3 follow-up it was 3,606 KiB (3,600 KiB on `main` with the brand assets; 3,534 KiB at the end of slice 3 before them; 3,584 KiB after slice 2, 3,582 KiB after slice 1, 2,061 KiB after slice 0). Server code must import Sentry from `@sentry/nextjs/cloudflare`, as `worker.ts` does: importing the full `@sentry/nextjs` in a route handler added 362 KiB. `wrangler check startup` after the follow-up: 51 to 53 ms active CPU locally (43.4 ms after slice 2). After slice 4: 60.5 to 68.8 ms, while `main` measured 70.9 to 99.9 ms on the same machine the same hour, so the sandbox CPU varies more than the slice changes it. Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
 
 ## Hard rules (non-negotiable)
 
@@ -136,3 +146,8 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 - User-facing strings go in `messages/en.json`, never hard-coded.
 - Mobile first: build every screen at 390 px first; `md:` and `xl:` add the tablet and desktop layouts.
 - Every scrollable page reserves bottom padding equal to the tab bar height plus the safe-area inset (`env(safe-area-inset-bottom)`).
+
+## Working rules
+
+- PR bodies are a one to three sentence summary of what was done, with no other text.
+- Docs only record what a future agent needs to read. Do not write docs for the owner.

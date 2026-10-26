@@ -8,6 +8,9 @@ export type Ticker = {
   ask: string;
   changePct: string;
   quoteVolume: string;
+  // 24 h high and low.
+  high: string;
+  low: string;
   ts: number;
 };
 
@@ -20,6 +23,9 @@ export type Market = {
   kucoinSymbol: string;
   priceDecimals: number;
   sortOrder: number;
+  // Order rules (slice 4): decimals allowed in a quantity, minimum order value in cents.
+  qtyDecimals: number;
+  minNotionalCents: bigint;
 };
 
 export type MarketRow = {
@@ -31,10 +37,12 @@ export type MarketRow = {
   kucoin_symbol: string;
   price_decimals: number;
   sort_order: number;
+  qty_decimals: number;
+  min_notional_cents: string;
 };
 
 export const MARKET_COLUMNS =
-  "id, base, quote, display_symbol, vision_symbol, kucoin_symbol, price_decimals, sort_order";
+  "id, base, quote, display_symbol, vision_symbol, kucoin_symbol, price_decimals, sort_order, qty_decimals, min_notional_cents::text";
 
 export function toMarket(row: MarketRow): Market {
   return {
@@ -46,6 +54,8 @@ export function toMarket(row: MarketRow): Market {
     kucoinSymbol: row.kucoin_symbol,
     priceDecimals: row.price_decimals,
     sortOrder: row.sort_order,
+    qtyDecimals: row.qty_decimals,
+    minNotionalCents: BigInt(row.min_notional_cents),
   };
 }
 

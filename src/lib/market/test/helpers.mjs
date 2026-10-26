@@ -16,6 +16,8 @@ export function seededMarkets() {
       kucoinSymbol: `${base}-USDT`,
       priceDecimals: 2,
       sortOrder: i + 1,
+      qtyDecimals: 5,
+      minNotionalCents: 500n,
     };
   });
 }

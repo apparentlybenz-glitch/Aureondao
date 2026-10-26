@@ -25,7 +25,7 @@ const ACTIONS = [
   { key: "options", Icon: Timer },
   { key: "forex", Icon: Coins },
   { key: "perpetual", Icon: InfinityIcon },
-  { key: "spot", Icon: CandlestickChart },
+  { key: "spot", Icon: CandlestickChart, href: "/spot" },
   { key: "transfer", Icon: ArrowRightLeft, href: "/assets/transfer" },
   { key: "support", Icon: LifeBuoy },
   { key: "bills", Icon: ReceiptText, href: "/assets/bills" },

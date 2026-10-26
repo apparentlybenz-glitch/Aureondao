@@ -615,3 +615,27 @@ Assumptions:
 - **Row tap:** saves the symbol id under `aureonx.lastMarket` in `localStorage` (inside try/catch) and does not navigate. The Trade tab opens `/spot`, which is "Coming soon" until slice 4 (O24).
 - **States:** "Loading markets", an amber "Prices are temporarily unavailable. Retrying." when every provider has failed and nothing was loaded, and a one-line footnote that prices refresh about every 5 seconds.
 - **Layout:** built at 390 px. Prices use 13 px tabular numbers, and the symbol column keeps a minimum width so `NEARUSD` does not truncate next to the star. Scrolling pages keep the tab bar plus safe-area padding from the group layout.
+
+### 4.12 Slice 4 screens as shipped (Spot terminal)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Spot terminal (header, chart, order form, Book / Trades / Orders) | `/spot?symbol=BTC-USDT` | Designed |
+| Market picker sheet (search, favorites, live prices) | opened from the terminal header | Designed (reuses the Market tab table) |
+| Order history and Holdings | `/spot`, Orders tab | Designed |
+
+Assumptions:
+- **Placement:** the page sits directly in `(app)`, so it keeps the tab bar but has its own header instead of the top bar: the display symbol with a chevron (opens the picker), the 24 h change, the last price (with "Delayed" after 60 s) and the VIRTUAL pill. The page keeps the tab bar plus safe-area bottom padding.
+- **Phone order (390 px):** header, chart (280 px), order form, then the Book / Trades / Orders tabs. From `md:` the chart and the form sit side by side (form 340 px) and the tabs run full width below. This replaces §4.1's sticky Buy/Sell bar and drawer: the brief asked for an inline Buy/Sell toggle, which is simpler on a phone.
+- **Symbol:** `?symbol=` wins; without it the last viewed market (`aureonx.lastMarket`) opens, else BTC-USDT. An unknown or disabled symbol falls back to BTC-USDT. Viewing a market saves it as the last viewed. Picking a market updates the URL with `history.replaceState` (no navigation, no Worker request). The Trade tab and the Home Spot tile link to `/spot`.
+- **Chart:** default timeframe 15m. Buttons 1m 5m 15m 30m 1h 4h and a More menu with 1D and 1W. Candles only (no volume or indicators yet). "Loading chart…" until the first candles, and "Chart unavailable. Retrying." over the chart while both sources fail. Price axis uses the market's `price_decimals`.
+- **Order form:** Buy / Sell toggle (switching clears the quantity and any result). Market tab active; Limit is disabled with a "Soon" badge. Available shows USD for Buy and the base asset for Sell. Quantity is a decimal field checked as you type: allowed decimals per market (`qty_decimals`), minimum order value, the available USD (Buy, cost plus fee) or the holding (Sell). The slider has stops at 0, 25, 50, 75 and 100 %: Buy uses that share of the available USD at the shown ask including the fee, and 100 % prices at the ask plus 0.5 % (`MAX_BUY_BUFFER_BPS`) so a slightly higher server ask still fits; 100 % Sell is the full holding; Sell uses that share of the holding, rounded down to the allowed decimals.
+- **Estimate:** a block labelled "Estimate" with the shown price (ask for Buy, bid for Sell), cost or proceeds and the fee at `spot_config.fee_bps`, rounded like the server (cost and fee up, proceeds down). A note says the order fills at the server's latest price.
+- **Confirm:** "Buy BTC" / "Sell BTC", disabled while a request is in flight, while the form has a problem, and with the label "Prices unavailable" when the browser has no ticker for the market. One idempotency key per confirm attempt, reused when the request got no answer.
+- **After a fill:** an "Order filled" card with the fill quantity, price, cost or proceeds and fee read back from the order row (as text), not the estimate.
+- **Errors:** PRICE_STALE "Prices are refreshing. Try again in a few seconds."; not enough USD or coin in plain words; below the minimum shows the minimum in USD; too many decimals shows the allowed decimals; IDEMPOTENCY_CONFLICT asks to check the orders and try again; a lost connection keeps the key and says pressing confirm again is safe.
+- **Empty Spot wallet:** a one-line hint with a link to Transfer.
+- **Stats strip:** under the header, 24h High, 24h Low and 24h quote volume (compact, display only) from the ticker.
+- **Book:** a Both / Bids / Asks toggle (Both: 10 asks, the mid price of the best bid and ask, 10 bids; one side: 20 levels). Each row has a depth bar sized by cumulative quantity from the best price, scaled to the largest shown total. No precision grouping; price in red/green, amount rounded to the market's quantity decimals. **Trades:** newest 30, time (24 h), price colored by the taker side, amount. Both carry the note "Live market depth. Practice orders fill at the quoted price and do not enter this book." and show "unavailable" when Vision fails.
+- **Orders tab:** two chips, Order history (newest 50 orders across all markets: side, pair, Market, Filled, quantity, price, cost or proceeds, fee, realized PnL on sells, local time) and Holdings (coins with a balance above zero: quantity and cost basis). No pagination yet. The lists reload when the Spot wallet changes (Realtime) and after each fill.
+- **Picker:** a bottom sheet (Radix Dialog) holding the Market tab table: search, Optional / Popular / Gainer / Down, stars, live Sell / Buy / Change. A row tap switches the terminal and closes the sheet.

@@ -11,6 +11,8 @@ type KucoinRow = {
   last?: unknown;
   changeRate?: unknown; // a fraction: "-0.003" is -0.3 %
   volValue?: unknown; // 24h quote volume
+  high?: unknown;
+  low?: unknown;
 };
 
 // KuCoin names are the reverse of what they look like: buy is the best bid and
@@ -27,13 +29,15 @@ export function normalizeKucoin(payload: unknown, markets: Market[]): Ticker[] {
     if (typeof row !== "object" || row === null || typeof row.symbol !== "string") continue;
     const market = bySymbol.get(row.symbol);
     if (!market) continue;
-    const { buy, sell, last, changeRate, volValue } = row;
+    const { buy, sell, last, changeRate, volValue, high, low } = row;
     if (
       !isPositiveDecimal(last) ||
       !isPositiveDecimal(buy) ||
       !isPositiveDecimal(sell) ||
       !isDecimal(changeRate) ||
-      !isDecimal(volValue)
+      !isDecimal(volValue) ||
+      !isDecimal(high) ||
+      !isDecimal(low)
     ) {
       continue;
     }
@@ -46,6 +50,8 @@ export function normalizeKucoin(payload: unknown, markets: Market[]): Ticker[] {
       ask: sell,
       changePct,
       quoteVolume: volValue,
+      high,
+      low,
       ts: data.time,
     });
   }
@@ -67,6 +73,8 @@ export function parseMdResponse(payload: unknown): Ticker[] {
       isPositiveDecimal(t.ask) &&
       isDecimal(t.changePct) &&
       isDecimal(t.quoteVolume) &&
+      isDecimal(t.high) &&
+      isDecimal(t.low) &&
       typeof t.ts === "number" &&
       Number.isFinite(t.ts)
     ) {
@@ -77,6 +85,8 @@ export function parseMdResponse(payload: unknown): Ticker[] {
         ask: t.ask,
         changePct: t.changePct,
         quoteVolume: t.quoteVolume,
+        high: t.high,
+        low: t.low,
         ts: t.ts,
       });
     }

@@ -126,7 +126,7 @@ select p.oid::regprocedure signature, pg_get_function_identity_arguments(p.oid) 
 from pg_proc p where p.proname = 'spot_market_order';
 SQL
 ;;
-t10) echo "T10 ingest_prices as service_role: validation and forward-only upsert"; run <<SQL
+t10) echo "T10 ingest_prices as service_role: validation and forward-only upsert (rolled back)"; run <<SQL
 begin; set local role service_role;
 select public.ingest_prices(jsonb_build_array(
   jsonb_build_object('market_id','ETH-USDT','bid','2000.10','ask','2000.20','source','vision','ts', now()),
@@ -140,16 +140,17 @@ select public.ingest_prices(jsonb_build_array(
   jsonb_build_object('market_id','SOL-USDT','bid','1','ask','2','source','vision'),
   jsonb_build_object('market_id','NOPE-USDT','bid','1','ask','2','source','vision','ts', now())
 )) result;
-commit;
+rollback;
 SQL
-    echo "T10b an older timestamp never overwrites a newer snapshot (one transaction, so now() is fixed)"
+    echo "T10b an older timestamp never overwrites a newer snapshot and is reported as ignored (one transaction, so now() is fixed; rolled back)"
     run <<SQL
 begin; set local role service_role;
-select public.ingest_prices(jsonb_build_array(jsonb_build_object('market_id','ETH-USDT','bid','2000.10','ask','2000.20','source','vision','ts', now())));
-select public.ingest_prices(jsonb_build_array(jsonb_build_object('market_id','ETH-USDT','bid','1.00','ask','1.01','source','kucoin','ts', now() - interval '20 seconds')));
+create temp table r (k text, v jsonb) on commit drop;
+insert into r select 'newer', public.ingest_prices(jsonb_build_array(jsonb_build_object('market_id','ETH-USDT','bid','2000.10','ask','2000.20','source','vision','ts', now())));
+insert into r select 'older', public.ingest_prices(jsonb_build_array(jsonb_build_object('market_id','ETH-USDT','bid','1.00','ask','1.01','source','kucoin','ts', now() - interval '20 seconds')));
 reset role;
-select bid::text, source, fetched_at = now() newest_kept from public.price_snapshots where market_id='ETH-USDT';
-commit;
+select k, v, (select bid::text from public.price_snapshots where market_id='ETH-USDT') kept_bid from r;
+rollback;
 SQL
 ;;
 t11) echo "T11 demand: user heartbeat opens the window; anon cannot; tick with no Vault secrets sends nothing"

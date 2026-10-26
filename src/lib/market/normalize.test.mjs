@@ -19,10 +19,12 @@ test("normalizeVision maps the recorded 24hr response", () => {
     ask: btcRaw.askPrice,
     changePct: btcRaw.priceChangePercent,
     quoteVolume: btcRaw.quoteVolume,
+    high: btcRaw.highPrice,
+    low: btcRaw.lowPrice,
     ts: btcRaw.closeTime,
   });
   for (const t of tickers) {
-    for (const k of ["last", "bid", "ask", "changePct", "quoteVolume"]) assert.equal(typeof t[k], "string");
+    for (const k of ["last", "bid", "ask", "changePct", "quoteVolume", "high", "low"]) assert.equal(typeof t[k], "string");
   }
 });
 
@@ -59,6 +61,8 @@ test("normalizeKucoin maps buy to bid, sell to ask and converts the change rate"
   assert.equal(ena.ask, rawEna.sell);
   assert.equal(ena.last, rawEna.last);
   assert.equal(ena.quoteVolume, rawEna.volValue);
+  assert.equal(ena.high, rawEna.high);
+  assert.equal(ena.low, rawEna.low);
   assert.equal(ena.ts, raw.data.time);
   assert.equal(Number(ena.changePct), Number(rawEna.changeRate) * 100);
 });

@@ -35,14 +35,17 @@ function matches(m: Market, query: string): boolean {
 
 // Home shows the first rows and a link; the Market tab shows every row with a
 // search field and a star toggle. Both read the one store in use-market-data.
+// onSelect (the Spot market picker) is called after a row tap saves the symbol.
 export function MarketTable({
   variant,
   query = "",
   onQueryChange,
+  onSelect,
 }: {
   variant: "home" | "market";
   query?: string;
   onQueryChange?: (value: string) => void;
+  onSelect?: (id: string) => void;
 }) {
   const t = useTranslations("Market");
   const c = useTranslations("Common");
@@ -93,7 +96,7 @@ export function MarketTable({
               className={cn(
                 "shrink-0 border-b-2 py-1.5",
                 tab === key
-                  ? "border-accent-green font-semibold text-foreground"
+                  ? "border-primary font-semibold text-foreground"
                   : "border-transparent text-muted-foreground",
               )}
             >
@@ -131,7 +134,7 @@ export function MarketTable({
         <div className="space-y-3 py-8 text-center text-sm text-muted-foreground">
           <p>{message}</p>
           {tab === "optional" && !isMarket && favorites && rows.length === 0 ? (
-            <Link href="/market" className="inline-block font-medium text-accent-green">
+            <Link href="/market" className="inline-block font-medium text-primary">
               {t("openMarket")}
             </Link>
           ) : null}
@@ -161,7 +164,10 @@ export function MarketTable({
                     <Star className={cn("size-4", starred ? "fill-amber-500 text-amber-500" : "text-muted-foreground")} />
                   </button>
                 ) : null}
-                <button type="button" onClick={() => saveLastMarket(m.id)} className={cn(GRID, "py-2.5 text-left")}>
+                <button type="button" onClick={() => {
+                    saveLastMarket(m.id);
+                    onSelect?.(m.id);
+                  }} className={cn(GRID, "py-2.5 text-left")}>
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span
                       aria-hidden="true"
@@ -199,7 +205,7 @@ export function MarketTable({
       )}
 
       {!isMarket && markets && rows.length > 0 ? (
-        <Link href="/market" className="block py-1 text-center text-sm font-medium text-accent-green">
+        <Link href="/market" className="block py-1 text-center text-sm font-medium text-primary">
           {t("seeAll")}
         </Link>
       ) : null}

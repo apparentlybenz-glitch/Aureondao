@@ -10,6 +10,13 @@ export const RPC_ERROR_CODES = [
   "FORBIDDEN",
   "AAL2_REQUIRED",
   "NOTE_REQUIRED",
+  "PRICE_STALE",
+  "INSUFFICIENT_ASSET",
+  "BELOW_MIN_NOTIONAL",
+  "INVALID_QTY",
+  "INVALID_NUMBER",
+  "MARKET_NOT_FOUND",
+  "MARKET_DISABLED",
 ] as const;
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number];
 
