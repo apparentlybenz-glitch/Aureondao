@@ -34,7 +34,7 @@ export function TabBar() {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex h-full flex-col items-center justify-end gap-0.5 pb-2 text-[11px]",
-                    active ? "text-accent-green" : "text-muted-foreground",
+                    active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
                   <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background">
@@ -52,7 +52,7 @@ export function TabBar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
-                  active ? "text-accent-green" : "text-muted-foreground",
+                  active ? "text-primary" : "text-muted-foreground",
                 )}
               >
                 <Icon className="size-5" />
