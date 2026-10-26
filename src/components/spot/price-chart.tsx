@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { CandlestickData, IChartApi, IPriceLine, ISeriesApi, LineStyle, UTCTimestamp } from "lightweight-charts";
+import { formatPrice } from "@/lib/market/decimal";
 import { INTERVAL_MS, klinesRefreshDelay, loadKlines } from "@/lib/market/klines";
 import type { Candle, Interval } from "@/lib/market/klines";
 import type { Market, Ticker } from "@/lib/market/types";
@@ -126,9 +127,14 @@ export function PriceChart({
       : [];
   }, [linesKey, ready]);
 
+  // Axis, crosshair and line labels use the app's grouped format (81,000.00).
   useEffect(() => {
+    const decimals = market.priceDecimals;
     series.current?.applyOptions({
-      priceFormat: { type: "price", precision: market.priceDecimals, minMove: 1 / 10 ** market.priceDecimals },
+      priceFormat: { type: "price", precision: decimals, minMove: 1 / 10 ** decimals },
+    });
+    chart.current?.applyOptions({
+      localization: { priceFormatter: (p: number) => formatPrice(p.toFixed(decimals), decimals) },
     });
   }, [market.priceDecimals, ready]);
 

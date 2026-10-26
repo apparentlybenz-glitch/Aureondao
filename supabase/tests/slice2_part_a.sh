@@ -1,7 +1,11 @@
 #!/bin/bash
 # Part A tests. Prints only query results / error messages (no tokens).
 # Usage: supabase/tests/slice2_part_a.sh setup|t1|...|t8|cleanup  (Management API, write token required)
-REF=bpntonctvsccrrgstemi
+# The project comes from SUPABASE_PROJECT_REF; abort before any query unless it
+# matches the ref in NEXT_PUBLIC_SUPABASE_URL.
+REF=${SUPABASE_PROJECT_REF:?SUPABASE_PROJECT_REF is not set}
+URL_REF=$(printf '%s' "${NEXT_PUBLIC_SUPABASE_URL:-}" | sed -nE 's#^https://([a-z0-9]+)\.supabase\.co/?$#\1#p')
+if [ "$REF" != "$URL_REF" ]; then echo "SUPABASE_PROJECT_REF does not match NEXT_PUBLIC_SUPABASE_URL; aborting." >&2; exit 1; fi
 A=aaaaaaaa-0000-4000-8000-00000000000a   # plain user
 B=bbbbbbbb-0000-4000-8000-00000000000b   # admin
 run() { jq -Rs '{query: ., read_only: false}' | curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" -H 'Content-Type: application/json' --data-binary @-; echo; }
