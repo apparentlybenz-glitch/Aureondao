@@ -65,7 +65,7 @@ export function SpotTerminal() {
           <MarketPicker market={market} ticker={ticker} onPick={pick} />
           <p className="flex items-baseline gap-2">
             <span className="text-2xl font-semibold tabular-nums">
-              {ticker ? formatPrice(ticker.last, market.priceDecimals) : "—"}
+              {ticker ? formatPrice(ticker.last, market.priceDecimals) : "--"}
             </span>
             {ticker && isDelayed(ticker.ts, now) ? <span className="text-xs text-amber-500">{m("delayed")}</span> : null}
           </p>
@@ -78,15 +78,15 @@ export function SpotTerminal() {
       <dl aria-label={t("stats.label")} className="mb-3 grid grid-cols-3 gap-2 text-xs tabular-nums">
         <div>
           <dt className="text-muted-foreground">{t("stats.high")}</dt>
-          <dd>{ticker ? formatPrice(ticker.high, market.priceDecimals) : "—"}</dd>
+          <dd>{ticker ? formatPrice(ticker.high, market.priceDecimals) : "--"}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{t("stats.low")}</dt>
-          <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "—"}</dd>
+          <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "--"}</dd>
         </div>
         <div className="text-right">
           <dt className="text-muted-foreground">{t("stats.volume", { quote: market.quote })}</dt>
-          <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "—"}</dd>
+          <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "--"}</dd>
         </div>
       </dl>
 

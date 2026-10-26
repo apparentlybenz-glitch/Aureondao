@@ -18,7 +18,7 @@ function Countdown({ expiresAt }: { expiresAt: number }) {
   const t = useTranslations("Options");
   const now = useServerNow();
   const left = expiresAt - now;
-  if (now === 0) return <span className="text-muted-foreground">—</span>;
+  if (now === 0) return <span className="text-muted-foreground">--</span>;
   return left > 0 ? (
     <span className="text-lg font-semibold tabular-nums">{formatCountdown(left)}</span>
   ) : (
@@ -66,9 +66,9 @@ function PositionCard({ p, market }: { p: OptionPosition; market: Market | undef
         {p.status !== "open" ? (
           <>
             <dt className="text-muted-foreground">{t("field.settlePrice")}</dt>
-            <dd className="text-right">{p.settlePrice ? price(p.settlePrice) : "—"}</dd>
+            <dd className="text-right">{p.settlePrice ? price(p.settlePrice) : "--"}</dd>
             <dt className="text-muted-foreground">{t("field.payout")}</dt>
-            <dd className="text-right">{p.payout === null ? "—" : usd(p.payout)}</dd>
+            <dd className="text-right">{p.payout === null ? "--" : usd(p.payout)}</dd>
           </>
         ) : null}
         <dt className="text-muted-foreground">{t("field.opened")}</dt>

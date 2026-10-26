@@ -210,7 +210,7 @@ export function OrderForm({
         <span className="tabular-nums text-foreground">
           {side === "buy"
             ? available === null
-              ? "—"
+              ? "--"
               : t("availableUsd", { amount: formatCents(available) })
             : t("availableAsset", { amount: trimDecimal(holding), asset })}
         </span>
@@ -271,15 +271,15 @@ export function OrderForm({
         <dl className="space-y-1">
         <div className="flex justify-between">
           <dt className="text-muted-foreground">{t("estPrice")}</dt>
-          <dd className="tabular-nums">{price ? formatPrice(price, market.priceDecimals) : "—"}</dd>
+          <dd className="tabular-nums">{price ? formatPrice(price, market.priceDecimals) : "--"}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">{side === "buy" ? t("estCost") : t("estProceeds")}</dt>
-          <dd className="tabular-nums">{est ? t("usd", { amount: formatCents(est.cents) }) : "—"}</dd>
+          <dd className="tabular-nums">{est ? t("usd", { amount: formatCents(est.cents) }) : "--"}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">{t("estFee", { rate: feeBps === null ? "—" : `${feeBps / 100}%` })}</dt>
-          <dd className="tabular-nums">{est?.fee != null ? t("usd", { amount: formatCents(est.fee) }) : "—"}</dd>
+          <dt className="text-muted-foreground">{t("estFee", { rate: feeBps === null ? "--" : `${feeBps / 100}%` })}</dt>
+          <dd className="tabular-nums">{est?.fee != null ? t("usd", { amount: formatCents(est.fee) }) : "--"}</dd>
         </div>
         </dl>
         <p className="pt-1 text-[11px] text-muted-foreground">{t("estimateNote")}</p>

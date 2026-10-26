@@ -89,7 +89,7 @@ export function OptionTicket({
       case "IDEMPOTENCY_CONFLICT":
         return t(`errors.${code}`);
       case "BELOW_MIN_PREMIUM":
-        return t("errors.BELOW_MIN_PREMIUM", { min: period ? formatCents(period.minPremium) : "—" });
+        return t("errors.BELOW_MIN_PREMIUM", { min: period ? formatCents(period.minPremium) : "--" });
       default:
         return rpcMessage(e);
     }
@@ -130,7 +130,7 @@ export function OptionTicket({
       <p className="text-xs text-muted-foreground">
         {t.rich("currentPrice", {
           symbol: market.displaySymbol,
-          price: mid ? formatPrice(mid, market.priceDecimals) : "—",
+          price: mid ? formatPrice(mid, market.priceDecimals) : "--",
           value: (chunks) => <span className={cn("tabular-nums", rise ? "text-up" : "text-down")}>{chunks}</span>,
         })}
       </p>
@@ -174,7 +174,7 @@ export function OptionTicket({
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <p className="font-medium">{t("periods")}</p>
-          <p className="text-sm tabular-nums">{period ? t("pnl", { rate: bpsToPercent(period.profitRateBps) }) : "—"}</p>
+          <p className="text-sm tabular-nums">{period ? t("pnl", { rate: bpsToPercent(period.profitRateBps) }) : "--"}</p>
         </div>
         {periods ? (
           <div className="px-1">
@@ -232,7 +232,7 @@ export function OptionTicket({
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium">{t("premium")}</p>
           <p className="flex items-center gap-1.5 text-sm tabular-nums">
-            {available === null ? "—" : t("available", { amount: formatCents(available) })}
+            {available === null ? "--" : t("available", { amount: formatCents(available) })}
             <Link href="/assets/transfer" aria-label={t("toTransfer")} className="text-primary">
               <ArrowLeftRight className="size-4" />
             </Link>
@@ -269,12 +269,11 @@ export function OptionTicket({
 
       <div data-fab-avoid="" className="flex justify-between text-sm tabular-nums">
         <p className="text-muted-foreground">
-          {t("fee", { rate: period ? bpsToPercent(period.feeBps) : "—" })}
-          {fee !== null && problem === null ? ` (${t("usd", { amount: formatCents(fee) })})` : null}
+          {t("fee", { rate: period ? bpsToPercent(period.feeBps) : "--" })}
         </p>
         <p className="text-muted-foreground">
           {t.rich("estReturn", {
-            amount: est !== null && problem === null ? formatCents(est) : "—",
+            amount: est !== null && problem === null ? formatCents(est) : "--",
             value: (chunks) => <span className="text-amber-500">{chunks}</span>,
           })}
         </p>

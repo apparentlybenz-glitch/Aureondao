@@ -20,7 +20,7 @@ test("formatPrice groups thousands and uses the market decimals", () => {
   assert.equal(formatPrice("0.00000440", 8), "0.00000440");
   assert.equal(formatPrice("0.000004393", 8), "0.00000439");
   assert.equal(formatPrice("1234567.891", 2), "1,234,567.89");
-  assert.equal(formatPrice("abc", 2), "—");
+  assert.equal(formatPrice("abc", 2), "--");
 });
 
 test("formatChange signs and rounds a percent string", () => {

@@ -31,10 +31,10 @@ export function roundDecimal(value: string, decimals: number): string | null {
   return isZero || sign === "" ? text : `-${text}`;
 }
 
-// 80163.8, 2 -> "80,163.80". "—" when the value is not a plain decimal.
+// 80163.8, 2 -> "80,163.80". "--" when the value is not a plain decimal.
 export function formatPrice(value: string, decimals: number): string {
   const rounded = roundDecimal(value, decimals);
-  if (rounded === null) return "—";
+  if (rounded === null) return "--";
   const negative = rounded.startsWith("-");
   const [whole, fraction] = (negative ? rounded.slice(1) : rounded).split(".");
   const grouped = grouping.format(BigInt(whole));
@@ -44,7 +44,7 @@ export function formatPrice(value: string, decimals: number): string {
 // "7.7886" -> "+7.79%", "-0.312" -> "-0.31%", "0" -> "0.00%".
 export function formatChange(pct: string): string {
   const rounded = roundDecimal(pct, 2);
-  if (rounded === null) return "—";
+  if (rounded === null) return "--";
   const isZero = !/[1-9]/.test(rounded);
   return `${rounded.startsWith("-") || isZero ? "" : "+"}${rounded}%`;
 }

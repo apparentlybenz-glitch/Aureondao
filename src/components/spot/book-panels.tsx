@@ -103,7 +103,7 @@ export function OrderBookPanel({ market }: { market: Market }) {
           {view === "both" ? (
             <p className="my-1 flex items-baseline justify-between border-y py-1.5 tabular-nums">
               <span className="text-base font-semibold">
-                {bestBid && bestAsk ? formatPrice(midPrice(bestBid.price, bestAsk.price), market.priceDecimals + 1) : "—"}
+                {bestBid && bestAsk ? formatPrice(midPrice(bestBid.price, bestAsk.price), market.priceDecimals + 1) : "--"}
               </span>
               <span className="text-xs text-muted-foreground">{t("mid")}</span>
             </p>
