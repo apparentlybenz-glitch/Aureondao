@@ -15,6 +15,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { MarketTable } from "@/components/market/market-table";
 import { formatCents } from "@/lib/money";
 import { totalCents, useWallets } from "@/lib/wallets";
 
@@ -86,7 +87,7 @@ export default function HomePage() {
         })}
       </section>
 
-      <p className="rounded-xl border p-4 text-center text-sm text-muted-foreground">{t("marketNext")}</p>
+      <MarketTable variant="home" />
     </div>
   );
 }

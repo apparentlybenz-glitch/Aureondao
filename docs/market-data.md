@@ -245,6 +245,27 @@ None of the following is proven by sandbox egress. Each needs a check from (B) a
 | 9 | `price-ingest` egress | Whether ≥2 crypto sources and ≥2 PAXG/XAUT venues answer from the pinned Supabase region. From US egress, Vision, OKX and KuCoin did; Bybit and `api.binance.com` did not. | Supabase |
 | 10 | Proxy header integrity | The sandbox TLS-terminating proxy could alter headers. Every CORS/rate-limit conclusion above must be re-read from a non-proxied client. | B or W |
 
+**Browser evidence from Lagos (owner, deployed site, plain GET from the console, no custom headers):**
+
+| Request | Result |
+|---|---|
+| Vision `ticker/24hr` | 200, 3250 ms (includes the first connection), 1109 bytes |
+| Vision `bookTicker` | 200, 376 ms, 120 bytes |
+| Vision `klines` | 200, 366 ms, 852 bytes |
+| OKX tickers | Failed to fetch, 22,027 ms, `net::ERR_NAME_NOT_RESOLVED` |
+| OKX candles | Failed to fetch, 22,032 ms, `net::ERR_NAME_NOT_RESOLVED` |
+
+The owner supplied no Binance main or Bybit lines, so those checks stay open.
+
+**Status of the checks above after this evidence:**
+
+| # | Status |
+|---|---|
+| 3 Vision | **Closed for a Nigerian (Lagos) browser:** three plain GETs succeeded from a real page, so the CORS header reached the page unmodified. US and EU residential browsers are still unchecked. The negative check (a custom header must trigger a rejected preflight) was not run; the app simply never sends one |
+| 4 OKX | **Closed, negative result:** the OKX host does not resolve from Lagos (about 22 s to fail). OKX is out of the browser chain (O20) |
+| 10 Proxy header integrity | **Closed for Vision only:** the Lagos browser is not behind the sandbox proxy and still saw a working CORS response |
+| 1 Binance main, 2 Bybit, 5 KuCoin, 6 to 9 | Open. 5 and 8 are exercised by the first deployed `/md/v1/tickers` call (check the Worker logs) |
+
 ---
 
 ## 2. Coverage matrix (needed pairs)
@@ -720,3 +741,47 @@ Round-2 context (sandbox egress, US datacenter IP): Vision, OKX and KuCoin answe
   * The sandbox allowlist now covers the exchanges and `api.frankfurter.app`. FX/metals hosts (`api.frankfurter.dev`, gold-api, jsDelivr, …) are still blocked, so they must be measured from a deployed Worker (§1.6).
   * Before launch, run the §1.6 checks from a real browser on the production origin and from the deployed md Worker and `price-ingest` function.
 * **All agents (md client code):** browser requests to Vision must be CORS-simple GETs: no custom headers, no `Content-Type`, no `Cache-Control` request header, because Vision rejects every preflight with 403. Any shared fetch wrapper that injects headers (auth, tracing, Supabase `apikey`) must not wrap market-data calls.
+
+---
+
+## 10. Slice 3 as shipped (Home market table, Market tab, `/md/v1/tickers`)
+
+Display only: no money path reads these prices. Slice 5 fetches its prices on the server.
+
+### 10.1 Chain and behaviour
+
+* **Browser store** (`src/lib/market/store.ts`): one per tab, `useSyncExternalStore`. Polls every 5 s with one request for all markets: `GET https://data-api.binance.vision/api/v3/ticker/24hr?symbols=[...]`. The call is a plain `fetch(url, { signal })`: no `headers`, no credentials, so there is no preflight. It pauses while the tab is hidden and refreshes once on return.
+* **Timeouts:** Vision 4 s, `/md/v1/tickers` 5 s (the Worker's own budget is about 4 s: three 1.2 s attempts plus backoff). A timeout or error counts as a failure at once.
+* **Fallback:** after a Vision failure the same poll asks `/md/v1/tickers`, and Vision is skipped for 30 s plus up to 5 s of jitter, then tried again. A forced Vision failure keeps the table updating every 5 s from `/md/v1` (unit test, and a browser run with the Vision host blocked).
+* **Delayed:** a ticker whose own timestamp is older than 60 s is labelled Delayed. Timestamps are `closeTime` for Vision and `data.time` for KuCoin, so a stale book shows as delayed.
+* **Sentry:** a report only when every provider fails in a browser (once per failure streak), and the Vision HTTP 400 message (once per distinct message). Vision's 400 body is generic (`{"code":-1121,"msg":"Invalid symbol."}`): it does **not** name the bad symbol.
+
+### 10.2 Provider field names (sandbox probe, 2026-10-26)
+
+| Field | Vision `ticker/24hr` | KuCoin `allTickers` |
+|---|---|---|
+| last | `lastPrice` | `last` |
+| bid | `bidPrice` | `buy` (best bid) |
+| ask | `askPrice` | `sell` (best ask) |
+| 24h change | `priceChangePercent` (already a percent) | `changeRate` (a fraction; times 100 by moving the decimal point) |
+| quote volume | `quoteVolume` | `volValue` |
+| time | `closeTime` per symbol | `data.time` for the whole response |
+
+### 10.3 At most 20 enabled markets (weight arithmetic)
+
+`ticker/24hr` with the `symbols` parameter costs weight **2 for 1 to 20 symbols, 40 for 21 to 100, and 80 for 101 or more** (Binance spot REST docs, market data endpoints). Twenty markets cost 2 per poll, which is 24 per minute against the 6,000 per minute IP limit. A 21st enabled market makes every poll cost 40 (480 per minute). **Keep at most 20 enabled rows in `markets`.** The weight could not be measured live: the sandbox's shared egress made `x-mbx-used-weight-1m` jump around for identical calls.
+
+One invalid symbol fails the whole request (HTTP 400, `-1121`), so a delisted pair makes Vision fail until the row is disabled; the store then falls back to `/md/v1` as designed. When picking a pair, check that Vision's book is live: `XMRUSDT` answers 200 with a stale, delisted book (last 118.70 against 588.80 on KuCoin), so XMR was left out of the seed.
+
+### 10.4 `/md/v1/tickers` and its caches
+
+* Route handler in the app Worker, forced dynamic (`export const dynamic = "force-dynamic"`). It fetches KuCoin `allTickers` (about 96 KB), keeps only the enabled markets (read with the publishable key under RLS, no cookies) and returns the normalized shape. At most 2 retries with jittered backoff, 1.2 s per attempt.
+* **In-memory caches in the isolate:** tickers 5 s, failure (negative) 10 s, enabled-markets list 60 s (a failed refresh keeps serving the last list). One call in flight is shared by concurrent requests. Responses carry `Cache-Control: public, max-age=0, s-maxage=5`; errors are `502` with `no-store`.
+* **Why not the Cache API:** the Cloudflare docs say Cache API operations are functional on custom domains (and `*.pages.dev` for Pages), and do not list `*.workers.dev`. Until a custom domain is attached, each isolate keeps its own copy, so a cold isolate or a second isolate costs one extra KuCoin call.
+* **TODO when a custom domain is attached:** move the ticker cache to the Cache API (same TTLs) so isolates share it.
+* Static asset requests do not invoke the Worker: `wrangler.jsonc` sets no `assets.run_worker_first`, and the docs say asset requests are free and unlimited unless the Worker runs first.
+* KuCoin reachability from Cloudflare's egress is unproven (check #5): the first deployed call will show it in the Worker logs.
+
+### 10.5 Seed (migration `20261026120000_markets_favorites.sql`)
+
+Top 20 USDT pairs on both Vision and KuCoin by Vision 24h quote volume on 2026-10-26, stablecoins and leveraged tokens excluded: BTC, ETH, ZEC, SOL, XRP, NEAR, BNB, ENA, WLD, SUI, PEPE, UNI, DOGE, TRX, QNT, HYPE, LINK, TAO, ADA, AAVE. `price_decimals` is the decimal count of Vision's tick size. Prices are formatted with BigInt string math and that count (round half up), never a float.

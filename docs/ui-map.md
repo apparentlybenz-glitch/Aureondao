@@ -343,12 +343,12 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 |---|---|---|
 | App shell (top bar, bottom tab bar) | every (app) page | Captured |
 | Public root (placeholder; sends signed-in visitors to `/home`) | `/` | Designed |
-| Home (total, hide-eye, quick actions) | `/home` | Captured (partly: the market table arrives in slice 3) |
+| Home (total, hide-eye, quick actions) | `/home` | Captured (the market table is in §4.11) |
 | Assets hub | `/assets` | Described |
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
 | Admin (user list + credit/debit) | `/admin` | Designed |
-| "Coming soon" placeholders | `/market`, `/spot` (Trade), `/options`, `/support`, `/notifications` | Designed |
+| "Coming soon" placeholders | `/spot` (Trade), `/options`, `/support`, `/notifications` (`/market` became the Market tab in slice 3) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
 - **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use the `--accent-green` token; up/down amounts keep their own green/red. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
@@ -593,3 +593,22 @@ Realtime: the UI subscribes to `postgres_changes` filtered by `user_id=eq.<uid>`
 7. **Realtime channel naming.** The UI uses `crypto.randomUUID()` suffixes. If the data-model agent chooses private broadcast channels with RLS on `realtime.messages`, policies must match by topic **prefix** (e.g. `split_part(topic, ':', 2) = auth.uid()::text`) and not by exact name.
 8. **Decimal handling.** The UI sends amounts as strings and expects `numeric` columns returned as strings. Resolved: PostgREST returns `numeric` as JSON numbers, so every select of a numeric or money column casts with `::text`. RPC args should be `numeric` and not `float8`.
 9. **Chart attribution vs. the "no third-party brands" rule.** Lightweight Charts' Apache-2.0 NOTICE requires crediting TradingView as the product creator, with a link. That is a license obligation and not exchange branding, but the main agent should confirm (D10).
+
+### 4.11 Slice 3 screens as shipped (market table and Market tab)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Home market table (tabs, type dropdown, Symbol / Sell / Buy / Change) | `/home` | Captured |
+| Market tab (the same table at full height, search field, star toggles) | `/market` | Designed |
+| Top bar search (submits to `/market?q=`) | every top-bar page | Designed |
+
+Assumptions:
+- **Columns:** Symbol shows `display_symbol` (for example `BTCUSD`) with the ticker's own last update time beneath, or "Delayed" when it is older than 60 s. Sell is the best bid and Buy the best ask from the exchange tickers; no spread is invented. Change is the 24 h percent, green when positive, red when negative, neutral at 0.00%. Prices use the market's `price_decimals`.
+- **Tabs:** Optional (the user's favorites), Popular (24 h quote volume), Gainer (change high to low), Down (change low to high). The default tab is Popular, so a new user sees data first. The Optional empty state says to star a pair in the Market tab and links there from Home.
+- **Type dropdown:** a native select. Spot is the only enabled option; Options, Forex and Perpetual are disabled and read "Soon".
+- **Home:** the table shows the first 8 rows of the active tab and a "See all markets" link to `/market`. The 8 is our choice.
+- **Market tab:** search matches the display symbol, the base asset, the id and `BASE/QUOTE`, case-insensitively, inside whichever tab is active. A star on each row adds or removes a favorite at once and undoes itself if the save fails. The top bar search form sends `/market?q=text`; the page field follows the URL when it changes and can then be edited freely.
+- **Coin icons:** a circle with the first two letters of the base asset. No third-party logos are downloaded or bundled.
+- **Row tap:** saves the symbol id under `aureonx.lastMarket` in `localStorage` (inside try/catch) and does not navigate. The Trade tab opens `/spot`, which is "Coming soon" until slice 4 (O24).
+- **States:** "Loading markets", an amber "Prices are temporarily unavailable. Retrying." when every provider has failed and nothing was loaded, and a one-line footnote that prices refresh about every 5 seconds.
+- **Layout:** built at 390 px. Prices use 13 px tabular numbers, and the symbol column keeps a minimum width so `NEARUSD` does not truncate next to the star. Scrolling pages keep the tab bar plus safe-area padding from the group layout.

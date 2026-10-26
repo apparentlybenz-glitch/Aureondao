@@ -18,8 +18,7 @@
       "transfer": "Transfer",
       "support": "Support",
       "bills": "Bills"
-    },
-    "marketNext": "Markets arrive in the next update."
+    }
   },
   "Common": {
     "virtualFundsBadge": "VIRTUAL FUNDS",
@@ -214,5 +213,39 @@
     "title": "AureonX",
     "tagline": "Practice trading with a virtual balance. No real money.",
     "signIn": "Sign in"
+  },
+  "Market": {
+    "title": "Market",
+    "tabs": {
+      "optional": "Optional",
+      "popular": "Popular",
+      "gainer": "Gainer",
+      "down": "Down"
+    },
+    "types": {
+      "label": "Market type",
+      "spot": "Spot",
+      "options": "Options",
+      "forex": "Forex",
+      "perpetual": "Perpetual"
+    },
+    "columns": {
+      "symbol": "Symbol",
+      "sell": "Sell",
+      "buy": "Buy",
+      "change": "Change"
+    },
+    "searchPlaceholder": "Search symbol",
+    "searchLabel": "Search markets",
+    "emptyOptional": "No favorites yet. Star a pair in the Market tab.",
+    "openMarket": "Open Market",
+    "noResults": "No markets match your search.",
+    "loading": "Loading markets…",
+    "unavailable": "Prices are temporarily unavailable. Retrying.",
+    "delayed": "Delayed",
+    "addFavorite": "Add {symbol} to favorites",
+    "removeFavorite": "Remove {symbol} from favorites",
+    "seeAll": "See all markets",
+    "footnote": "Prices are for reference and refresh about every 5 seconds."
   }
 }
