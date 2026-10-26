@@ -46,7 +46,7 @@ export const config = {
   // Every protected page. The proxy only routes; RLS and the RPC checks are the
   // security boundary.
   matcher: [
-    "/",
+    "/home",
     "/account/:path*",
     "/assets/:path*",
     "/admin/:path*",

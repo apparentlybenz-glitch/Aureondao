@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // Fixed bottom tab bar: 56 px plus the safe-area inset. Pages reserve the same
 // space with the pb-tabbar padding in the (app) layout. Trade opens Spot (O24 ★).
 const TABS = [
-  { href: "/", key: "home", Icon: House },
+  { href: "/home", key: "home", Icon: House },
   { href: "/market", key: "market", Icon: ChartCandlestick },
   { href: "/spot", key: "trade", Icon: ArrowLeftRight },
   { href: "/options", key: "options", Icon: Timer },
@@ -19,7 +19,7 @@ const TABS = [
 export function TabBar() {
   const t = useTranslations("Shell");
   const pathname = usePathname();
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)]">

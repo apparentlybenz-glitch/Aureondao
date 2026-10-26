@@ -306,7 +306,7 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 - **Top bar (Home only):** avatar (→ /account) · symbol search pill (→ market search sheet) · language globe · notifications bell · support headset.
 - Dark theme by default.
 
-#### Home (`/`, signed in; the public homepage stays separate, slice 9): Captured
+#### Home (`/home`, signed in; the public homepage stays at `/`, slice 9): Captured
 1. Top bar as above.
 2. **Total asset value** with an eye toggle (hide amounts); large figure plus `USD`. Source: wallets (RLS) valued with the store's prices.
 3. **Shortcut grid**, 4 × 2 round icons: Deposit · Options · Forex · Perpetual / Spot · Transfer · Support · (8th slot: Bills). Forex and Perpetual show a "coming soon" state while deferred (O21).
@@ -342,7 +342,8 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 | Screen | Path | Evidence |
 |---|---|---|
 | App shell (top bar, bottom tab bar) | every (app) page | Captured |
-| Home (total, hide-eye, quick actions) | `/` | Captured (partly: the market table arrives in slice 3) |
+| Public root (placeholder; sends signed-in visitors to `/home`) | `/` | Designed |
+| Home (total, hide-eye, quick actions) | `/home` | Captured (partly: the market table arrives in slice 3) |
 | Assets hub | `/assets` | Described |
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
@@ -350,15 +351,15 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 | "Coming soon" placeholders | `/market`, `/spot` (Trade), `/options`, `/support`, `/notifications` | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
-- **Shell:** the top bar shows on every (app) page, not only on Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3.
+- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
-- **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts show in USDT, the wallet currency, not USD.
+- **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
 - **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Only Transfer and Bills tiles are live; the other 6 show a "Soon" badge and are not links. The avatar is a generic icon (no extra profile fetch).
 - **Assets:** one card per wallet in fixed order (Capital, Spot, Forex, Options) with available and, when non-zero, frozen. No profit chart (slice 5).
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
 - **Admin:** the page gate reads the `user_role` and `aal` claims. Not admin: a short notice. Admin at aal1 with a TOTP factor: a step-up prompt to `/sign-in/mfa?next=/admin`; without a factor: a link to Security. Search by email substring or exact 8-digit UID; newest 50 users. The form takes wallet, Credit/Debit, amount and a reason (3 to 200 characters, kept in the audit log only). The proxy does not check the role: RLS and the RPC are the boundary.
-- **Proxy matcher:** `/`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. Signed-out visitors to `/` go to sign-in until the public homepage (slice 9) moves there.
+- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static, outside the proxy; a client check of the local session sends signed-in visitors to `/home`. Sign-in lands on `/home`.
 
 ## 5. Data sources per component
 

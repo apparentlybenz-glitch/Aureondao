@@ -38,7 +38,7 @@ export default function SignUpPage() {
       return;
     }
     // With email confirmation off, signUp returns a session right away.
-    if (data.session) router.replace("/");
+    if (data.session) router.replace("/home");
     else setSentTo(email);
   }
 

@@ -4,8 +4,6 @@
     "description": "Multi-asset trading on a virtual balance. No real money."
   },
   "Home": {
-    "title": "AureonX",
-    "tagline": "Practice trading with a virtual balance. No real money.",
     "totalLabel": "Total asset value",
     "virtualBalance": "Virtual balance",
     "showAmounts": "Show amounts",
@@ -129,7 +127,7 @@
     "options": "Options",
     "available": "Available",
     "frozen": "Frozen",
-    "currency": "USDT"
+    "currency": "USD"
   },
   "Assets": {
     "title": "Assets",
@@ -144,10 +142,10 @@
     "swap": "Swap wallets",
     "amount": "Amount",
     "max": "MAX",
-    "available": "Available: {amount} USDT",
+    "available": "Available: {amount} USD",
     "confirm": "Confirm transfer",
     "sending": "Transferring…",
-    "success": "Moved {amount} USDT from {from} to {to}.",
+    "success": "Moved {amount} USD from {from} to {to}.",
     "invalidAmount": "Enter an amount with up to 2 decimals.",
     "overBalance": "The amount is more than the available balance.",
     "note": "Moves virtual funds between your own wallets."
@@ -192,11 +190,11 @@
     "wallet": "Wallet",
     "credit": "Credit",
     "debit": "Debit",
-    "amount": "Amount (USDT)",
+    "amount": "Amount (USD)",
     "reason": "Reason (kept in the audit log)",
     "submit": "Apply adjustment",
     "sending": "Applying…",
-    "done": "Applied {amount} USDT to {wallet}.",
+    "done": "Applied {amount} USD to {wallet}.",
     "balances": "Balances"
   },
   "Errors": {
@@ -211,5 +209,10 @@
     "AAL2_REQUIRED": "Verify with your authenticator app first.",
     "NOTE_REQUIRED": "Enter a reason of 3 to 200 characters.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
+  },
+  "Public": {
+    "title": "AureonX",
+    "tagline": "Practice trading with a virtual balance. No real money.",
+    "signIn": "Sign in"
   }
 }
