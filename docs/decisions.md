@@ -91,7 +91,7 @@ The OKX host does not resolve from Lagos and the failure takes about 22 s, so OK
 | Order book and Latest Trades | Real Vision depth and trades, display only, for the selected symbol only. If Vision fails they show an unavailable state; no `/md/v1` fallback for these two |
 | Chart | Vision klines with a `/md/v1/klines` (KuCoin) fallback |
 | O15 chart attribution | **Resolved: keep** the small Lightweight Charts attribution logo |
-| O24 Trade tab | Follow-through in slice 4 Part B: the centre Trade button and the Spot tile open `/spot` on the last viewed symbol |
+| O24 Trade tab | Done in slice 4 Part B: the centre Trade button and the Home Spot tile open `/spot`, which shows the last viewed symbol when the URL has none |
 
 ## Part 2: Open decisions for sign-off
 

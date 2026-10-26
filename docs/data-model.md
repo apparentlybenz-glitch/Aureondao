@@ -660,7 +660,13 @@ Migration `supabase/migrations/20261026130512_spot_market_orders.sql`, applied t
 | `private.parse_decimal`, `format_amount`, `lock_holding`, `holding_apply`, `touch_price_demand`, `price_tick` | No client EXECUTE. |
 | pg_cron `aureonx-price-tick` (`10 seconds`) | `private.price_tick()`: a no-op read unless the demand window is open; then one `net.http_post` to `price-ingest` (pinned `x-region: eu-west-1`) with the shared header secret from Vault. |
 | pg_cron `aureonx-cron-history-cleanup` (daily 03:17 UTC) | Deletes `cron.job_run_details` older than 2 days. |
-| Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`) | Deployed with `verify_jwt: false`; it checks `x-aureonx-cron-secret` itself and answers 500 `not_configured` until `PRICE_INGEST_SECRET` is set. Vision `ticker/24hr` for all markets in one GET, then KuCoin `allTickers` for any market Vision did not quote validly. 2.5 s per attempt, 2 attempts, full-jitter backoff, a failed provider skipped for 30 s per isolate. Drops any quote older than 30 s or more than 5 s ahead (C6). Logs one JSON line per run, never a key. |
+| Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`) | Deployed with `verify_jwt: false`; it checks `x-aureonx-cron-secret` itself. The owner set the secret and Vault entries on 2026-10-26. Vision `ticker/24hr` for all markets in one GET, then KuCoin `allTickers` for any market Vision did not quote validly. 2.5 s per attempt, 2 attempts, full-jitter backoff, a failed provider skipped for 30 s per isolate. Drops any quote older than 30 s or more than 5 s ahead (C6). Logs one JSON line per run, never a key. |
+
+### 16.1a Feed verified end to end (2026-10-26, after the owner set the secrets)
+
+A temporary user called `request_price_feed()`; the next ticks posted to `price-ingest` every 10 s. Every `net._http_response` was 200, and each run logged `vision: ok:20, accepted 20, rejected 0, ignored 0` in 1.2 to 1.5 s. All 20 markets had a Vision snapshot about 5 s old; none used KuCoin and none was missing. Each run booted a fresh isolate (about 23 ms), so the 30 s provider skip and the 60 s markets cache rarely carry over between ticks; the 2-attempt cap per provider per tick is what bounds upstream calls.
+
+Fix migration `20261026165953_ingest_prices_ignored_count.sql` replaces `ingest_prices` only: it returns `{accepted, rejected, ignored}`, where `ignored` counts valid prices the forward-only upsert did not write. Tested in a rolled-back transaction: a newer price `accepted: 1`, then an older one `ignored: 1`, and the newer price stayed.
 
 ### 16.2 Money rules
 

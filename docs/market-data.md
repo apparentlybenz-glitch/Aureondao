@@ -789,3 +789,19 @@ One invalid symbol fails the whole request (HTTP 400, `-1121`), so a delisted pa
 ### 10.5 Seed (migration `20261026120000_markets_favorites.sql`)
 
 Top 20 USDT pairs on both Vision and KuCoin by Vision 24h quote volume on 2026-10-26, stablecoins and leveraged tokens excluded: BTC, ETH, ZEC, SOL, XRP, NEAR, BNB, ENA, WLD, SUI, PEPE, UNI, DOGE, TRX, QNT, HYPE, LINK, TAO, ADA, AAVE. `price_decimals` is the decimal count of Vision's tick size. Prices are formatted with BigInt string math and that count (round half up), never a float.
+
+## 11. Slice 4 as shipped (Spot terminal data)
+
+Display only, like §10: the order RPC reads only `price_snapshots`.
+
+| Stream | Source | Cadence | When it runs | On failure |
+|---|---|---|---|---|
+| Klines | Vision `klines` (limit 300, weight 2), then `GET /md/v1/klines?symbol=&interval=` (KuCoin `market/candles` through the Worker) | On open and on symbol/interval change, then just after each candle closes (1 to 2 s later), at least once a minute | Terminal mounted and page visible | Fallback route; "Chart unavailable. Retrying." when both fail |
+| Live candle | The ticker store's `last` (5 s) | Each ticker update | While the ticker's time falls inside the open candle | Nothing is drawn |
+| Depth | Vision `depth?limit=12` (weight 5) | 5 s | Book tab open, page visible, selected symbol only | "Order book unavailable. Retrying." (no fallback, by decision) |
+| Trades | Vision `aggTrades?limit=30` (weight 4) | 5 s | Trades tab open, page visible, selected symbol only | "Latest trades unavailable. Retrying." (no fallback) |
+
+- Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout (5 s for `/md/v1/klines`). No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.
+- `/md/v1/klines` uses the same `createStaleCache` rules as `/md/v1/tickers`: fresh 5 s, negative 10 s, stale answers (`stale: true`) up to 60 s, then 502. One cache per (market, interval); only enabled markets and the 8 intervals are accepted (400 otherwise), so the number of caches is bounded. Failed refreshes log `md_klines_refresh_failed` and go to Sentry like the ticker route. KuCoin candle rows are `[time s, open, close, high, low, volume, turnover]`, newest first; they are reordered and sorted oldest first. KuCoin interval names: `1min 5min 15min 30min 1hour 4hour 1day 1week`.
+- Weight per open terminal: tickers 24/min (shared store), Book or Trades 60 or 48/min, klines about 2/min. Well under the 6,000/min IP limit.
+- Browser run with Vision blocked: `/md/v1/klines` and `/md/v1/tickers` answered 200, the chart and prices kept working, Book and Trades showed "unavailable". With `/md/v1` also failing: the chart showed "Chart unavailable" and Confirm read "Prices unavailable" (disabled).
