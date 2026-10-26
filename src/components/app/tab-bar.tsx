@@ -28,14 +28,19 @@ export function TabBar() {
           const active = isActive(href);
           if (key === "trade") {
             return (
-              <li key={key} className="flex justify-center">
+              <li key={key}>
                 <Link
                   href={href}
-                  aria-label={t(key)}
                   aria-current={active ? "page" : undefined}
-                  className="-mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background"
+                  className={cn(
+                    "flex h-full flex-col items-center justify-end gap-0.5 pb-2 text-[11px]",
+                    active ? "text-accent-green" : "text-muted-foreground",
+                  )}
                 >
-                  <Icon className="size-6" />
+                  <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background">
+                    <Icon className="size-6" />
+                  </span>
+                  {t(key)}
                 </Link>
               </li>
             );
@@ -47,7 +52,7 @@ export function TabBar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
-                  active ? "text-foreground" : "text-muted-foreground",
+                  active ? "text-accent-green" : "text-muted-foreground",
                 )}
               >
                 <Icon className="size-5" />
