@@ -637,3 +637,63 @@ Counter-example showing why `price_snapshots` is **not** published: 12 markets �
 4. Vault: `project_url`, `price_ingest_secret`. Edge secret: `PRICE_INGEST_SECRET`. Deploy `price-ingest --no-verify-jwt`.
 5. Uncomment and run the three `cron.schedule` calls at the bottom of the migration (price tick, settle/match, history cleanup).
 6. Admin sets real `cycle_config` values and enables cycles. The market-data agent fills in `markets.price_source/source_symbol`.
+
+---
+
+## 16. Slice 4 Part A as shipped (Spot market orders, server price feed)
+
+Migration `supabase/migrations/20261026130512_spot_market_orders.sql`, applied through the Management API. Tests: `supabase/tests/slice4_part_a.sh` (temporary users as real roles, deleted afterwards).
+
+### 16.1 What exists
+
+| Object | Notes |
+|---|---|
+| `markets.qty_decimals`, `markets.min_notional_cents` | From Vision `exchangeInfo` (2026-10-26). Every `LOT_SIZE.stepSize` is a power of ten and equals `minQty`, so a decimal count replaces `qty_step`/`min_qty`. Minimum order value 5.00, except DOGE and PEPE at 1.00 (`NOTIONAL.minNotional`, `applyMinToMarket: true`). |
+| `spot_config` (one row) | `fee_bps = 10` (0.1%, an assumption: the Spot fee was not captured) and `max_price_age_s = 60` (CHECK 1..60). Authenticated read. |
+| `price_snapshots` | One row per market: `bid`, `ask` (CHECK > 0, not NaN, `ask >= bid`), `fetched_at` (source time, clamped to `now()`), `source` (`vision`/`kucoin`). Authenticated read. Not in Realtime. |
+| `system_state` (one row) | `price_demand_until`. No policy, not readable over the API. |
+| `spot_holdings` | `(user_id, asset)`, `available_qty numeric(38,18)`, `cost_basis_cents` (average cost, buy fees included). Balance-write guard trigger. Own rows only. |
+| `orders` | Filled Spot market orders: `side`, `qty`, `price` (the ask or bid used), `price_at`, `price_source`, `notional_cents`, `fee_bps`, `fee_cents`, `realized_pnl_cents` (sells), `client_request_id` (unique per user). Own rows only. |
+| `public.spot_market_order(p_market_id, p_side, p_qty text, p_client_request_id)` | **No price parameter.** Locks the Spot wallet, then the holding. Reads the snapshot itself after the idempotency check. |
+| `public.request_price_feed()` | Heartbeat: opens the demand window for 5 minutes (writes at most about once a minute). |
+| `public.ingest_prices(jsonb)` | `service_role` only. Re-validates every entry; forward-only upsert. |
+| `private.parse_decimal`, `format_amount`, `lock_holding`, `holding_apply`, `touch_price_demand`, `price_tick` | No client EXECUTE. |
+| pg_cron `aureonx-price-tick` (`10 seconds`) | `private.price_tick()`: a no-op read unless the demand window is open; then one `net.http_post` to `price-ingest` (pinned `x-region: eu-west-1`) with the shared header secret from Vault. |
+| pg_cron `aureonx-cron-history-cleanup` (daily 03:17 UTC) | Deletes `cron.job_run_details` older than 2 days. |
+| Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`) | Deployed with `verify_jwt: false`; it checks `x-aureonx-cron-secret` itself and answers 500 `not_configured` until `PRICE_INGEST_SECRET` is set. Vision `ticker/24hr` for all markets in one GET, then KuCoin `allTickers` for any market Vision did not quote validly. 2.5 s per attempt, 2 attempts, full-jitter backoff, a failed provider skipped for 30 s per isolate. Drops any quote older than 30 s or more than 5 s ahead (C6). Logs one JSON line per run, never a key. |
+
+### 16.2 Money rules
+
+- Buy fills at the snapshot **ask**, sell at the **bid**. A snapshot older than `max_price_age_s` (60 s) or missing gives `PRICE_STALE`, and nothing is written.
+- **Cent rounding goes against the user** (the platform never creates money): buy cost = `ceil(qty × ask × 100)`, sell proceeds = `floor(qty × bid × 100)`, fee = `ceil(order value in cents × fee_bps / 10000)`. The minimum order value is checked on the unrounded `qty × price × 100`.
+- Bills rows per order, all through `wallet_apply`: a buy writes `spot_buy` ("Bought 0.001 BTC at 50,000.10", asset leg `+qty`) and `fee` ("Trading fee"); a sell writes `spot_sell` ("Sold 0.0096 BTC at 50,000.00", asset leg `−qty`, PnL = proceeds − removed basis) and `fee` (PnL = −fee). The price in the memo uses the market's `price_decimals`.
+- A sell removes `floor(basis × qty / available_qty)` of cost basis; realized PnL = proceeds − fee − removed basis.
+- Error codes the UI maps: `UNAUTHENTICATED`, `INVALID_ARGUMENT`, `MARKET_NOT_FOUND`, `MARKET_DISABLED`, `INVALID_NUMBER`, `INVALID_QTY` (DETAIL `max_decimals=N` or `too_large`), `WALLET_NOT_FOUND`, `PRICE_STALE`, `BELOW_MIN_NOTIONAL` (DETAIL `min_cents=N`), `INSUFFICIENT_FUNDS`, `INSUFFICIENT_ASSET`, `IDEMPOTENCY_CONFLICT`.
+- The RPC returns the `orders` row. Its numeric fields arrive as JSON numbers, so the UI must not read `qty`/`price` from it; it refetches with `::text` casts (C4).
+
+### 16.3 Where this differs from the Phase 1 design (owner's slice 4 brief wins)
+
+| Phase 1 design | Slice 4 |
+|---|---|
+| Fills need a snapshot ≤ 15 s old (C6, `markets.max_price_age_s`) | 60 s, in `spot_config` (brief). With a 10 s tick the age is normally 0 to 11 s |
+| One `price` per snapshot | `bid` and `ask` (buy at the ask, sell at the bid) |
+| `markets.taker_fee_bps` per market | One `spot_config.fee_bps` row |
+| `qty_step`, `min_qty`, `price_tick` | `qty_decimals` (step is a power of ten on every market) and `min_notional_cents` |
+| `place_spot_order` (market + limit, optional `p_quote_cents`) | `spot_market_order` (market only, quantity only) |
+| `orders` with type/status/limit/hold columns; `spot_holdings.held_qty` | Left out until Part C adds limit orders |
+| Ingest jump filter (`max_jump_bps`) | Left out; the multi-source median check (O12) lands in slice 5 |
+| `spot_holdings`, `orders` in Realtime | Not published. Every order changes the Spot wallet, which is published, so screens refetch on that event (the Bills pattern) |
+| Slice 2: "the DB stores no display copy" | Spot rows carry a readable `memo` (brief), like "Balance adjustment" |
+
+### 16.4 Part C design (limit orders; not built)
+
+1. `orders` gains `type` (`market`/`limit`), `status` (`open`/`filled`/`canceled`), `limit_price`, `hold_cents`, `hold_qty`, `filled_at`, `canceled_at`; `spot_holdings` gains `held_qty`.
+2. Placing a buy limit reserves `ceil(qty × limit × 100) + fee` through `wallet_apply` (`order_hold`: available −, held +); a sell limit moves `qty` from `available_qty` to `held_qty`.
+3. A limit that is marketable against a fresh snapshot at placement fills at once at the snapshot ask/bid, never worse than the limit.
+4. `match_open_orders` (service role, called by `price-ingest` after each ingest and by a pg_cron safety net) claims open orders `FOR UPDATE SKIP LOCKED`.
+5. A buy fills when a fresh ask ≤ limit, a sell when a fresh bid ≥ limit, and only on a snapshot with `fetched_at >= created_at` (no look-back).
+6. Fills happen **at the limit price**, so the reservation is exact: held − cost − fee, nothing refunded.
+7. Every fill is a guarded `open → filled` transition, then wallet lock, then holding lock (§1.4); only the winner of the transition moves money.
+8. `cancel_order` is a guarded `open → canceled` that releases the hold (`order_release`); a second cancel returns the canceled row.
+9. Resting orders keep the price feed alive at about one tick per minute (`price_tick` demand), and never fail on a stale price; they wait.
+10. Same idempotency key rules as market orders; the cap on open orders per user is decided in Part C.

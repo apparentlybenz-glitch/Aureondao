@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import ./src/lib/market/test/register-ts.mjs --test \"src/**/*.test.mjs\"",
+    "test": "node --import ./src/lib/market/test/register-ts.mjs --test \"src/**/*.test.mjs\" \"supabase/functions/**/*.test.mjs\"",
     "build:worker": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"

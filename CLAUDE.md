@@ -6,7 +6,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab)
+## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4 Part A: server price feed and Spot market orders, no UI yet)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
@@ -50,6 +50,14 @@ This file is the single source of truth. It describes **what has shipped**, and 
   - `supabase/migrations/20261025234445_admin_adjust_description.sql` (slice 2): admin adjustments write the Bills text "Balance adjustment" (`ledger.memo`); the reason stays in the audit log. Slice 2 therefore has two migrations.
   - First admin: the owner's account, added with the owner-approved `insert into public.user_roles` (2026-10-26). Admin actions also need a TOTP factor and an aal2 session.
   - `supabase/migrations/20261026120000_markets_favorites.sql` (slice 3): `markets` (id, base, quote, `display_symbol`, `vision_symbol`, `kucoin_symbol`, `price_decimals`, `sort_order`, `enabled`) and `user_favorites`. RLS on both: anyone reads enabled `markets` rows and nobody writes from the browser; users select, insert and delete only their own favorites (a favorite for an unknown market fails on the foreign key). Seeded with 20 USDT pairs (BTC, ETH, ZEC, SOL, XRP, NEAR, BNB, ENA, WLD, SUI, PEPE, UNI, DOGE, TRX, QNT, HYPE, LINK, TAO, ADA, AAVE). Tested as real roles with temporary users, deleted afterwards.
+  - `supabase/migrations/20261026130512_spot_market_orders.sql` (slice 4 Part A, money and price feed; no UI yet). Details, rounding rule and the Part C design: `docs/data-model.md` §16; decisions: `docs/decisions.md` Part 1d.
+    - `markets` gains `qty_decimals` and `min_notional_cents` (Vision `exchangeInfo`). `spot_config` (one row): `fee_bps = 10` (0.1%, an assumption) and `max_price_age_s = 60`.
+    - `price_snapshots` (bid, ask, `fetched_at`, source; authenticated read), `system_state` (demand window; not readable), `spot_holdings` and `orders` (own rows only, no client writes; guard trigger on holdings).
+    - `public.spot_market_order(market_id, side, qty text, client_request_id)`: **no price argument**; buys at the snapshot ask, sells at the bid, refuses a snapshot older than 60 s, checks `qty_decimals` and the minimum order value, rounds cents against the user, idempotent on the key. Bills rows "Bought 0.001 BTC at 50,000.10" / "Sold …" plus a separate "Trading fee".
+    - `public.request_price_feed()` (heartbeat, 5 min window). `public.ingest_prices(jsonb)` (`service_role` only).
+    - Extensions `pg_cron` and `pg_net`. pg_cron `aureonx-price-tick` every 10 s calls `private.price_tick()`, which posts to the `price-ingest` Edge Function only while the demand window is open; `aureonx-cron-history-cleanup` daily.
+    - Edge Function `price-ingest` (`supabase/functions/price-ingest/index.ts`, single file; `supabase/functions/deno.d.ts` types the Deno globals for `pnpm typecheck`). Deployed through the Management API with `verify_jwt: false`; it checks the `x-aureonx-cron-secret` header. **The shared secret is not set yet** (`docs/deploy.md` §7), so the feed is off and orders get `PRICE_STALE` until the owner sets it.
+    - Tests: `supabase/tests/slice4_part_a.sh`.
   - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
 - shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Components: `badge`, `button`, `input`, `label`. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
@@ -83,7 +91,7 @@ Planning docs are **proposals, not shipped behavior**:
 |---|---|
 | `pnpm dev` | Next dev server (Node) |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache. Needs Node 22.18 or newer (built-in TypeScript stripping) |
+| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`, `supabase/functions/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache, the `price-ingest` function. Needs Node 22.18 or newer (built-in TypeScript stripping) |
 | `pnpm lint` | ESLint (`eslint-config-next`) |
 | `pnpm build` | `next build` |
 | `pnpm build:worker` | OpenNext Cloudflare build into `.open-next/` |

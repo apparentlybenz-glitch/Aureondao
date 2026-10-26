@@ -170,3 +170,22 @@ Do not use Supabase's Auth logs for this check. The browser client also calls Su
   - `wrangler deploy` prints `Worker Startup Time: <n> ms` only on a real deploy, which needs the Cloudflare account.
   - Locally, `pnpm exec wrangler check startup` measured **52.7 ms of active CPU** in a 335 ms profile window (the rest is idle) against the **400 ms** limit. Wrangler notes that a local CPU differs from Cloudflare's, so treat this as an estimate.
   - Read the real figure in the first Workers Builds deploy log (§5.1, deploy step, line `Worker Startup Time`).
+
+## 7. Supabase price feed (slice 4)
+
+The `price-ingest` Edge Function is deployed and both pg_cron jobs run, but the feed stays off until one shared secret exists in two places. Until then the function answers `500 not_configured`, `private.price_tick()` logs "vault secrets … missing" and sends nothing, and every Spot order gets `PRICE_STALE`.
+
+Set it once (the owner; the value is never committed or printed):
+
+1. Generate a random value, for example `openssl rand -hex 32`.
+2. Dashboard → Edge Functions → Secrets: add `PRICE_INGEST_SECRET` with that value.
+3. Dashboard → SQL Editor, with the same value:
+   ```sql
+   select vault.create_secret('https://bpntonctvsccrrgstemi.supabase.co', 'project_url');
+   select vault.create_secret('<the value>', 'price_ingest_secret');
+   ```
+4. Check: sign in, open a trading screen (or run `select public.request_price_feed();` as a signed-in user), wait 20 s, then
+   `select market_id, source, now() - fetched_at as age from public.price_snapshots order by market_id;` shows 20 rows a few seconds old.
+   `select status_code, count(*) from net._http_response group by 1;` shows 200s.
+
+To rotate: update both places with a new value (`vault.update_secret`). To stop the feed: `select cron.unschedule('aureonx-price-tick');`.

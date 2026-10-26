@@ -80,6 +80,19 @@ These resolve O13, O14, O20, O22, O23 and O24. They win over the starred options
 
 The OKX host does not resolve from Lagos and the failure takes about 22 s, so OKX is out of the browser chain and every request needs a short timeout.
 
+## Part 1d: Decisions locked by the owner (slice 4, Spot terminal)
+
+| Decision | Locked choice |
+|---|---|
+| Spot execution | Market orders fill at the latest server snapshot: buy at the ask, sell at the bid. `spot_market_order` takes no price. Limit orders are Part C, after the owner says go; until then the Limit tab shows Soon |
+| Fill freshness | A snapshot older than 60 s is refused (`spot_config.max_price_age_s`, CHECK ≤ 60). Supersedes C6's 15 s for Spot fills |
+| Price pipeline | One Edge Function, `price-ingest`, fired by pg_cron every 10 s through pg_net while demand exists (C5). Vision first, KuCoin as the fallback source. O12 (multi-source median) is decided in slice 5 and may tighten the same table |
+| Fee | 0.1% of order value (`spot_config.fee_bps = 10`), an assumption because the Spot fee was not captured. Stored in a config row, never in code |
+| Order book and Latest Trades | Real Vision depth and trades, display only, for the selected symbol only. If Vision fails they show an unavailable state; no `/md/v1` fallback for these two |
+| Chart | Vision klines with a `/md/v1/klines` (KuCoin) fallback |
+| O15 chart attribution | **Resolved: keep** the small Lightweight Charts attribution logo |
+| O24 Trade tab | Follow-through in slice 4 Part B: the centre Trade button and the Spot tile open `/spot` on the last viewed symbol |
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.
@@ -158,7 +171,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (b) Fallback through an EU-placed Worker. *Good:* works for everyone. *Bad:* possible exchange-ToS concern.
 - (c) Geo-gate the app. *Good:* simplest. *Bad:* loses users.
 
-**O15. Chart attribution** (UI D10). Lightweight Charts' Apache-2.0 NOTICE requires crediting TradingView. That is a licence notice, not reference-exchange branding.
+**O15. Chart attribution** (UI D10). **Resolved in slice 4: keep (Part 1d).** Lightweight Charts' Apache-2.0 NOTICE requires crediting TradingView. That is a licence notice, not reference-exchange branding.
 - ★ (a) Keep the small attribution logo on charts. *Good:* compliant by default. *Bad:* a third-party mark on the chart.
 - (b) Turn the logo off; credit on `/legal` and in the footer. *Good:* clean chart. *Bad:* the credit must stay visible.
 
