@@ -1,8 +1,10 @@
 import "server-only";
+import { captureException } from "@sentry/nextjs/cloudflare";
 import { createClient } from "@supabase/supabase-js";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 import { getJson } from "./http";
 import { KUCOIN_URL, normalizeKucoin } from "./kucoin";
+import { createStaleCache } from "./stale-cache";
 import { MARKET_COLUMNS, ProviderError, toMarket } from "./types";
 import type { Market, MarketRow, Ticker } from "./types";
 
@@ -10,38 +12,12 @@ import type { Market, MarketRow, Ticker } from "./types";
 // workers.dev address, so each isolate keeps its own copy (docs/market-data.md §5).
 export const TICKERS_TTL_MS = 5_000;
 export const TICKERS_NEGATIVE_TTL_MS = 10_000;
+// When KuCoin fails, the last good response is still served for this long.
+export const TICKERS_MAX_STALE_MS = 60_000;
 export const MARKETS_TTL_MS = 60_000;
 const ATTEMPT_TIMEOUT_MS = 1_200;
 const RETRIES = 2;
 const BACKOFF_MS = 150;
-
-type Cached<T> = { expires: number; value: T | null; failed: boolean };
-
-// One shared fetch per TTL window: the cache entry, plus the call in flight.
-function createCache<T>(load: () => Promise<T>, ttlMs: number, negativeTtlMs: number, keepStale: boolean) {
-  let entry: Cached<T> | null = null;
-  let inFlight: Promise<Cached<T>> | null = null;
-  return async function get(): Promise<T> {
-    const now = Date.now();
-    if (!entry || now >= entry.expires) {
-      inFlight ??= load()
-        .then((value): Cached<T> => ({ expires: Date.now() + ttlMs, value, failed: false }))
-        .catch((): Cached<T> => ({
-          expires: Date.now() + negativeTtlMs,
-          value: keepStale ? (entry?.value ?? null) : null,
-          failed: true,
-        }))
-        .then((next) => {
-          entry = next;
-          inFlight = null;
-          return next;
-        });
-      await inFlight;
-    }
-    if (!entry || entry.value === null) throw new ProviderError("Upstream unavailable");
-    return entry.value;
-  };
-}
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -56,7 +32,34 @@ async function withRetries<T>(attempt: () => Promise<T>): Promise<T> {
       if (i < RETRIES) await sleep(BACKOFF_MS * (i + 1) * (0.5 + Math.random()));
     }
   }
+  if (lastError instanceof ProviderError) lastError.retries = RETRIES;
   throw lastError;
+}
+
+// Names the failing upstream in the message and keeps its status and retry count.
+function labelled(upstream: string, error: unknown): ProviderError {
+  const source = error instanceof ProviderError ? error : new ProviderError(String(error));
+  const out = new ProviderError(`${upstream}: ${source.message}`, source.status);
+  out.retries = source.retries;
+  return out;
+}
+
+// Every failed refresh goes to Workers Logs and Sentry with the upstream status
+// and the retry count. The negative window keeps this to one per 10 s per isolate.
+function reportUpstreamFailure(error: unknown, info: { servedStale: boolean }) {
+  const failure = error instanceof ProviderError ? error : new ProviderError(String(error));
+  const context = {
+    route: "/md/v1/tickers",
+    upstreamStatus: failure.status,
+    retries: failure.retries,
+    servedStale: info.servedStale,
+    message: failure.message,
+  };
+  console.error(JSON.stringify({ event: "md_tickers_refresh_failed", ...context }));
+  captureException(failure, {
+    tags: { route: context.route, upstream_status: String(context.upstreamStatus) },
+    extra: context,
+  });
 }
 
 async function readEnabledMarkets(): Promise<Market[]> {
@@ -70,20 +73,41 @@ async function readEnabledMarkets(): Promise<Market[]> {
     .eq("enabled", true)
     .order("sort_order")
     .overrideTypes<MarketRow[], { merge: false }>();
-  if (error) throw new ProviderError(error.message);
+  if (error) throw new ProviderError(`Supabase: ${error.message}`);
   return data.map(toMarket);
 }
 
-export const getEnabledMarkets = createCache(readEnabledMarkets, MARKETS_TTL_MS, MARKETS_TTL_MS, true);
+// The last list is kept for as long as it takes: a failed refresh never empties it.
+const markets = createStaleCache({
+  load: readEnabledMarkets,
+  ttlMs: MARKETS_TTL_MS,
+  negativeTtlMs: TICKERS_NEGATIVE_TTL_MS,
+  maxStaleMs: Number.POSITIVE_INFINITY,
+});
 
 async function readKucoinTickers(): Promise<Ticker[]> {
-  const markets = await getEnabledMarkets();
-  const payload = await withRetries(() =>
-    getJson((url, init) => fetch(url, { ...init, cache: "no-store" }), KUCOIN_URL, ATTEMPT_TIMEOUT_MS),
-  );
-  const tickers = normalizeKucoin(payload, markets);
-  if (tickers.length === 0) throw new ProviderError("No usable tickers");
-  return tickers;
+  const { value: list } = await markets();
+  let payload: unknown;
+  try {
+    payload = await withRetries(() =>
+      getJson((url, init) => fetch(url, { ...init, cache: "no-store" }), KUCOIN_URL, ATTEMPT_TIMEOUT_MS),
+    );
+  } catch (e) {
+    throw labelled("KuCoin", e);
+  }
+  try {
+    const tickers = normalizeKucoin(payload, list);
+    if (tickers.length === 0) throw new ProviderError("No usable tickers");
+    return tickers;
+  } catch (e) {
+    throw labelled("KuCoin", e);
+  }
 }
 
-export const getKucoinTickers = createCache(readKucoinTickers, TICKERS_TTL_MS, TICKERS_NEGATIVE_TTL_MS, false);
+export const getKucoinTickers = createStaleCache({
+  load: readKucoinTickers,
+  ttlMs: TICKERS_TTL_MS,
+  negativeTtlMs: TICKERS_NEGATIVE_TTL_MS,
+  maxStaleMs: TICKERS_MAX_STALE_MS,
+  onError: reportUpstreamFailure,
+});
