@@ -73,7 +73,7 @@ test("klines refresh just after the candle closes, at least once a minute", () =
 });
 
 test("depth and trades parse Vision payloads", () => {
-  assert.match(visionDepthUrl(btc), /depth\?symbol=BTCUSDT&limit=12$/);
+  assert.match(visionDepthUrl(btc), /depth\?symbol=BTCUSDT&limit=20$/);
   assert.match(visionTradesUrl(btc), /aggTrades\?symbol=BTCUSDT&limit=30$/);
   const book = normalizeVisionDepth({ bids: [["80410.00", "5.5"], ["bad", "1"]], asks: [["80410.01", "0.2"]] });
   assert.deepEqual(book, { bids: [{ price: "80410.00", qty: "5.5" }], asks: [{ price: "80410.01", qty: "0.2" }] });

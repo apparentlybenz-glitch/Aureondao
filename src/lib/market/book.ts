@@ -4,7 +4,7 @@ import type { Market } from "./types";
 
 // Exchange depth and recent trades for the selected symbol. Display only:
 // practice orders never enter this book and never read it.
-export const BOOK_LEVELS = 12; // Vision depth weight 5 for limits 1 to 100
+export const BOOK_LEVELS = 20; // Vision depth weight 5 for limits 1 to 100
 export const TRADES_LIMIT = 30; // Vision aggTrades weight 4
 export const BOOK_POLL_MS = 5_000;
 export const BOOK_TIMEOUT_MS = 4_000;

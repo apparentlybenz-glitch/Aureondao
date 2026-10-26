@@ -19,6 +19,7 @@ import {
   checkQty,
   compareDecimal,
   feeCents,
+  MAX_BUY_BUFFER_BPS,
   meetsMinimum,
   sellQtyFor,
   trimDecimal,
@@ -101,7 +102,14 @@ export function OrderForm({
     if (next === 0) return setQty("");
     let q = "0";
     if (side === "buy" && ticker && feeBps !== null && available !== null) {
-      q = buyQtyFor((available * BigInt(next)) / BigInt(100), ticker.ask, feeBps, market.qtyDecimals);
+      // 100 % keeps 0.5 % headroom on the price so the fill still fits the balance.
+      q = buyQtyFor(
+        (available * BigInt(next)) / BigInt(100),
+        ticker.ask,
+        feeBps,
+        market.qtyDecimals,
+        next === 100 ? MAX_BUY_BUFFER_BPS : 0,
+      );
     } else if (side === "sell") {
       q = sellQtyFor(holding, next, market.qtyDecimals);
     }

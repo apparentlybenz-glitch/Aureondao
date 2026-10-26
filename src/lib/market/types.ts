@@ -8,6 +8,9 @@ export type Ticker = {
   ask: string;
   changePct: string;
   quoteVolume: string;
+  // 24 h high and low.
+  high: string;
+  low: string;
   ts: number;
 };
 

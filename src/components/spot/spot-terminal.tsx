@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { formatPrice } from "@/lib/market/decimal";
+import { formatPrice, toSortNumber } from "@/lib/market/decimal";
 import { DEFAULT_MARKET, readLastMarket, saveLastMarket } from "@/lib/market/last-symbol";
 import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
@@ -18,6 +18,9 @@ import { OrderForm } from "./order-form";
 import { PriceChart } from "./price-chart";
 
 type Tab = "book" | "trades" | "orders";
+
+// Volume is display only, so a compact float format is fine ("1.23B").
+const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
 
 // /spot?symbol=BTC-USDT. Without a symbol it opens the last viewed market
 // (aureonx.lastMarket, O24). Switching markets updates the URL in place, so no
@@ -71,6 +74,21 @@ export function SpotTerminal() {
         </span>
       </header>
 
+      <dl aria-label={t("stats.label")} className="mb-3 grid grid-cols-3 gap-2 text-xs tabular-nums">
+        <div>
+          <dt className="text-muted-foreground">{t("stats.high")}</dt>
+          <dd>{ticker ? formatPrice(ticker.high, market.priceDecimals) : "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t("stats.low")}</dt>
+          <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "—"}</dd>
+        </div>
+        <div className="text-right">
+          <dt className="text-muted-foreground">{t("stats.volume", { quote: market.quote })}</dt>
+          <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "—"}</dd>
+        </div>
+      </dl>
+
       <div className="space-y-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0">
         <PriceChart market={market} ticker={ticker} />
         <OrderForm
@@ -102,7 +120,7 @@ export function SpotTerminal() {
             </button>
           ))}
         </div>
-        {tab === "book" ? <OrderBookPanel market={market} ticker={ticker} /> : null}
+        {tab === "book" ? <OrderBookPanel market={market} /> : null}
         {tab === "trades" ? <TradesPanel market={market} /> : null}
         {tab === "orders" ? (
           <AccountPanel markets={markets} orders={account.orders} holdings={account.holdings} error={account.error} />

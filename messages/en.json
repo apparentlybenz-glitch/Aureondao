@@ -331,6 +331,19 @@
     "price": "Price",
     "costBasis": "Cost basis",
     "realizedPnl": "Realized PnL",
-    "listError": "Could not load your orders. Try again shortly."
+    "listError": "Could not load your orders. Try again shortly.",
+    "stats": {
+      "label": "24 hour statistics",
+      "high": "24h High",
+      "low": "24h Low",
+      "volume": "24h Vol ({quote})"
+    },
+    "bookView": {
+      "label": "Order book view",
+      "both": "Both",
+      "bids": "Bids",
+      "asks": "Asks"
+    },
+    "mid": "Mid"
   }
 }

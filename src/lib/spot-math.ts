@@ -65,10 +65,22 @@ function unitsToQty(units: bigint, qtyDecimals: number): string {
   return fraction ? `${whole}.${fraction}` : whole;
 }
 
-// Largest quantity whose estimated cost plus fee fits the budget, at the shown ask.
-export function buyQtyFor(budgetCents: bigint, ask: string, feeBps: number, qtyDecimals: number): string {
+// Headroom for a 100 % buy: the server's snapshot ask can be above the shown one.
+export const MAX_BUY_BUFFER_BPS = 50;
+
+// Largest quantity whose estimated cost plus fee fits the budget, priced at the
+// shown ask raised by bufferBps (0 for no headroom), rounded down to qtyDecimals.
+export function buyQtyFor(
+  budgetCents: bigint,
+  ask: string,
+  feeBps: number,
+  qtyDecimals: number,
+  bufferBps: number,
+): string {
   if (budgetCents <= ZERO) return "0";
-  const p = scaled(ask);
+  const raw = scaled(ask);
+  // ask x (10000 + buffer) / 10000, kept exact by adding 4 decimal places.
+  const p = { n: raw.n * (BPS + BigInt(bufferBps)), scale: raw.scale + 4 };
   const unit = pow10(qtyDecimals);
   const total = (units: bigint) => {
     const cost = divRound(units * p.n * HUNDRED, pow10(qtyDecimals + p.scale), "ceil");
@@ -104,4 +116,14 @@ export function compareDecimal(a: string, b: string): number {
 // "0.001000000000000000" -> "0.001", "12.000" -> "12".
 export function trimDecimal(value: string): string {
   return value.includes(".") ? value.replace(/0+$/, "").replace(/\.$/, "") : value;
+}
+
+// (bid + ask) / 2 as an exact decimal string (display only).
+export function midPrice(bid: string, ask: string): string {
+  const b = scaled(bid);
+  const a = scaled(ask);
+  const scale = Math.max(b.scale, a.scale) + 1;
+  const sum = (b.n * pow10(scale - b.scale) + a.n * pow10(scale - a.scale)) / BigInt(2);
+  const text = sum.toString().padStart(scale + 1, "0");
+  return trimDecimal(`${text.slice(0, -scale)}.${text.slice(-scale)}`);
 }

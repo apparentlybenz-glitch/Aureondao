@@ -18,6 +18,8 @@ type VisionRow = {
   askPrice?: unknown;
   priceChangePercent?: unknown;
   quoteVolume?: unknown;
+  highPrice?: unknown;
+  lowPrice?: unknown;
   closeTime?: unknown;
 };
 
@@ -31,13 +33,15 @@ export function normalizeVision(payload: unknown, markets: Market[]): Ticker[] {
     if (typeof row !== "object" || row === null || typeof row.symbol !== "string") continue;
     const market = bySymbol.get(row.symbol);
     if (!market) continue;
-    const { lastPrice, bidPrice, askPrice, priceChangePercent, quoteVolume, closeTime } = row;
+    const { lastPrice, bidPrice, askPrice, priceChangePercent, quoteVolume, closeTime, highPrice, lowPrice } = row;
     if (
       !isPositiveDecimal(lastPrice) ||
       !isPositiveDecimal(bidPrice) ||
       !isPositiveDecimal(askPrice) ||
       !isDecimal(priceChangePercent) ||
       !isDecimal(quoteVolume) ||
+      !isDecimal(highPrice) ||
+      !isDecimal(lowPrice) ||
       typeof closeTime !== "number" ||
       !Number.isFinite(closeTime)
     ) {
@@ -50,6 +54,8 @@ export function normalizeVision(payload: unknown, markets: Market[]): Ticker[] {
       ask: askPrice,
       changePct: priceChangePercent,
       quoteVolume,
+      high: highPrice,
+      low: lowPrice,
       ts: closeTime,
     });
   }
