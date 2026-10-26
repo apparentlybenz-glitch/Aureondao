@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Bell, Globe, Headset, Search, UserRound } from "lucide-react";
+import { Bell, Globe, Headset, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { TopBarSearch } from "@/components/app/top-bar-search";
 
-// App top bar: avatar, search, language, notifications, support. Search,
-// notifications and support open "Coming soon" screens until their slices land.
+// App top bar: avatar, search, language, notifications, support. Search opens
+// the Market tab (/market?q=); notifications and support open "Coming soon".
 export function TopBar() {
   const t = useTranslations("Shell");
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
@@ -15,13 +16,7 @@ export function TopBar() {
       <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-black">
         {t("virtualPill")}
       </span>
-      <Link
-        href="/market"
-        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 text-sm text-muted-foreground"
-      >
-        <Search className="size-4 shrink-0" />
-        <span className="truncate">{t("search")}</span>
-      </Link>
+      <TopBarSearch />
       <button type="button" disabled aria-label={t("language")} title={t("language")} className={icon}>
         <Globe className="size-5" />
       </button>

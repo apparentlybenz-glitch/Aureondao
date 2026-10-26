@@ -1,7 +1,10 @@
-import { useTranslations } from "next-intl";
-import { ComingSoon } from "@/components/app/coming-soon";
+import { Suspense } from "react";
+import { MarketScreen } from "@/components/market/market-screen";
 
 export default function Page() {
-  const t = useTranslations("Shell");
-  return <ComingSoon title={t("market")} />;
+  return (
+    <Suspense fallback={null}>
+      <MarketScreen />
+    </Suspense>
+  );
 }

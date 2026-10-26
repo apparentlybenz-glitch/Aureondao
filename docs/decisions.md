@@ -54,6 +54,32 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | Wording | The words for "not real" funds are **virtual funds** / **virtual balance** everywhere |
 | Signup credit (slice 1) | None. The signup trigger creates 4 wallets at 0 and writes no ledger row; an admin credits virtual funds. Supersedes the starting-credit line once in `build-order.md` |
 
+## Part 1c: Decisions locked by the owner (slice 3, market data)
+
+These resolve O13, O14, O20, O22, O23 and O24. They win over the starred options in Part 2.
+
+| Decision | Locked choice |
+|---|---|
+| O13 where `/md/v1/*` lives | A route handler inside the app Worker. In slice 3 it serves only the crypto fallback (`/md/v1/tickers`, KuCoin through the Worker). Forex and metals wait for slice 6 |
+| O14 restricted regions | Keep the chain Vision, then `/md/v1`. Sentry gets a report only when every provider fails in a browser (once per failure streak), plus the Vision HTTP 400 message (once per distinct message). No third source yet |
+| O20 browser crypto provider | Vision first, then `/md/v1` (KuCoin through the Worker). **No OKX adapter.** Every request has a short timeout (Vision 4 s, `/md/v1` 5 s) |
+| O22 display names | Internal id stays `BTC-USDT`. `markets.display_symbol` (for example `BTCUSD`) is what the UI shows; the quote asset keeps its own column. Supersedes the `display_name` wording in Part 2 |
+| O23 Sell / Buy | Sell is the real best bid and Buy is the real best ask from the exchange tickers. No spread is ever invented. A row whose bid or ask is missing or zero shows no price |
+| O24 Trade tab | The centre Trade button opens the Spot terminal on the last viewed symbol (`localStorage` key `aureonx.lastMarket`, default `BTC-USDT`). Spot arrives in slice 4, so until then `/spot` shows the Coming soon screen |
+| Display prices | Prices on the slice 3 screens are for display only. No money path reads them. Slice 5 fetches its prices on the server |
+
+**Owner browser evidence (Lagos, deployed site, plain GET from the console), which settles O20 and O14:**
+
+| Request | Result |
+|---|---|
+| Vision `ticker/24hr` | 200, 3250 ms (includes the first connection), 1109 bytes |
+| Vision `bookTicker` | 200, 376 ms, 120 bytes |
+| Vision `klines` | 200, 366 ms, 852 bytes |
+| OKX tickers | **Failed to fetch after 22,027 ms** (`net::ERR_NAME_NOT_RESOLVED`) |
+| OKX candles | **Failed to fetch after 22,032 ms** (`net::ERR_NAME_NOT_RESOLVED`) |
+
+The OKX host does not resolve from Lagos and the failure takes about 22 s, so OKX is out of the browser chain and every request needs a short timeout.
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.
@@ -122,10 +148,12 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (c) Primary source plus a ±1% sanity check. *Good:* simple. *Bad:* single-source risk.
 
 **O13. Where `/md/v1/*` lives** (MD D7).
+**Resolved in slice 3: see Part 1c.**
 - ★ (a) A separate small `aureonx-md` Worker with Workers Cache and a Placement Hint. *Good:* caching never touches app responses or cookies, and static assets stay unbilled. *Bad:* a second deployable.
 - (b) Route handlers in the OpenNext Worker. *Good:* one deployable. *Bad:* enabling Workers Cache there bills static-asset requests and risks caching app responses.
 
-**O14. Users in exchange-restricted regions (e.g. US 451s)** (MD D6). From the sandbox's US-located IP, `api.binance.com` returned 451 and Bybit 403, while Vision, OKX and KuCoin answered.
+**O14. Users in exchange-restricted regions (e.g. US 451s)** (MD D6).
+**Resolved in slice 3: see Part 1c.** From the sandbox's US-located IP, `api.binance.com` returned 451 and Bybit 403, while Vision, OKX and KuCoin answered.
 - ★ (a) Add a US-accessible public source to the fallback chain. *Good:* a compliant data path. *Bad:* more adapters to maintain.
 - (b) Fallback through an EU-placed Worker. *Good:* works for everyone. *Bad:* possible exchange-ToS concern.
 - (c) Geo-gate the app. *Good:* simplest. *Bad:* loses users.
@@ -151,6 +179,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (b) Pro from day one. *Good:* no pausing, backups, Advanced MFA available. *Bad:* monthly cost.
 
 **O20. Primary browser crypto provider** (MD D8, new in round 2).
+**Resolved in slice 3: see Part 1c.**
 - ★ (a) Vision first, OKX on failure. *Good:* `ACAO: *` and a documented weight budget. *Bad:* reachability for non-US residential browsers is unproven (preflights are not supported).
 - (b) OKX first. *Good:* echoes any origin, and its order book sends `*`. *Bad:* no rate-limit headers, a ~100 KB all-tickers response, and global OKX is restricted for US residents.
 - (c) Race both on the first cycle each session, then keep the faster healthy one. *Good:* adapts to each user's region. *Bad:* doubles the first-cycle load; more code.
@@ -160,16 +189,19 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (b) Build a minimal perpetual on the Options price pipeline. *Good:* matches a common exchange layout. *Bad:* needs funding, margin and liquidation logic, the largest money-path risk.
 
 **O22. Display names vs internal ids** (due slice 3).
+**Resolved in slice 3: see Part 1c.**
 - ★ (a) Internal ids stay `BTC-USDT`; the UI shows a `display_name` column from `markets` (e.g. `BTCUSD`). *Good:* ids stay stable and URL-safe, and the label can change freely. *Bad:* one more column to keep in sync.
 - (b) Use `BTCUSD` everywhere. *Good:* one name. *Bad:* loses the quote asset (USDT vs USD) and breaks provider symbol mapping.
 - (c) Derive the label in the UI (`BTC-USDT` → `BTC/USDT`, current convention). *Good:* no schema change. *Bad:* can't express `BTCUSD`-style names.
 
 **O23. Bid/ask source for the Sell and Buy columns** (due slice 3).
+**Resolved in slice 3: see Part 1c.**
 - ★ (a) Best bid/ask from the browser store (exchange book ticker), display-only. *Good:* real, no Worker cost. *Bad:* differs slightly from the server fill price.
 - (b) Server `price_snapshots` with a fixed spread. *Good:* matches what fills use. *Bad:* the spread is invented, and refreshes only every 10 s.
 - (c) Show last price only, with no Sell/Buy split. *Good:* simplest and honest. *Bad:* doesn't match the reference layout.
 
 **O24. Trade tab destination** (due slice 3).
+**Resolved in slice 3: see Part 1c.**
 - ★ (a) The bottom-bar Trade tab opens the last-used terminal (Spot by default). *Good:* one tap back to where the user was. *Bad:* less predictable for new users.
 - (b) Always opens Spot. *Good:* predictable. *Bad:* Options users need an extra tap.
 - (c) Opens a chooser sheet (Spot / Options). *Good:* explicit. *Bad:* an extra tap every time.
