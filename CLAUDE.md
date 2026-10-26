@@ -6,7 +6,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 
 @AGENTS.md
 
-## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4: server price feed, Spot market orders and the Spot terminal)
+## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4: server price feed, Spot market orders and the Spot terminal; slice 5 Part A: Options database and settlement, no UI)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
@@ -68,6 +68,15 @@ This file is the single source of truth. It describes **what has shipped**, and 
     - The Spot terminal heartbeats `request_price_feed()` once on show and every 60 s, only while the screen is mounted and the tab visible; it stops on hide (`usePriceFeedDemand` in `src/lib/spot.ts`).
     - Tests: `supabase/tests/slice4_part_a.sh`.
   - `supabase/migrations/20261026165953_ingest_prices_ignored_count.sql` (slice 4 fix): replaces `ingest_prices` only. A valid price the forward-only upsert did not write (not newer than the stored snapshot) is reported as `ignored`, not `accepted`. Slice 4 therefore has two migrations.
+  - `supabase/migrations/20261026182324_options_settlement.sql` (slice 5 Part A; no UI yet except the Bills label "Option refund"). Rules: `docs/decisions.md` Part 1e.
+    - `markets.options_enabled` (true for BTC, ETH, SOL). `option_periods` (30/60/90/120/300 s; `profit_rate_bps`, `fee_bps` 10, `min_premium_cents` 4900, `enabled`; only 30 s enabled, at 600 bps). Authenticated read, writes only through `admin_set_option_period` (claim, aal2, `is_admin()`, audit row).
+    - `options_positions`: own rows only, no client writes; CHECKs tie status to the settle fields and the payout to the result. In the Realtime publication with `option_periods`.
+    - `public.open_option(market_id, direction, duration_s, premium_cents, client_request_id) → uuid`: **no price argument**. Locks the Options wallet, idempotent on the key (`IDEMPOTENCY_CONFLICT` on changed parameters), entry = snapshot mid at most 15 s old, fee `ceil(premium × fee_bps / 10000)` on top. Bills rows `option_premium` and `fee`. Errors: `MARKET_DISABLED`, `PERIOD_NOT_FOUND`, `PERIOD_DISABLED`, `BELOW_MIN_PREMIUM` (DETAIL `min_cents=N`), `PRICE_STALE`, `INSUFFICIENT_FUNDS`.
+    - Settlement: `ingest_prices` (now returns `settled` too) calls `private.settle_options` for each options-market snapshot it wrote, in the same transaction. Win `option_settle` premium + `floor(premium × rate / 10000)`; loss `option_settle` 0 cash, PnL −premium; draw `option_refund` premium. PnL on the open rows is 0.
+    - `private.void_stale_options()` via pg_cron `aureonx-options-void` every 10 s: positions open past `expires_at + 90 s` become `void`, one `option_refund` row for premium + fee.
+    - Locks: position rows `FOR UPDATE SKIP LOCKED` (batch 500), then wallets ascending; only the guarded transition's winner pays.
+    - `private.price_tick` also fires while any options position is open. `public.server_time()` for the countdown offset.
+    - Tests: `supabase/tests/slice5_part_a.sh` (pauses the price tick and the void job during the run, cleanup turns them back on).
   - No runtime code uses the secret key. `src/lib/supabase/service.ts` exists but nothing imports it.
 - shadcn/ui initialized: Radix base, `radix-nova` style, `components.json`. Components: `badge`, `button`, `input`, `label`. Add more with `pnpm dlx shadcn@4.22.1 add <name>`.
   - `cn()` in `src/lib/utils.ts` is `twMerge(clsx(...))`. The npm package `cn` was **removed** after a provenance check (the name had a previous unrelated owner). `shadcn add` may rewrite imports to `"cn"`: check every diff and point them back at `@/lib/utils`.
@@ -110,15 +119,16 @@ Planning docs are **proposals, not shipped behavior**:
 
 Gate before any commit: `pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm build:worker`.
 
-Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 4 it is 3,718 KiB (the `/md/v1/klines` route and the terminal; Lightweight Charts is a browser-only chunk). After the slice 3 follow-up it was 3,606 KiB (3,600 KiB on `main` with the brand assets; 3,534 KiB at the end of slice 3 before them; 3,584 KiB after slice 2, 3,582 KiB after slice 1, 2,061 KiB after slice 0). Server code must import Sentry from `@sentry/nextjs/cloudflare`, as `worker.ts` does: importing the full `@sentry/nextjs` in a route handler added 362 KiB. `wrangler check startup` after the follow-up: 51 to 53 ms active CPU locally (43.4 ms after slice 2). After slice 4: 60.5 to 68.8 ms, while `main` measured 70.9 to 99.9 ms on the same machine the same hour, so the sandbox CPU varies more than the slice changes it. Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
+Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>` and read the `gzip:` figure. The limit is 10 MiB. After slice 5 Part A it is 3,718 KiB (database only, no change). After slice 4 it was 3,718 KiB (the `/md/v1/klines` route and the terminal; Lightweight Charts is a browser-only chunk). After the slice 3 follow-up it was 3,606 KiB (3,600 KiB on `main` with the brand assets; 3,534 KiB at the end of slice 3 before them; 3,584 KiB after slice 2, 3,582 KiB after slice 1, 2,061 KiB after slice 0). Server code must import Sentry from `@sentry/nextjs/cloudflare`, as `worker.ts` does: importing the full `@sentry/nextjs` in a route handler added 362 KiB. `wrangler check startup` after the follow-up: 51 to 53 ms active CPU locally (43.4 ms after slice 2). After slice 4: 60.5 to 68.8 ms, while `main` measured 70.9 to 99.9 ms on the same machine the same hour, so the sandbox CPU varies more than the slice changes it. Sentry accounts for about 1.2 MiB of the slice 0 figure: about 1.1 MiB for the server SDK and 123 KiB for the `withSentry` wrapper. Slice 1's proxy adds a separate Node middleware bundle, which carries its own copy of the Sentry server SDK chunk (about 1.3 MB raw).
 
 ## Hard rules (non-negotiable)
 
 1. **Money:** integer minor units (`bigint` cents), never floats. Asset quantities and prices are Postgres `numeric`, and **strings** in TypeScript. PostgREST returns `numeric` as JSON numbers, so select them with `::text`.
 2. **Every balance mutation** goes through an atomic Postgres RPC with row locks. No client or server code updates balance columns directly.
 3. **Options expiry is server-authoritative:** `created_at + duration`, computed in the DB.
+   - Entry is the snapshot mid, refused (`PRICE_STALE`) unless the snapshot is at most 15 s old and not in the future.
    - Settlement is idempotent through a guarded status transition (`… where status = 'open'`).
-   - It skips any missing, invalid or >60 s old price.
+   - It settles only at the first snapshot with `expires_at <= fetched_at <= expires_at + 60 s`. A position still open after `expires_at + 90 s` is void: premium and fee refunded, by the SQL-only void job.
    - It never falls back to a random or synthetic price.
 4. **Money paths never take a client-supplied price.** Prices are fetched server-side.
 5. **Market data:** poll REST snapshots, not websocket proxies. One shared store per browser; terminal tabs never make their own upstream calls.

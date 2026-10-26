@@ -169,7 +169,8 @@
       "forex_close": "Forex close",
       "option_premium": "Options premium",
       "option_settle": "Options settlement",
-      "fee": "Fee"
+      "fee": "Fee",
+      "option_refund": "Option refund"
     },
     "transfer": "Transfer: {from} to {to}"
   },

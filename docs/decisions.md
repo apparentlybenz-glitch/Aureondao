@@ -16,7 +16,7 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 
 | # | Conflict | Resolution | Why |
 |---|---|---|---|
-| C1 | Table and RPC names. UI expected `instruments`, `option_cycles`, `option_orders`, `ledger_entries`, `deposit_requests`, `place_option_order`, … DM used `markets`, `cycle_config`, `options_positions`, `ledger`, `deposits`, `open_option`, … | **DM names win.** DM §12 maps each UI name to its replacement. | They follow the brief, and the migration was tested with them. |
+| C1 | Table and RPC names. UI expected `instruments`, `option_cycles`, `option_orders`, `ledger_entries`, `deposit_requests`, `place_option_order`, … DM used `markets`, `cycle_config`, `options_positions`, `ledger`, `deposits`, `open_option`, … | **DM names win.** DM §12 maps each UI name to its replacement. **Slice 5 rename:** `option_periods` and `admin_set_option_period` replace `cycle_config` and `admin_set_cycle_config`. | They follow the brief, and the migration was tested with them. |
 | C2 | Wallet shape. UI expected one row per (wallet, asset) holding `numeric`; DM uses one USDT-cents row per sub-wallet plus `spot_holdings` (`numeric` qty) | **DM shape.** | Keeps cash in integer cents (hard constraint 1) and gives a single mutation primitive. |
 | C3 | Admin claim. UI's proxy read `app_metadata.role`; DM adds a top-level `user_role` claim through a custom access token hook backed by `user_roles` | **`user_role` claim from the hook.** UI §1.3 updated. | One source of truth (`user_roles`). `private.is_admin()` reads the table, so RLS never trusts a stale token for writes. |
 | C4 | Numeric serialization. UI assumed PostgREST returns `numeric` as strings; DM found it returns JSON numbers | **Every select of a numeric or money column casts with `::text`** (`select=qty::text,…`), and TS types those fields as `string`. UI §10 updated. | `JSON.parse` would otherwise turn quantities into floats (hard constraint 1). |
@@ -93,6 +93,22 @@ The OKX host does not resolve from Lagos and the failure takes about 22 s, so OK
 | O15 chart attribution | **Resolved: keep** the small Lightweight Charts attribution logo |
 | O24 Trade tab | Done in slice 4 Part B: the centre Trade button and the Home Spot tile open `/spot`, which shows the last viewed symbol when the URL has none |
 
+## Part 1e: Decisions locked by the owner (slice 5, Options)
+
+These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for options.
+
+| Decision | Locked choice |
+|---|---|
+| O4 underlyings | Crypto only: `markets.options_enabled`, true for BTC, ETH and SOL |
+| O5 entry price | Mid of the snapshot bid and ask, read inside `open_option` (no price argument). `PRICE_STALE` unless `fetched_at <= now()` and `fetched_at > now() - 15 s`. The 15 is a constant in the function, not config |
+| O12 settle price | Mid of the **first** snapshot with `expires_at <= fetched_at <= expires_at + 60 s`. Settlement runs inside `ingest_prices`, in the transaction that upserts that snapshot. One source per snapshot (Vision, KuCoin fallback); no multi-source median |
+| O6 no price | A position still open at `now() > expires_at + 90 s` (the 60 s window plus the 30 s source age limit) is void: premium and fee refunded. Run by a SQL-only pg_cron job, never the Edge Function |
+| O7 tie | Settle mid = entry mid is a draw: the premium is refunded, the fee kept |
+| Fee and payout | Fee (`option_periods.fee_bps`, 0.1%) on top of the premium at open, rounded up like Spot's fee. A win credits premium + `floor(premium_cents × profit_rate_bps / 10000)` (6,590.00 at 600 bps: 395.40 profit) |
+| Premium limits | Minimum 4900 cents, stored per period. No maximum: the wallet balance limits it. Preset chips are UI only |
+| Names | `option_periods` and `admin_set_option_period` (C1) |
+| UI labels (Part B) | One plain button: "Call" for Rise, "Put" for Fall; the enum stays `rise`/`fall` |
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.
@@ -114,25 +130,13 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (b) Synthetic book labelled "Indicative", never used in money paths. *Good:* matches the spec visually. *Bad:* invented data that users may read as real liquidity.
 - (c) Price ladder of recent mid ticks. *Good:* real data. *Bad:* sparse with slow sources.
 
-**O4. Options underlyings in v1** (MD D5, DM D2).
-- ★ (a) Crypto only. *Good:* ≥2 fresh independent sources for every settlement. *Bad:* the "I expect XAU/USD will…" example is unavailable.
-- (b) Crypto + XAU via a tokenized-gold proxy. *Good:* gold available 24/7, and live on 3 venues in the round-2 probe (agreeing within ~2.5 bp). *Bad:* the proxy differs from spot gold (PAXG ran ~25 bp above XAUT), which must be disclosed.
-- (c) Daily-fixing FX options. *Good:* honest with free data. *Bad:* breaks the 30–300 s cycle UX.
+**O4. Options underlyings in v1.** **Resolved in slice 5: see Part 1e.**
 
-**O5. Options entry price** (DM D5).
-- ★ (a) Latest snapshot ≤15 s old. *Good:* instant and simple. *Bad:* up to about 11 s of look-ahead edge against the live feed.
-- (b) Deferred entry: the first snapshot taken after `created_at`. *Good:* no look-ahead. *Bad:* entry appears 1–10 s later, plus a refund path.
-- (c) Server action fetches the price with a secret. *Good:* fresh price. *Bad:* a money path in the Worker.
+**O5. Options entry price.** **Resolved in slice 5: see Part 1e.**
 
-**O6. Settlement after a long price outage** (DM D6).
-- ★ (a) Settle at the first valid post-expiry price. *Good:* never stale; no extra code. *Bad:* can settle minutes late.
-- (b) Auto-void after expiry + 2 min. *Good:* fair. *Bad:* extra status, ledger kind and RPC.
-- (c) Admin voids manually. *Good:* controlled. *Bad:* needs ops attention.
+**O6. Settlement after a long price outage.** **Resolved in slice 5: see Part 1e.**
 
-**O7. Tie (settle = entry)** (DM D7).
-- ★ (a) Refund the premium, keep the fee. *Good:* standard. *Bad:* the user still pays the fee.
-- (b) Count as a loss. *Good:* simplest. *Bad:* feels unfair.
-- (c) Full refund. *Good:* friendliest. *Bad:* fee-free retries.
+**O7. Tie (settle = entry).** **Resolved in slice 5: see Part 1e.**
 
 **O8. Phone verification and phone MFA** (C10).
 - ★ (a) Phone is a profile field with no MFA factor in v1; TOTP (and passkeys, O9) cover MFA. *Good:* free tier, no SMS cost. *Bad:* the Security Center "phone" item becomes informational only.
@@ -155,10 +159,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 
 ### Market data and infrastructure
 
-**O12. Settlement price tolerance** (MD D4).
-- ★ (a) Median of ≥2 sources within 50 bp. *Good:* robust. *Bad:* may be UNAVAILABLE during spikes, delaying settlement.
-- (b) Median of ≥3, no dispersion check. *Good:* rarely unavailable. *Bad:* needs 3 providers reachable from one region.
-- (c) Primary source plus a ±1% sanity check. *Good:* simple. *Bad:* single-source risk.
+**O12. Settlement price.** **Resolved in slice 5: see Part 1e.**
 
 **O13. Where `/md/v1/*` lives** (MD D7).
 **Resolved in slice 3: see Part 1c.**

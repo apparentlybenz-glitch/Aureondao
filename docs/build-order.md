@@ -132,26 +132,23 @@ Rules for every slice:
 
 ## Slice 5: Options terminal plus settlement
 **Scope**
-- `cycle_config` (admin-set rates, never hard-coded), `options_positions`, `open_option`, `settle_due_options`, `settle_my_expired_options`, `server_time`, `get_options_stats`.
-- `/options`:
-  - "I expect {SYMBOL} will Rise / Fall".
-  - Cycles 30/60/90/120/300 s, premium presets + custom amount.
+- Part A (database): `option_periods` (admin-set rates, never hard-coded), `options_positions`, `open_option`, settlement inside `ingest_prices` (`private.settle_options`), the SQL-only void job (`private.void_stale_options`), `server_time`, `admin_set_option_period`. Rules: `docs/decisions.md` Part 1e (O4, O5, O6, O7, O12).
+- Part B (UI) `/options`:
+  - "I expect {SYMBOL} will Rise / Fall", with a plain "Call" / "Put" button.
+  - Periods 30/60/90/120/300 s, premium presets + custom amount.
   - Live fee and expected profit.
-  - Slide-to-confirm.
-  - Countdown computed from server `expires_at`.
+  - Countdown computed from server `expires_at` (offset from `server_time`).
   - Positions / Filled Orders / Statistics tabs.
-- `/admin/options-config`.
-- Underlyings per O4. Entry, outage and tie rules per O5, O6 and O7.
+- `/admin` option period settings.
 
-**Files:** `src/app/(app)/options/**`, `src/components/options/**`, `src/app/admin/options-config/**`, `supabase/migrations/*_options.sql`.
+**Files:** `src/app/(app)/options/**`, `src/components/options/**`, `supabase/migrations/*_options_settlement.sql`, `supabase/tests/slice5_part_a.sh`.
 
 **Verify:**
-- 6+ concurrent settlers on 40+ expired positions credit each position exactly once.
-- Settlement skips a missing, invalid or >60 s old price, and any price observed before expiry.
+- Concurrent ingest settlement and void calls on the same due positions credit each position exactly once.
+- Settlement uses only the first snapshot inside `[expires_at, expires_at + 60 s]`; a position still open after `expires_at + 90 s` is void with premium and fee refunded.
 - No code path accepts a client price (grep RPC signatures).
-- Settle-on-read works with cron paused.
 
-**Done when:** a 30 s option opens, counts down in sync with the server, settles within about 10 s of expiry at a real fetched price, and pays exactly once.
+**Done when:** a 30 s option opens, counts down in sync with the server, settles within about 10 s of expiry at a real fetched price (or is voided and refunded when none arrives), and pays exactly once.
 
 ## Slice 6: Forex terminal (deferred until after day 6)
 **Scope** (depends on O1, O2 and O3):

@@ -322,11 +322,13 @@ Dark only. The shell uses the shadcn tokens: `background` `#050505`, `card` and 
 3. **Candlestick chart** with a price axis, high/low markers and a dashed last-price line with a label.
 4. "{SYMBOL} Current price {price}" (store price, display only).
 5. "I expect {SYMBOL} will **Rise**/**Fall**" with a large green up button and a red down button; the selected side tints the word.
-6. **Option period(s)** stepped slider: 30 · 60 · 90 · 120 · 300 s; **PnL n%** on the right = `cycle_config.profit_rate_bps` for the chosen cycle.
-7. **Premium Amount (USD)**, available Options-wallet balance and a transfer icon (→ Transfer); preset chips (from config) and a numeric input.
-8. **Transaction fee n%** (`cycle_config.fee_bps`) and **Est. return** computed live from the input.
-9. Full-width primary button (label per side) → **slide-to-confirm** step (spec), then `open_option`.
+6. **Option period(s)** stepped slider: 30 · 60 · 90 · 120 · 300 s; **PnL n%** on the right = `option_periods.profit_rate_bps` for the chosen period.
+7. **Premium Amount (USD)**, available Options-wallet balance and a transfer icon (→ Transfer); preset chips (UI only) and a numeric input; minimum `option_periods.min_premium_cents`.
+8. **Transaction fee n%** (`option_periods.fee_bps`) and **Est. return** computed live from the input.
+9. Full-width primary button (label per side), then `open_option`.
 10. **Positions (n)** · **Filled** tabs, with a stats icon and a "Current instrument only" checkbox.
+
+Assumption (owner, slice 5): the Fall side was never captured. Every layout uses one plain button (no slide-to-confirm) reading **Call** for Rise and **Put** for Fall; the enum stays `rise`/`fall`.
 
 ### 4.9 Evidence tags for the other screens
 | Screen | Evidence |

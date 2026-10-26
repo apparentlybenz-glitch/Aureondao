@@ -15,7 +15,7 @@ type LedgerKind =
   | "transfer_in" | "transfer_out" | "deposit" | "withdrawal_hold" | "withdrawal_release"
   | "withdrawal_paid" | "admin_credit" | "admin_debit" | "order_hold" | "order_release"
   | "spot_buy" | "spot_sell" | "forex_margin" | "forex_close" | "option_premium"
-  | "option_settle" | "fee";
+  | "option_settle" | "fee" | "option_refund";
 
 type BillRow = {
   id: string;
