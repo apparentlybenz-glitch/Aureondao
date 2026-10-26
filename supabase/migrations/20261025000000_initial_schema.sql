@@ -1,5 +1,5 @@
 -- =============================================================================
--- PROPOSED — NOT APPLIED. Review in Phase 1 sign-off.
+-- PROPOSED, NOT APPLIED. Review in Phase 1 sign-off.
 -- Slices cut their own migrations from this file (O18). Slice 1 shipped as
 -- 20261025190257_auth_profiles.sql (profiles, user_roles, wallets, ledger).
 -- =============================================================================
@@ -947,7 +947,7 @@ create trigger spot_holdings_guard_balance
   for each row execute function private.guard_balance_write();
 
 -- -----------------------------------------------------------------------------
--- 5. Public RPCs — user (authenticated)
+-- 5. Public RPCs: user (authenticated)
 -- -----------------------------------------------------------------------------
 
 -- 5.1 server_time: for the options countdown offset
@@ -1697,7 +1697,7 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- 6. Public RPCs — admin (authenticated + is_admin() check inside)
+-- 6. Public RPCs: admin (authenticated + is_admin() check inside)
 -- -----------------------------------------------------------------------------
 
 create or replace function public.admin_review_deposit(
@@ -1945,7 +1945,7 @@ end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- 7. Public RPCs — service_role only (Edge Function / cron)
+-- 7. Public RPCs: service_role only (Edge Function / cron)
 -- -----------------------------------------------------------------------------
 
 -- 7.1 ingest_prices: [{ "market_id": "BTC-USDT", "price": "67123.45", "source": "...", "ts": "<iso>" }]
@@ -2309,7 +2309,7 @@ $$;
 -- (every 10 s x markets x viewers would exhaust the message quota), admin_audit_log.
 
 -- -----------------------------------------------------------------------------
--- 14. pg_cron schedules — NOT RUN BY THIS MIGRATION.
+-- 14. pg_cron schedules: NOT RUN BY THIS MIGRATION.
 -- Prerequisites (run once per environment, by hand, never committed):
 --   select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
 --   select vault.create_secret('<random 32+ byte secret>', 'price_ingest_secret');

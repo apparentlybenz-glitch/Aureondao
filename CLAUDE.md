@@ -115,7 +115,7 @@ Planning docs are **proposals, not shipped behavior**:
 |---|---|
 | `pnpm dev` | Next dev server (Node) |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`, `supabase/functions/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache, the `price-ingest` function, kline/depth/trade normalizers, the poller, the Spot estimate math. Needs Node 22.18 or newer (built-in TypeScript stripping) |
+| `pnpm test` | `node:test` unit tests (`src/**/*.test.mjs`, `supabase/functions/**/*.test.mjs`): normalizers, decimal math, ranking, the store fallback, the stale cache, the `price-ingest` function, kline/depth/trade normalizers, the poller, the Spot estimate math, the Options ticket math, the cn guard. Needs Node 22.18 or newer (built-in TypeScript stripping) |
 | `pnpm lint` | ESLint (`eslint-config-next`) |
 | `pnpm build` | `next build` |
 | `pnpm build:worker` | OpenNext Cloudflare build into `.open-next/` |
@@ -166,3 +166,4 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 
 - PR bodies are a one to three sentence summary of what was done, with no other text.
 - Docs only record what a future agent needs to read. Do not write docs for the owner.
+- After any `shadcn add`, revert the `cn` package from `package.json` and the lockfile and point the component's import at `@/lib/utils`; the cn guard test (`src/lib/cn-guard.test.mjs`) enforces this.

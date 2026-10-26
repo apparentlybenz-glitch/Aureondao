@@ -443,16 +443,16 @@ There is **never** a fallback to a random, synthetic, last-known-good or client 
 
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
-| profiles | own (`id`) or admin | — (trigger) | — (`update_profile` RPC) | — (cascade from auth.users) |
-| user_roles | own or admin; `supabase_auth_admin` (hook) | — | — | — |
-| wallets, spot_holdings | own or admin | — | — (RPC + guard trigger) | — |
-| transfers, orders, forex_positions, options_positions, deposits, withdrawals, kyc_submissions, ledger | own or admin | — | — | — |
-| favorites | own | — (RPC) | — | — (RPC) |
-| admin_audit_log, system_state | admin | — | — | — |
-| markets, payment_networks, cycle_config | anon + authenticated | — | — | — |
-| price_snapshots | authenticated | — (svc RPC) | — | — |
+| profiles | own (`id`) or admin | -- (trigger) | -- (`update_profile` RPC) | -- (cascade from auth.users) |
+| user_roles | own or admin; `supabase_auth_admin` (hook) | -- | -- | -- |
+| wallets, spot_holdings | own or admin | -- | -- (RPC + guard trigger) | -- |
+| transfers, orders, forex_positions, options_positions, deposits, withdrawals, kyc_submissions, ledger | own or admin | -- | -- | -- |
+| favorites | own | -- (RPC) | -- | -- (RPC) |
+| admin_audit_log, system_state | admin | -- | -- | -- |
+| markets, payment_networks, cycle_config | anon + authenticated | -- | -- | -- |
+| price_snapshots | authenticated | -- (svc RPC) | -- | -- |
 
-"—" means no policy **and** no grant. The migration revokes ALL table privileges from `anon`/`authenticated` (Supabase's default privileges grant them), re-grants only SELECT, and alters the default privileges so future tables start closed too. `service_role` bypasses RLS but still cannot update balances directly because of the guard trigger.
+"--" means no policy **and** no grant. The migration revokes ALL table privileges from `anon`/`authenticated` (Supabase's default privileges grant them), re-grants only SELECT, and alters the default privileges so future tables start closed too. `service_role` bypasses RLS but still cannot update balances directly because of the guard trigger.
 
 Functions: EXECUTE is revoked from `public, anon, authenticated` on every function in `public` and `private` (and through default privileges). It is then granted explicitly per §4. Service RPCs are granted only to `service_role`.
 
