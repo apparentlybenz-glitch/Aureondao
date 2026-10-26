@@ -1,9 +1,11 @@
 #!/bin/bash
 # Slice 5 Part A tests (options). Prints only query results / error messages (no keys).
-# Usage: supabase/tests/slice5_part_a.sh setup|t1|...|t10|cleanup  (Management API, write token required)
+# Usage: supabase/tests/slice5_part_a.sh [t1 ... t11]  (Management API, write token required)
+# Always runs setup, the given steps (all by default), then cleanup, in one process.
 # setup pauses the aureonx-price-tick and aureonx-options-void cron jobs so live prices
-# never settle a test position and the tests call settlement and voiding themselves;
-# cleanup turns both back on. Test snapshots are written as postgres with fixed prices
+# never settle a test position and the tests call settlement and voiding themselves.
+# A trap on EXIT, INT, TERM and ERR runs cleanup, which turns both jobs back on and
+# deletes the test users, so production is restored however the run ends. Test snapshots are written as postgres with fixed prices
 # (BTC 50000.00 / 50000.10, mid 50000.05) so the cent math is predictable.
 REF=bpntonctvsccrrgstemi
 A=aaaaaaaa-0000-4000-8000-00000000005a   # trader, options wallet 30,000.00
@@ -51,12 +53,15 @@ key() { printf '55555555-0000-4000-8000-%012d' "$1"; }
 show() { run <<SQL
 select p.client_request_id, p.direction, p.premium_cents, p.fee_cents, p.entry_price::text entry, p.status, p.result,
        p.settle_price::text settle, p.payout_cents,
+       (select sum(l.pnl_cents) from public.ledger l where l.ref_id = p.id) pnl_sum,
+       p.payout_cents - p.premium_cents - p.fee_cents expected_pnl,
        (select string_agg(l.kind || ' ' || l.delta_cents || ' pnl ' || l.pnl_cents, ', ' order by l.id)
           from public.ledger l where l.ref_id = p.id) bills
 from public.options_positions p where p.client_request_id in ($1) order by p.client_request_id;
 SQL
 }
 
+step() {
 case "$1" in
 setup) run <<SQL
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -101,7 +106,7 @@ t3) echo "T3 entry age: 16 s refused, 14 s accepted, a future snapshot refused"
     snap BTC-USDT 50000.00 50000.10 14; user $A "select public.open_option('BTC-USDT','rise',30,4900,'$(key 3)') ok;"
     snap BTC-USDT 50000.00 50000.10 -3; user $A "select public.open_option('BTC-USDT','rise',30,4900,gen_random_uuid());"
     snap BTC-USDT 50000.00 50000.10 1;;
-t4) echo "T4 659000 cents at 600 bps: fee 659; win pays 659000 + 39540; loss 0; draw refunds 659000"
+t4) echo "T4 659000 cents at 600 bps: fee 659 (pnl -659); win pays 659000 + 39540 (pnl sum 38881); loss 0 (pnl sum -659659); draw refunds 659000 (pnl sum -659)"
     snap BTC-USDT 50000.00 50000.10 1; snap ETH-USDT 2000.00 2000.10 1
     user $A "select public.open_option('BTC-USDT','rise',30,659000,'$(key 41)') win, public.open_option('BTC-USDT','fall',30,659000,'$(key 42)') loss, public.open_option('ETH-USDT','fall',30,659000,'$(key 43)') draw;"
     shift 40 "client_request_id in ('$(key 41)','$(key 42)','$(key 43)')"
@@ -113,7 +118,7 @@ t5) echo "T5 window: a snapshot before expiry and one more than 60 s after expir
     shift 100 "client_request_id = '$(key 52)'"
     ingest BTC-USDT 50001.00 50001.10 0
     show "'$(key 51)','$(key 52)'"
-    echo "T5b the late one passes expiry + 90 s: the void job refunds premium + fee"
+    echo "T5b the late one passes expiry + 90 s: the void job refunds premium + fee (refund pnl +5, pnl sum 0)"
     shift 25 "client_request_id = '$(key 52)'"
     echo "select private.void_stale_options() voided;" | run
     show "'$(key 51)','$(key 52)'";;
@@ -150,7 +155,9 @@ select p.status, count(*) positions,
        count(*) filter (where (select count(*) from public.ledger l where l.ref_id = p.id and l.kind = 'option_premium' and l.delta_cents = -p.premium_cents) <> 1) bad_premium,
        count(*) filter (where (select count(*) from public.ledger l where l.ref_id = p.id and l.kind = 'fee' and l.delta_cents = -p.fee_cents) <> 1) bad_fee,
        count(*) filter (where (select count(*) from public.ledger l where l.ref_id = p.id and l.kind in ('option_settle','option_refund'))
-                              <> case when p.status = 'open' then 0 else 1 end) bad_close
+                              <> case when p.status = 'open' then 0 else 1 end) bad_close,
+       count(*) filter (where p.status <> 'open' and (select sum(l.pnl_cents) from public.ledger l where l.ref_id = p.id)
+                              <> p.payout_cents - p.premium_cents - p.fee_cents) bad_pnl
 from public.options_positions p where p.user_id = '$A' group by p.status order by p.status;
 SQL
 ;;
@@ -201,6 +208,38 @@ t10) echo "T10 cron: the void job refunds a position past expiry + 90 s on its o
     echo "select private.price_tick();" | run
     sleep 5
     echo "select id, status_code, left(content, 120) body from net._http_response order by id desc limit 1;" | run;;
+t11) echo "T11 a failing settlement never blocks prices: settle_options replaced by a stub that raises for BTC (rolled back)"; run <<SQL
+begin;
+alter function private.settle_options(text, numeric, timestamptz) rename to settle_options_real;
+create function private.settle_options(p_market_id text, p_price numeric, p_fetched_at timestamptz)
+returns integer language plpgsql set search_path = '' as \$f\$
+begin
+  if p_market_id = 'BTC-USDT' then raise exception 'stub failure'; end if;
+  return private.settle_options_real(p_market_id, p_price, p_fetched_at);
+end \$f\$;
+insert into public.price_snapshots (market_id, bid, ask, fetched_at, source)
+values ('BTC-USDT', 50000.00, 50000.10, now() - interval '1 second', 'vision'),
+       ('ETH-USDT', 2000.00, 2000.10, now() - interval '1 second', 'vision')
+on conflict (market_id) do update set bid = excluded.bid, ask = excluded.ask, fetched_at = excluded.fetched_at,
+  source = excluded.source, ingested_at = now();
+select set_config('request.jwt.claims', json_build_object('sub','$A','role','authenticated')::text, true);
+create temp table k on commit drop as
+  select 'BTC-USDT' m, public.open_option('BTC-USDT','rise',30,4900,gen_random_uuid()) id
+  union all select 'ETH-USDT', public.open_option('ETH-USDT','rise',30,4900,gen_random_uuid());
+update public.options_positions set created_at = created_at - interval '40 seconds',
+  expires_at = expires_at - interval '40 seconds', entry_price_at = entry_price_at - interval '40 seconds'
+where id in (select id from k);
+create temp table r on commit drop as
+  select public.ingest_prices(jsonb_build_array(
+    jsonb_build_object('market_id','BTC-USDT','bid','50001.00','ask','50001.10','source','vision','ts', now()),
+    jsonb_build_object('market_id','ETH-USDT','bid','2001.00','ask','2001.10','source','vision','ts', now()))) v;
+select r.v ingest,
+       (select bid::text = '50001.000000000000000000' and fetched_at = now() from public.price_snapshots where market_id = 'BTC-USDT') btc_snapshot_written,
+       (select json_object_agg(k.m, p.status) from k join public.options_positions p on p.id = k.id) positions
+from r;
+rollback;
+SQL
+    echo "select count(*) stub_gone from pg_proc where proname = 'settle_options_real';" | run;;
 cleanup) job aureonx-price-tick true; job aureonx-options-void true; run <<SQL
 delete from public.admin_audit_log where admin_id in ('$A','$B','$C');
 delete from auth.users where id in ('$A','$B','$C');
@@ -212,5 +251,22 @@ select (select count(*) from public.profiles where id in ('$A','$B','$C')) profi
        (select json_agg(json_build_array(duration_s, profit_rate_bps, enabled) order by duration_s) from public.option_periods) periods;
 SQL
 ;;
-*) echo "usage: $0 setup|t1..t10|cleanup"; exit 1;;
+*) echo "unknown step $1"; exit 1;;
 esac
+}
+
+set -E
+restored=0
+restore() {
+  [ "$restored" = 1 ] && return 0
+  restored=1; trap - EXIT INT TERM ERR
+  echo "== cleanup (restores both cron jobs)"; step cleanup
+}
+trap restore EXIT
+trap 'restore; exit 130' INT
+trap 'restore; exit 143' TERM
+trap 'restore; exit 1' ERR
+
+steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11)
+step setup
+for s in "${steps[@]}"; do step "$s"; echo; done
