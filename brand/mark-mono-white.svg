@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="AureonX">
+  <title>AureonX</title>
+  <defs>
+    <path id="a" d="M256 72 L304 170 L273 152 L354 372 L308 372 L256 230 L204 372 L158 372 L239 152 L208 170 Z"/>
+    <path id="o" d="M66 262 A190 62 0 1 0 446 262 A190 62 0 1 0 66 262 Z M72 252 A186 48 0 1 0 444 252 A186 48 0 1 0 72 252 Z" fill-rule="evenodd" transform="rotate(-14 256 262)"/>
+    <clipPath id="front"><path d="M256 262 L512 198.17 L512 512 L256 512 Z"/></clipPath>
+    <mask id="m-behind" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <use href="#a" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+    </mask>
+    <mask id="m-a" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <g clip-path="url(#front)"><use href="#o" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/></g>
+    </mask>
+    <mask id="m-ring" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <use href="#a" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+      <use href="#o" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#F5F5F5" stroke-width="4" mask="url(#m-ring)"/>
+  <use href="#o" fill="#F5F5F5" mask="url(#m-behind)"/>
+  <use href="#a" fill="#F5F5F5" mask="url(#m-a)"/>
+  <use href="#o" fill="#F5F5F5" clip-path="url(#front)"/>
+  <path d="M150 214 Q153.2 232.8 168 236 Q153.2 239.2 150 258 Q146.8 239.2 132 236 Q146.8 232.8 150 214 Z" fill="#F5F5F5"/>
+  <circle cx="174" cy="178" r="4" fill="#F5F5F5"/>
+  <circle cx="346" cy="196" r="3.5" fill="#F5F5F5"/>
+  <circle cx="392" cy="330" r="3.5" fill="#F5F5F5"/>
+  <circle cx="256" cy="268" r="3" fill="#F5F5F5"/>
+  <circle cx="150" cy="318" r="3" fill="#F5F5F5"/>
+  <circle cx="330" cy="400" r="3" fill="#F5F5F5"/>
+</svg>

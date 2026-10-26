@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 764.44 170" width="764.44" height="170" role="img" aria-label="AureonX">
+  <title>AureonX</title>
+  <defs>
+    <path id="ka" d="M256 72 L304 170 L273 152 L354 372 L308 372 L256 230 L204 372 L158 372 L239 152 L208 170 Z"/>
+    <path id="ko" d="M66 262 A190 62 0 1 0 446 262 A190 62 0 1 0 66 262 Z M72 252 A186 48 0 1 0 444 252 A186 48 0 1 0 72 252 Z" fill-rule="evenodd" transform="rotate(-14 256 262)"/>
+    <clipPath id="kfront"><path d="M256 262 L512 198.17 L512 512 L256 512 Z"/></clipPath>
+    <mask id="km-behind" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <use href="#ka" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+    </mask>
+    <mask id="km-a" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <g clip-path="url(#kfront)"><use href="#ko" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/></g>
+    </mask>
+    <mask id="km-ring" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <use href="#ka" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+      <use href="#ko" fill="#000" stroke="#000" stroke-width="14" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g transform="translate(0 0) scale(0.33)">
+  <circle cx="256" cy="256" r="256" fill="#050505"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#1BA04A" stroke-width="4" mask="url(#km-ring)"/>
+  <use href="#ko" fill="#1BA04A" mask="url(#km-behind)"/>
+  <use href="#ka" fill="#1BA04A" mask="url(#km-a)"/>
+  <use href="#ko" fill="#1BA04A" clip-path="url(#kfront)"/>
+  <path d="M150 214 Q153.2 232.8 168 236 Q153.2 239.2 150 258 Q146.8 239.2 132 236 Q146.8 232.8 150 214 Z" fill="#1BA04A"/>
+  <circle cx="174" cy="178" r="4" fill="#1BA04A"/>
+  <circle cx="346" cy="196" r="3.5" fill="#1BA04A"/>
+  <circle cx="392" cy="330" r="3.5" fill="#1BA04A"/>
+  <circle cx="256" cy="268" r="3" fill="#1BA04A"/>
+  <circle cx="150" cy="318" r="3" fill="#1BA04A"/>
+  <circle cx="330" cy="400" r="3" fill="#1BA04A"/>
+  </g>
+  <g transform="translate(220 35) scale(1)"><path d="M0 100 L46 0 L92 100 L75.49 100 L64.36 75.8 L27.64 75.8 L16.51 100 Z M46 35.89 L58.01 62 L33.99 62 Z M154 28 L154 100 L139 100 L139 95.55 A31 31 0 0 1 92 69 L92 28 L107 28 L107 69 A16 16 0 0 0 139 69 L139 28 Z M163 100 L163 28 L178 28 L178 32.45 A31 31 0 0 1 217.04 38.26 L205.89 48.29 A16 16 0 0 0 178 59 L178 100 Z M294.6 70.9 A37.6 37.6 0 1 0 286.44 88.17 L274.49 78.14 A22 22 0 0 1 236.75 70.9 Z M236.75 57.1 A22 22 0 0 1 278.53 57.1 Z M303.24 64 A37.6 37.6 0 1 0 378.44 64 A37.6 37.6 0 1 0 303.24 64 Z M318.84 64 A22 22 0 1 0 362.84 64 A22 22 0 1 0 318.84 64 Z M387.44 100 L387.44 28 L402.44 28 L402.44 32.45 A31 31 0 0 1 449.44 59 L449.44 100 L434.44 100 L434.44 59 A16 16 0 0 0 402.44 59 L402.44 100 Z" fill="#F5F5F5" fill-rule="evenodd"/><path d="M460.44 0 L479.44 0 L502.44 35.38 L525.44 0 L544.44 0 L511.94 50 L544.44 100 L525.44 100 L502.44 64.62 L479.44 100 L460.44 100 L492.94 50 Z" fill="#1BA04A"/></g>
+</svg>
