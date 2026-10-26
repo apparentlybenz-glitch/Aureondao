@@ -145,3 +145,8 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 - User-facing strings go in `messages/en.json`, never hard-coded.
 - Mobile first: build every screen at 390 px first; `md:` and `xl:` add the tablet and desktop layouts.
 - Every scrollable page reserves bottom padding equal to the tab bar height plus the safe-area inset (`env(safe-area-inset-bottom)`).
+
+## Working rules
+
+- PR bodies are a one to three sentence summary of what was done, with no other text.
+- Docs only record what a future agent needs to read. Do not write docs for the owner.
