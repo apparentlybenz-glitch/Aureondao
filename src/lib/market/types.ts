@@ -59,6 +59,8 @@ export function isDelayed(ts: number, now: number): boolean {
 // Non-2xx or unusable provider answer. status is null for network errors and timeouts.
 export class ProviderError extends Error {
   status: number | null;
+  // Retries used before giving up (set by the server's retry loop).
+  retries = 0;
   constructor(message: string, status: number | null = null) {
     super(message);
     this.name = "ProviderError";

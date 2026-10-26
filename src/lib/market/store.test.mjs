@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import { mock } from "node:test";
 import { MD_PATH, POLL_MS, VISION_SKIP_JITTER_MS, VISION_SKIP_MS, VISION_TIMEOUT_MS, createMarketStore } from "./store.ts";
 import { normalizeKucoin } from "./kucoin.ts";
+import { isDelayed } from "./types.ts";
 import { fixture, seededMarkets } from "./test/helpers.mjs";
 
 const markets = seededMarkets();
@@ -20,6 +21,7 @@ let hidden;
 let visibilityCb;
 let visionMode; // "ok" | "400" | "network" | "hang"
 let mdOk;
+let mdFresh; // stamp /md/v1 tickers with the mock clock instead of the recorded time
 let store;
 
 function makeFetch() {
@@ -35,7 +37,8 @@ function makeFetch() {
     assert.equal(url, MD_PATH);
     calls.push("md");
     if (!mdOk) return Promise.resolve(json({ error: "market_data_unavailable" }, 502));
-    return Promise.resolve(json({ source: "kucoin", tickers: normalizeKucoin(fixture("kucoin-allTickers.json"), markets) }));
+    const tickers = normalizeKucoin(fixture("kucoin-allTickers.json"), markets).map((t) => (mdFresh ? { ...t, ts: Date.now() } : t));
+    return Promise.resolve(json({ source: "kucoin", tickers }));
   };
 }
 
@@ -47,6 +50,7 @@ beforeEach(() => {
   visibilityCb = null;
   visionMode = "ok";
   mdOk = true;
+  mdFresh = false;
   store = createMarketStore({
     loadMarkets: async () => markets,
     fetch: makeFetch(),
@@ -168,4 +172,37 @@ test("stops polling when the last subscriber leaves", async () => {
   await settle();
   assert.equal(calls.length, 1);
   assert.equal(visibilityCb, null);
+});
+
+test("when /md/v1 errors the last good tickers stay on screen and turn delayed on their own", async () => {
+  visionMode = "network";
+  mdFresh = true;
+  const off = store.subscribe(() => {});
+  await settle();
+  const before = store.getSnapshot().tickers;
+  assert.equal(Object.keys(before).length, 20);
+  mdOk = false; // /md/v1 now answers 502
+  for (let i = 0; i < 6; i++) {
+    mock.timers.tick(POLL_MS);
+    await settle();
+  }
+  let snap = store.getSnapshot();
+  assert.equal(snap.failing, true);
+  assert.equal(snap.tickers, before, "the table is not cleared or rebuilt");
+  assert.ok(Object.values(snap.tickers).every((t) => !isDelayed(t.ts, snap.now)), "30 s old: not delayed yet");
+  for (let i = 0; i < 8; i++) {
+    mock.timers.tick(POLL_MS);
+    await settle();
+  }
+  snap = store.getSnapshot();
+  assert.equal(snap.tickers, before);
+  assert.ok(Object.values(snap.tickers).every((t) => isDelayed(t.ts, snap.now)), "70 s old: delayed");
+  mdOk = true;
+  mdFresh = true;
+  mock.timers.tick(POLL_MS);
+  await settle();
+  snap = store.getSnapshot();
+  assert.equal(snap.failing, false);
+  assert.ok(Object.values(snap.tickers).every((t) => !isDelayed(t.ts, snap.now)), "recovered");
+  off();
 });
