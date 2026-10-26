@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { CandlestickData, IChartApi, ISeriesApi, UTCTimestamp } from "lightweight-charts";
+import type { CandlestickData, IChartApi, IPriceLine, ISeriesApi, LineStyle, UTCTimestamp } from "lightweight-charts";
+import { formatPrice } from "@/lib/market/decimal";
 import { INTERVAL_MS, klinesRefreshDelay, loadKlines } from "@/lib/market/klines";
 import type { Candle, Interval } from "@/lib/market/klines";
 import type { Market, Ticker } from "@/lib/market/types";
@@ -27,11 +28,28 @@ const toBar = (c: Candle): CandlestickData<UTCTimestamp> => ({
 
 const browserFetch = (url: string, init: { signal: AbortSignal }) => fetch(url, init);
 
+// A horizontal line at a price (decimal string), drawn in the up or down colour.
+export type PriceLine = { price: string; tone: "up" | "down" };
+
+// Phone height, then the md: height. Spot uses the default.
+const DEFAULT_HEIGHT = "h-[280px] md:h-[420px]";
+
 // Candles from Vision (fallback /md/v1/klines), refreshed just after each candle
 // closes, with the live candle patched from the ticker store between refreshes.
-// Lightweight Charts keeps its attribution logo (O15).
-export function PriceChart({ market, ticker }: { market: Market; ticker: Ticker | undefined }) {
-  const t = useTranslations("Spot");
+// Lightweight Charts keeps its attribution logo (O15). Optional priceLines draw
+// horizontal lines (Options: entry prices of open positions); display only.
+export function PriceChart({
+  market,
+  ticker,
+  height = DEFAULT_HEIGHT,
+  priceLines,
+}: {
+  market: Market;
+  ticker: Ticker | undefined;
+  height?: string; // Tailwind height classes
+  priceLines?: PriceLine[];
+}) {
+  const t = useTranslations("Chart");
   const [interval, setTimeframe] = useState<Interval>("15m");
   const [moreOpen, setMoreOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -39,6 +57,8 @@ export function PriceChart({ market, ticker }: { market: Market; ticker: Ticker 
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const lastBar = useRef<CandlestickData<UTCTimestamp> | null>(null);
   const shownKey = useRef<string | null>(null);
+  const colors = useRef({ up: "#3dd68c", down: "#f0505a", dashed: 2 as LineStyle });
+  const drawnLines = useRef<IPriceLine[]>([]);
   const [ready, setReady] = useState(false);
 
   const key = `${market.id}|${interval}`;
@@ -51,11 +71,12 @@ export function PriceChart({ market, ticker }: { market: Market; ticker: Ticker 
   // Create the chart once; the library is loaded only on this screen.
   useEffect(() => {
     let disposed = false;
-    void import("lightweight-charts").then(({ createChart, CandlestickSeries, ColorType }) => {
+    void import("lightweight-charts").then(({ createChart, CandlestickSeries, ColorType, LineStyle }) => {
       if (disposed || !container.current) return;
       const css = getComputedStyle(document.documentElement);
       const up = css.getPropertyValue("--up").trim() || "#3dd68c";
       const down = css.getPropertyValue("--down").trim() || "#f0505a";
+      colors.current = { up, down, dashed: LineStyle.Dashed };
       const c = createChart(container.current, {
         autoSize: true,
         layout: {
@@ -82,12 +103,38 @@ export function PriceChart({ market, ticker }: { market: Market; ticker: Ticker 
       chart.current?.remove();
       chart.current = null;
       series.current = null;
+      drawnLines.current = [];
     };
   }, []);
 
+  // Redraw the price lines when the set changes (keyed by value, not identity).
+  const linesKey = priceLines ? priceLines.map((l) => `${l.tone}:${l.price}`).join("|") : "";
   useEffect(() => {
+    const s = series.current;
+    if (!ready || !s) return;
+    for (const line of drawnLines.current) s.removePriceLine(line);
+    drawnLines.current = linesKey
+      ? linesKey.split("|").map((entry) => {
+          const [tone, price] = entry.split(":");
+          return s.createPriceLine({
+            price: Number(price),
+            color: tone === "up" ? colors.current.up : colors.current.down,
+            lineWidth: 1,
+            lineStyle: colors.current.dashed,
+            axisLabelVisible: true,
+          });
+        })
+      : [];
+  }, [linesKey, ready]);
+
+  // Axis, crosshair and line labels use the app's grouped format (81,000.00).
+  useEffect(() => {
+    const decimals = market.priceDecimals;
     series.current?.applyOptions({
-      priceFormat: { type: "price", precision: market.priceDecimals, minMove: 1 / 10 ** market.priceDecimals },
+      priceFormat: { type: "price", precision: decimals, minMove: 1 / 10 ** decimals },
+    });
+    chart.current?.applyOptions({
+      localization: { priceFormatter: (p: number) => formatPrice(p.toFixed(decimals), decimals) },
     });
   }, [market.priceDecimals, ready]);
 
@@ -166,7 +213,7 @@ export function PriceChart({ market, ticker }: { market: Market; ticker: Ticker 
           </div>
         ) : null}
       </div>
-      <div className="relative h-[280px] md:h-[420px]">
+      <div className={cn("relative", height)}>
         <div ref={container} className="absolute inset-0" />
         {!klines.data ? (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 type Profile = {
-  uid: number;
+  uid: string;
   email: string | null;
   nickname: string;
   phone: string | null;
@@ -29,7 +29,7 @@ export default function AccountPage() {
   useEffect(() => {
     createClient()
       .from("profiles")
-      .select("uid, email, nickname, phone, country, kyc_status")
+      .select("uid::text, email, nickname, phone, country, kyc_status")
       .single<Profile>()
       .then(({ data, error }) => {
         if (error) setError(error.message);

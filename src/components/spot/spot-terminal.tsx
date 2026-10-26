@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SupportFab } from "@/components/app/support-fab";
 import { formatPrice, toSortNumber } from "@/lib/market/decimal";
 import { DEFAULT_MARKET, readLastMarket, saveLastMarket } from "@/lib/market/last-symbol";
 import { isDelayed } from "@/lib/market/types";
@@ -58,13 +59,13 @@ export function SpotTerminal() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+2rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+5rem+env(safe-area-inset-bottom))]">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <MarketPicker market={market} ticker={ticker} onPick={pick} />
           <p className="flex items-baseline gap-2">
             <span className="text-2xl font-semibold tabular-nums">
-              {ticker ? formatPrice(ticker.last, market.priceDecimals) : "—"}
+              {ticker ? formatPrice(ticker.last, market.priceDecimals) : "--"}
             </span>
             {ticker && isDelayed(ticker.ts, now) ? <span className="text-xs text-amber-500">{m("delayed")}</span> : null}
           </p>
@@ -77,15 +78,15 @@ export function SpotTerminal() {
       <dl aria-label={t("stats.label")} className="mb-3 grid grid-cols-3 gap-2 text-xs tabular-nums">
         <div>
           <dt className="text-muted-foreground">{t("stats.high")}</dt>
-          <dd>{ticker ? formatPrice(ticker.high, market.priceDecimals) : "—"}</dd>
+          <dd>{ticker ? formatPrice(ticker.high, market.priceDecimals) : "--"}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{t("stats.low")}</dt>
-          <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "—"}</dd>
+          <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "--"}</dd>
         </div>
         <div className="text-right">
           <dt className="text-muted-foreground">{t("stats.volume", { quote: market.quote })}</dt>
-          <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "—"}</dd>
+          <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "--"}</dd>
         </div>
       </dl>
 
@@ -126,6 +127,7 @@ export function SpotTerminal() {
           <AccountPanel markets={markets} orders={account.orders} holdings={account.holdings} error={account.error} />
         ) : null}
       </section>
+      <SupportFab />
     </div>
   );
 }

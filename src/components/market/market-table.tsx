@@ -189,13 +189,13 @@ export function MarketTable({
                     </span>
                   </span>
                   <span className="truncate text-right text-[13px] tabular-nums">
-                    {ticker ? formatPrice(ticker.bid, m.priceDecimals) : "—"}
+                    {ticker ? formatPrice(ticker.bid, m.priceDecimals) : "--"}
                   </span>
                   <span className="truncate text-right text-[13px] tabular-nums">
-                    {ticker ? formatPrice(ticker.ask, m.priceDecimals) : "—"}
+                    {ticker ? formatPrice(ticker.ask, m.priceDecimals) : "--"}
                   </span>
                   <span className={cn("rounded-md px-1.5 py-1 text-right text-xs font-medium tabular-nums", tone)}>
-                    {change ?? "—"}
+                    {change ?? "--"}
                   </span>
                 </button>
               </li>

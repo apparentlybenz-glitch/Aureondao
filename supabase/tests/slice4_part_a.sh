@@ -3,7 +3,11 @@
 # Usage: supabase/tests/slice4_part_a.sh setup|t1|...|t11|cleanup  (Management API, write token required)
 # Test snapshots are inserted as postgres with a fixed price (BTC bid 50000.00 / ask 50000.10)
 # so the cent math is predictable. cleanup deletes them and the temporary users.
-REF=bpntonctvsccrrgstemi
+# The project comes from SUPABASE_PROJECT_REF; abort before any query unless it
+# matches the ref in NEXT_PUBLIC_SUPABASE_URL.
+REF=${SUPABASE_PROJECT_REF:?SUPABASE_PROJECT_REF is not set}
+URL_REF=$(printf '%s' "${NEXT_PUBLIC_SUPABASE_URL:-}" | sed -nE 's#^https://([a-z0-9]+)\.supabase\.co/?$#\1#p')
+if [ "$REF" != "$URL_REF" ]; then echo "SUPABASE_PROJECT_REF does not match NEXT_PUBLIC_SUPABASE_URL; aborting." >&2; exit 1; fi
 A=aaaaaaaa-0000-4000-8000-00000000004a   # trader
 B=bbbbbbbb-0000-4000-8000-00000000004b   # another user (RLS check)
 TMP=${TMPDIR:-/tmp}

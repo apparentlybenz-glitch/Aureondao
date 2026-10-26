@@ -1,4 +1,4 @@
-# AureonX — Market Data Plan (planning phase)
+# AureonX: Market Data Plan (planning phase)
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
 
@@ -26,9 +26,9 @@ The Worker route gets about **84 k requests a month** for 10 users at 4 h/day. C
 | `data-api.binance.vision` | 200 | `ACAO: *` on GET; **OPTIONS preflight → 403** | **Yes, simple GETs only** |
 | OKX | 200 | Reflects any `Origin`; preflight answered | **Yes** |
 | KuCoin | 200 | **No ACAO for our origin** (allowlists its own sites) | **Not browser-direct; server/Worker only** |
-| `api.binance.com` | **451 restricted location** | — | No (from this egress) |
-| Bybit | **403 "CloudFront … block access from your country"** | — | Not from US; unverified elsewhere |
-| `api.frankfurter.app` | 301 → `api.frankfurter.dev` (still blocked here); the redirect carries no ACAO | — | — |
+| `api.binance.com` | **451 restricted location** | -- | No (from this egress) |
+| Bybit | **403 "CloudFront … block access from your country"** | -- | Not from US; unverified elsewhere |
+| `api.frankfurter.app` | 301 → `api.frankfurter.dev` (still blocked here); the redirect carries no ACAO | -- | -- |
 
 Every other FX/metals host (gold-api, metals.live, jsDelivr, pages.dev, exchangerate.host, open.er-api, Yahoo, TwelveData, Stooq) and the geo-IP echoes are **still blocked by the sandbox proxy**.
 
@@ -78,7 +78,7 @@ GET and OPTIONS preflight were each sent with `Origin: https://aureonx.example`.
 | 08:10:31 | Bybit `/v5/market/tickers?category=spot` (+ `symbol=BTCUSDT`, `PAXGUSDT`, `XAUTUSDT`) | **403** ×4 | 0.134–0.148 | 96 | **absent** | **403** | **absent** | none | `x-cache: Error from cloudfront`, `x-amz-cf-pop: IAD61-P8` |
 | 08:10:32 | Bybit `/v5/market/kline`, `/v5/market/orderbook` | **403** ×2 | 0.138–0.140 | 96 | **absent** | **403** | **absent** | none | same |
 | 08:10:34 | Frankfurter `api.frankfurter.app/latest?from=USD&to=…`, `/latest?from=XAU`, `/2026-10-01..`, `/currencies` | **301** → `https://api.frankfurter.dev/v1/…` | 0.149–0.411 | 167 | **absent** (on the redirect) | 301 | **absent** | none | none |
-| 08:10:36 | `api.frankfurter.dev`, gold-api, metals.live, exchangerate.host, jsDelivr, pages.dev, open.er-api, Yahoo, TwelveData, Stooq, geo-IP echoes | **blocked by sandbox proxy** (CONNECT 403, curl `000`) | — | 0 | n/a | blocked | n/a | n/a | n/a |
+| 08:10:36 | `api.frankfurter.dev`, gold-api, metals.live, exchangerate.host, jsDelivr, pages.dev, open.er-api, Yahoo, TwelveData, Stooq, geo-IP echoes | **blocked by sandbox proxy** (CONNECT 403, curl `000`) | -- | 0 | n/a | blocked | n/a | n/a | n/a |
 
 Verbatim error bodies (sandbox egress):
 * `api.binance.com` 451: `{"code": 0, "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."}`
@@ -152,7 +152,7 @@ Run it from (a) a dev laptop, noting your country, and (b) a temporary diagnosti
 
 ```bash
 #!/usr/bin/env bash
-# ./probe.sh > results.tsv   — records status, latency, bytes, CORS, rate-limit and cache headers
+# ./probe.sh > results.tsv   (records status, latency, bytes, CORS, rate-limit and cache headers)
 ORIGIN="https://aureonx.example"
 URLS=(
  "binance tickers https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22PAXGUSDT%22%5D"
@@ -213,10 +213,10 @@ For OPTIONS, also add `-H "Access-Control-Request-Headers: content-type"` and re
 | Bybit v5 | `/v5/market/tickers?category=spot` (all, or `symbol=`) | `/v5/market/kline` limit 1–1000 (default 200), intervals `1 3 5 15 30 60 120 240 360 720 D W M`, **newest→oldest** | `/v5/market/orderbook?category=spot` limit 1–200 | **600 req / 5 s per IP**, shared by `api.bybit.com` + `api.bytick.com`; violation → **HTTP 403, ~30 min ban** | `X-Bapi-Limit`, `X-Bapi-Limit-Status`, `X-Bapi-Limit-Reset-Timestamp` | [rate-limit.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/rate-limit.mdx), [kline.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/market/kline.mdx), [orderbook.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/market/orderbook.mdx), [guide.mdx](https://github.com/bybit-exchange/docs/blob/main/docs/v5/guide.mdx) |
 | OKX v5 | `/api/v5/market/tickers?instType=SPOT` (all), `/market/ticker?instId=` | `/market/candles` limit ≤300, **newest→oldest**; daily+ bars default to UTC+8 unless suffixed `utc` (`1Dutc`) | `/market/books?sz=` | Per-endpoint per-IP (ccxt weights: tickers 1, candles/books ½); official numbers to be re-verified | **None returned** (measured, sandbox egress) → client must self-limit | [ccxt okx.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/okx.ts) (secondary; official docs host blocked) |
 | KuCoin | `/api/v1/market/allTickers` (ccxt cost 15) | `/api/v1/market/candles?type=1min` limit ≤1500, **newest→oldest**, row = `[t(sec), open, close, high, low, vol, turnover]` (**note the O-C-H-L order**, confirmed in a live payload) | `/market/orderbook/level2_20` / `level2_100` (public) | Measured: `gw-ratelimit-limit: 2000` with `gw-ratelimit-reset` < 30,000 ms → about 2000 weight / 30 s pool per IP | `gw-ratelimit-limit/-remaining/-reset` (measured) | [ccxt kucoin.ts](https://github.com/ccxt/ccxt/blob/master/ts/src/kucoin.ts) (secondary) |
-| Frankfurter | Daily central-bank reference rates (ECB-based default blend, 200+ currencies, 100+ sources), `/v1/latest`, `/v2/*` | Daily time series only (one fix per day, no OHLC) | none | Not documented as strict | — | [frankfurter README](https://github.com/lineofflight/frankfurter) |
-| currency-api | Daily, includes XAU/XAG/PAXG/XAUT (measured §1.3) | Daily snapshots by date URL | none | "No rate limits" | — | [exchange-api README](https://github.com/fawazahmed0/exchange-api) |
-| TwelveData (free "Basic") | Needs an **API key**; 8 credits/min, **800/day** cap, resets 00:00 UTC; forex/crypto listed; XAU/USD coverage on free plan unverified | `time_series` 1min…1month | none | 800/day | — | [pricing](https://twelvedata.com/pricing), [credits](https://support.twelvedata.com/en/articles/5615854-credits) |
-| gold-api.com, metals.live, exchangerate.host, open.er-api, Yahoo chart, Stooq | **Unverified this session** (hosts blocked, search found no primary docs). Yahoo chart is an **unofficial** endpoint (no SLA/ToS for API use). exchangerate.host now requires a key (to verify). | | | | | — |
+| Frankfurter | Daily central-bank reference rates (ECB-based default blend, 200+ currencies, 100+ sources), `/v1/latest`, `/v2/*` | Daily time series only (one fix per day, no OHLC) | none | Not documented as strict | -- | [frankfurter README](https://github.com/lineofflight/frankfurter) |
+| currency-api | Daily, includes XAU/XAG/PAXG/XAUT (measured §1.3) | Daily snapshots by date URL | none | "No rate limits" | -- | [exchange-api README](https://github.com/fawazahmed0/exchange-api) |
+| TwelveData (free "Basic") | Needs an **API key**; 8 credits/min, **800/day** cap, resets 00:00 UTC; forex/crypto listed; XAU/USD coverage on free plan unverified | `time_series` 1min…1month | none | 800/day | -- | [pricing](https://twelvedata.com/pricing), [credits](https://support.twelvedata.com/en/articles/5615854-credits) |
+| gold-api.com, metals.live, exchangerate.host, open.er-api, Yahoo chart, Stooq | **Unverified this session** (hosts blocked, search found no primary docs). Yahoo chart is an **unofficial** endpoint (no SLA/ToS for API use). exchangerate.host now requires a key (to verify). | | | | | -- |
 
 **CORS (sandbox-egress evidence, §1.2).** CORS is the deciding fact for browser-direct.
 
@@ -272,12 +272,12 @@ The owner supplied no Binance main or Bybit lines, so those checks stay open.
 
 | Pair | Free real-time (<60 s) source | Free daily source | Notes |
 |---|---|---|---|
-| BTC/USDT, ETH/USDT, other crypto spot | Browser: Vision, OKX. Server: Vision, OKX, KuCoin (+ Bybit and `api.binance.com` where not geo-blocked). All have tickers, klines and depth | — | Region-dependent (§4, §1.6) |
+| BTC/USDT, ETH/USDT, other crypto spot | Browser: Vision, OKX. Server: Vision, OKX, KuCoin (+ Bybit and `api.binance.com` where not geo-blocked). All have tickers, klines and depth | -- | Region-dependent (§4, §1.6) |
 | **XAU/USD** | **PAXG/USDT, XAUT/USDT, measured live on Vision, OKX and KuCoin** (§1.2a; 24/7 proxy; 1 token ≈ 1 troy oz; PAXG ≈ +25 bp vs XAUT; median ≈ +10 bp vs the daily reference). gold-api (claimed real-time, still blocked/unverified). TwelveData (key, 800/day) | currency-api (measured), Frankfurter (XAU not expected; `.dev` unmeasured) | Tokenized gold ≠ spot XAU; label "Indicative" |
 | **XAG/USD** | None reliable for free (gold-api claimed, unverified; no liquid tokenized silver on the four exchanges, to verify) | currency-api (measured) | |
 | EUR/USD, AUD/USD, AUD/JPY, AUD/CAD, CAD/JPY | None official for free. Yahoo `EURUSD=X` (unofficial). TwelveData (key, 800/day cap = ~1 refresh / 14 min for 8 pairs) | Frankfurter, currency-api (measured, all pairs directly or via cross) | Crosses: compute from USD legs with decimal math, or read `aud.json` directly |
 | Forex klines (intraday) | Yahoo chart 1m/5m/15m/30m/60m (unofficial). TwelveData (key, budget-limited) | Frankfurter daily series (close-only) | No free *official* intraday candles |
-| Forex depth | **None** | — | Forex is OTC; no public free L2. See Open decision D2 |
+| Forex depth | **None** | -- | Forex is OTC; no public free L2. See Open decision D2 |
 
 ---
 
@@ -414,7 +414,7 @@ Recommendation: **default to polling REST**. Consider leader-tab websockets for 
 
 ---
 
-## 6. Provider interface (design — not a source file)
+## 6. Provider interface (design, not a source file)
 
 ```ts
 // ---------- Canonical identifiers ----------
@@ -466,7 +466,7 @@ export interface DepthSnapshot extends Quality {
   bids: DepthLevel[]; // best first (desc)
   asks: DepthLevel[]; // best first (asc)
   sequence?: string;  // lastUpdateId / seqId / u, as string
-  synthetic?: true;   // forex indicative book (D2) — MUST be rejected by any money path
+  synthetic?: true;   // forex indicative book (D2); MUST be rejected by any money path
 }
 
 export interface MarketDataProvider {
@@ -483,7 +483,7 @@ export interface MarketDataProvider {
 export type ProviderErrorKind =
   | 'geo_blocked'      // 451, or 403 without a rate-limit context (Bybit edge)
   | 'rate_limited'     // 429, Bybit 403-after-burst, 'Too many visits!'
-  | 'banned'           // 418 (Binance) — obey Retry-After
+  | 'banned'           // 418 (Binance): obey Retry-After
   | 'cors'             // TypeError on fetch with no response (browser)
   | 'timeout' | 'upstream_5xx' | 'bad_payload' | 'unsupported_symbol';
 export class ProviderError extends Error {
@@ -537,7 +537,7 @@ Rule: `binance/bybit = base+quote`, `okx/kucoin = base-quote`. Listings are veri
 | 15m | `15m` | `15m` | `15` | `15min` | `15m` | `15min` |
 | 30m | `30m` | `30m` | `30` | `30min` | `30m` | `30min` |
 | 1h | `1h` | `1H` | `60` | `1hour` | `60m` | `1h` |
-| 4h | `4h` | `4H` | `240` | `4hour` | — (aggregate 4×60m) | `4h` |
+| 4h | `4h` | `4H` | `240` | `4hour` | -- (aggregate 4×60m) | `4h` |
 | 1D | `1d` | **`1Dutc`** (plain `1D` is UTC+8) | `D` | `1day` | `1d` | `1day` |
 | 1W | `1w` | **`1Wutc`** | `W` | `1week` | `1wk` | `1week` |
 | 1M | `1M` | **`1Mutc`** | `M` | `1month` (verify; else aggregate from 1D) | `1mo` | `1month` |
@@ -557,7 +557,7 @@ Normalization:
 | Crypto klines | last closed candle ≤ 2 × interval old | badge | > 3 × interval | never |
 | XAU/XAG near-real-time | ≤ 60 s | 60–300 s | > 300 s → fall back to `indicative` token-gold | XAU settlement via token-gold only (§3.5) |
 | FX daily reference | n/a (grade `reference`; show "as of <date>") | date older than last business day + 1 | after 2 business days | not used in v1 |
-| Synthetic FX book | always `indicative` | — | — | **rejected** (`synthetic: true`) |
+| Synthetic FX book | always `indicative` | -- | -- | **rejected** (`synthetic: true`) |
 
 UI copy, which the UI agent owns: "Live", "Delayed", "Indicative", "Daily reference rate · as of 24 Oct". No provider names.
 
@@ -656,7 +656,7 @@ Bandwidth (measured payload sizes, sandbox egress):
 * Daily FX: TTL 900 s gives ≤ 4/h, so ≤ 96/day ≈ **2,900/month**.
 * Tiered cache and request collapsing hold this to about one fill per TTL per cache key. A small multiple is possible across upper tiers. Placement can raise the miss count slightly but does not change the order of magnitude.
 
-**Settlement oracle (Supabase)** — superseded at merge by the 10 s demand-gated `price-ingest` (`docs/data-model.md` §14: about 115 k invocations/month; 259 k if it ran nonstop). The 60 s figures below are kept for comparison only.
+**Settlement oracle (Supabase):** superseded at merge by the 10 s demand-gated `price-ingest` (`docs/data-model.md` §14: about 115 k invocations/month; 259 k if it ran nonstop). The 60 s figures below are kept for comparison only.
 * pg_cron every 60 s, running only while unexpired options exist: 1,440 runs/day → **43,200 Edge Function invocations/month**.
 * Each run makes 4 parallel batch-ticker calls: **172,800 upstream calls/month** from one IP. Binance weight is about 2 per minute, which is negligible.
 * At-expiry captures add a few extra calls each.
@@ -678,44 +678,44 @@ Bandwidth (measured payload sizes, sandbox egress):
 
 ## 8. Open decisions
 
-**D1 — Near-real-time XAU/XAG source for display**
+**D1: Near-real-time XAU/XAG source for display**
 - (a) gold-api.com (free, claimed no key): *good:* simple, likely CORS-friendly · *bad:* unverified freshness and SLA; single hobby provider.
 - (b) Tokenized gold (PAXG/XAUT) for XAU, plus daily currency-api for XAG: *good:* already in the crypto pipeline, 24/7, **measured live on 3 venues with browser CORS on 2** (§1.2a) · *bad:* proxy basis ±0.1–0.2% (PAXG–XAUT spread ~25 bp); no real-time silver. **This is now the strongest option on evidence**, since (a) and (c) remain unmeasured.
 - (c) TwelveData free key, server-side only: *good:* official quotes · *bad:* 800/day cap allows about one refresh every 4 min for 2 symbols; key management.
 
-**D2 — Forex terminal order book**
+**D2: Forex terminal order book**
 - (a) Synthetic display-only book around mid (fixed spread table per pair, geometric size ladder), always labelled "Indicative", `synthetic: true`, rejected by money paths: *good:* the terminal looks complete · *bad:* fabricated-looking data; users may mistake it for real liquidity.
 - (b) Hide the depth panel for FX; show bid/ask/spread only: *good:* honest and simple · *bad:* layout differs from crypto terminals.
 - (c) Show a "price ladder" of recent mid ticks instead of a book: *good:* real data · *bad:* sparse with 60 s/daily data; new component.
 
-**D3 — Forex intraday klines**
+**D3: Forex intraday klines**
 - (a) Yahoo chart endpoint, server-side via md Worker with max-age ≥ 60 s: *good:* free 1m–1mo candles, no key · *bad:* unofficial, ToS risk, may break or block datacenter IPs.
 - (b) TwelveData free key: *good:* official · *bad:* 800 credits/day cannot cover 8 pairs × 9 intervals; needs aggressive caching.
 - (c) Daily-only FX charts in v1 (close-only from Frankfurter): *good:* official, free, stable · *bad:* no intraday charts for FX.
 
-**D4 — Settlement aggregation tolerance (with the settlement agent)**
+**D4: Settlement aggregation tolerance (with the settlement agent)**
 - (a) Median of ≥2, dispersion ≤ 50 bp: *good:* robust · *bad:* may return UNAVAILABLE during volatile spikes.
 - (b) Median of ≥3, no dispersion check: *good:* rarely unavailable · *bad:* depends on 3 providers being reachable from one region.
 - (c) Primary provider with secondary sanity check (±1%): *good:* simple · *bad:* single-source risk.
 
-**D5 — FX/XAG options in v1**
+**D5: FX/XAG options in v1**
 - (a) Defer to v2 (crypto + XAU-proxy only): *good:* every settlement is fresh and verifiable · *bad:* smaller product.
 - (b) Daily-fixing FX options settled at the reference rate: *good:* honest with free data · *bad:* only daily expiries; the fix time differs from the expiry UX.
 - (c) Paid FX feed: *good:* full product · *bad:* cost and licence, out of scope for "free".
 
-**D6 — Users in exchange-restricted regions (e.g. the US)**
+**D6: Users in exchange-restricted regions (e.g. the US)**
 
 Round-2 context (sandbox egress, US datacenter IP): Vision, OKX and KuCoin answered; `api.binance.com` and Bybit did not. If §1.6 confirms the same for US residential browsers, the Vision → OKX browser chain may serve US users without the fallback route.
 - (a) Fallback Worker route with a Placement Hint in an EU region: *good:* works for everyone · *bad:* possible exchange-ToS concern; Worker requests grow.
 - (b) Add a US-accessible crypto source to the chain (e.g. Coinbase Exchange or Kraken public REST; CORS and limits to measure): *good:* compliant data path · *bad:* more adapters.
 - (c) Geo-gate the app: *good:* simplest compliance · *bad:* loses users.
 
-**D8 — Primary browser provider for crypto (new after Round 2)**
+**D8: Primary browser provider for crypto (new after Round 2)**
 - (a) Vision first, OKX second: *good:* `ACAO: *`, weight headers for self-throttling, batched multi-symbol tickers · *bad:* no preflight support; 2× higher latency from the sandbox (0.72 s vs 0.33 s).
 - (b) OKX first, Vision second: *good:* lower latency, preflights work · *bad:* no rate-limit headers; the all-tickers payload is large (100 KB); global OKX is restricted for US residents.
 - (c) Race both on the first cycle per session and keep the faster healthy one: *good:* adapts per user region · *bad:* doubles the first-cycle load; more code.
 
-**D7 — Where the md routes live**
+**D7: Where the md routes live**
 - (a) Separate `aureonx-md` Worker on a route `app.example.com/md/*`, with Workers Cache and a Placement Hint: *good:* isolated billing, cache and placement; no cookies · *bad:* a second deployable.
 - (b) Next.js route handlers inside the OpenNext Worker: *good:* one deployable · *bad:* enabling Workers Cache there bills every request including static assets, risks caching Next responses with `s-maxage`, and auth cookies cause bypass.
 

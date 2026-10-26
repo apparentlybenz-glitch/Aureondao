@@ -111,19 +111,19 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 Legend:
 - **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. RH = route handler, run per request.
-- **Auth:** — = public. U = signed-in user (proxy). A = admin role (proxy plus RPC check). MFA = AAL2 required (the proxy redirects if factors are enrolled).
+- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (proxy plus RPC check). MFA = AAL2 required (the proxy redirects if factors are enrolled).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
-| Homepage | `/` | (marketing) | S | — | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, LiveMarketPreview (client island), CtaBand, SupportWidget, Footer |
-| Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | — | LegalArticle (MDX or TSX), Footer |
-| Sign in | `/sign-in` | (auth) | S | — (redirects to `/spot` client-side if a session exists) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
+| Homepage | `/` | (marketing) | S | -- | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, LiveMarketPreview (client island), CtaBand, SupportWidget, Footer |
+| Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | -- | LegalArticle (MDX or TSX), Footer |
+| Sign in | `/sign-in` | (auth) | S | -- (redirects to `/spot` client-side if a session exists) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
 | MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP via InputOTP, phone OTP, passkey) |
-| Sign up | `/sign-up` | (auth) | S | — | SignUpForm (email, password, country, nickname, terms checkbox, VirtualFundsNote) |
-| Forgot password | `/forgot-password` | (auth) | S | — | ResetRequestForm |
+| Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, country, nickname, terms checkbox, VirtualFundsNote) |
+| Forgot password | `/forgot-password` | (auth) | S | -- | ResetRequestForm |
 | Update password | `/update-password` | (auth) | S | recovery session | UpdatePasswordForm |
-| Auth callback | `/auth/callback` | — | RH | — | `exchangeCodeForSession` and redirect to `next` |
-| Email confirm | `/auth/confirm` | — | RH | — | `verifyOtp({ type, token_hash })` and redirect |
+| Auth callback | `/auth/callback` | -- | RH | -- | `exchangeCodeForSession` and redirect to `next` |
+| Email confirm | `/auth/confirm` | -- | RH | -- | `verifyOtp({ type, token_hash })` and redirect |
 | Spot terminal | `/spot?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList, PriceChart, OrderBook / LatestTrades tabs, SpotOrderForm (Limit/Market tabs, Buy + Sell panels, QtySlider), UserOrdersPanel (Open Orders / Order History / Fills) |
 | Forex terminal | `/forex?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(forex), DrawingToolbar, PriceChart (timeframes 1m–1M, volume + MA5/10/20, Native/Depth toggle, AureonX watermark), OrderBook + LatestTrades, ForexOrderForm (the Spot form with the forex wallet; see D6), UserOrdersPanel |
 | Options terminal | `/options?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(options), PriceChart (compact, entry-price line + expiry markers), OptionsTicket (Rise/Fall, CycleSelector, PremiumPresets + custom, fee/expected profit, SlideToConfirm), OptionsPositionsTabs (Positions with ExpiryCountdown, Filled Orders, Statistics) |
@@ -144,9 +144,9 @@ Legend:
 | Admin KYC | `/admin/kyc` (`?id=`) | admin | S+C | A | KycQueueTable, KycReviewPanel (signed-URL image viewer, approve/reject with reason) |
 | Admin options config | `/admin/options-config` | admin | S+C | A | CycleConfigTable (cycle seconds, profit rate, fee rate, min/max premium, enabled), inline edit + save |
 | Admin audit | `/admin/audit` | admin | S+C | A | AuditLogTable |
-| 404 | any unknown path | root | S | — | NotFound (logo, back home) |
-| Error boundaries | `global-error.tsx`, `(app)/error.tsx`, `admin/error.tsx` | — | client | — | ErrorState (retry `reset()`, Sentry event id) |
-| Terminal loading | `spot|forex|options/loading.tsx` | (app) | S | — | TerminalSkeleton |
+| 404 | any unknown path | root | S | -- | NotFound (logo, back home) |
+| Error boundaries | `global-error.tsx`, `(app)/error.tsx`, `admin/error.tsx` | -- | client | -- | ErrorState (retry `reset()`, Sentry event id) |
+| Terminal loading | `spot|forex|options/loading.tsx` | (app) | S | -- | TerminalSkeleton |
 
 **Static enforcement:** `cacheComponents` is off in the current `next.config.ts`. Put `export const dynamic = 'error'` in `(marketing)/layout.tsx`, `(auth)/layout.tsx`, `(app)/layout.tsx` and `admin/layout.tsx`, so that an accidental `cookies()` or `headers()` call fails the build instead of silently switching on SSR. Do not put it in `(auth)/auth/*/route.ts`. If `cacheComponents` is turned on later, Next 16.4 adds `export const ensureStatic = 'navigation'` for the same guarantee (<https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic>, added in v16.4.0). Server components may only render static chrome; everything user-specific is a client component.
 
@@ -170,23 +170,23 @@ All of these are client components (`'use client'`), lazily mounted under `Termi
 | `MarketList` | `{ activeSymbol; defaultFilter: 'favorites'\|'spot'\|'forex'\|'options'; onSelect(symbol) ; compact?: boolean }`. Filter tabs, search input, sortable columns (symbol, last, change) with ascending/descending toggle, virtualized rows | ✓ | ✓ | ✓ | instrument list = Supabase RLS read (`instruments`, cached in memory for the session); prices = market store (bulk ticker); favorites = Supabase RLS read |
 | `PriceChart` | `{ symbol; timeframes: Timeframe[]; defaultTf; showVolume?: boolean; volumeMAs?: number[] /*[5,10,20]*/; modes?: ('native'\|'depth')[]; watermark?: string /*'AureonX'*/; drawingTools?: boolean; overlays?: { priceLines?: PriceLine[]; markers?: Marker[] }; height? }` | ✓ (tf subset, volume) | ✓ (all features) | ✓ (compact, entry lines) | market store (candles + live ticks) |
 | `ChartTimeframeBar` | `{ value: Timeframe; options: Timeframe[]; onChange }`, where `Timeframe = '1m'\|'5m'\|'15m'\|'30m'\|'1h'\|'4h'\|'1D'\|'1W'\|'1M'` | ✓ | ✓ | ✓ | static |
-| `ChartModeToggle` | `{ value: 'native'\|'depth'; onChange }` | — | ✓ | — | static |
-| `DepthChart` | `{ symbol; levels?: number }`. Uses `createOptionsChart` (price on the horizontal axis, LWC ≥5.1) with two `AreaSeries` (cumulative bids green, asks red) | — | ✓ | — | market store (order book) |
-| `DrawingToolbar` | `{ chartApi: IChartApi; series: ISeriesApi; tools: DrawingTool[]; onChange(drawings) }` where `DrawingTool = 'cursor'\|'trendline'\|'hline'\|'vline'\|'rect'\|'fib'\|'text'\|'clear'` | — | ✓ | — | static; drawings persisted per user in `localStorage` (D5) |
-| `OrderBook` | `{ symbol; depth?: 10\|20\|50; grouping?: number; onPriceClick?(price) }`. Columns are price, qty and total; red asks on top, green bids below, a spread/mid row, and a depth bar per row | ✓ | ✓ | — | market store (order book) |
+| `ChartModeToggle` | `{ value: 'native'\|'depth'; onChange }` | -- | ✓ | -- | static |
+| `DepthChart` | `{ symbol; levels?: number }`. Uses `createOptionsChart` (price on the horizontal axis, LWC ≥5.1) with two `AreaSeries` (cumulative bids green, asks red) | -- | ✓ | -- | market store (order book) |
+| `DrawingToolbar` | `{ chartApi: IChartApi; series: ISeriesApi; tools: DrawingTool[]; onChange(drawings) }` where `DrawingTool = 'cursor'\|'trendline'\|'hline'\|'vline'\|'rect'\|'fib'\|'text'\|'clear'` | -- | ✓ | -- | static; drawings persisted per user in `localStorage` (D5) |
+| `OrderBook` | `{ symbol; depth?: 10\|20\|50; grouping?: number; onPriceClick?(price) }`. Columns are price, qty and total; red asks on top, green bids below, a spread/mid row, and a depth bar per row | ✓ | ✓ | -- | market store (order book) |
 | `LatestTrades` | `{ symbol; limit?: number }`. Columns are time, price (colored by side) and qty | ✓ | ✓ | ✓ (optional tab) | market store (trades) |
-| `BookTradesTabs` | `{ symbol }`. Tabs: Order Book / Latest Trades | ✓ | ✓ (side by side at xl) | — | — |
-| `OrderTypeTabs` | `{ value: 'limit'\|'market'; onChange }` | ✓ | ✓ | — | static |
-| `OrderSidePanel` | `{ side: 'buy'\|'sell'; type; symbol; base; quote; available: Decimal; lastPrice; onSubmit(PlaceOrderInput) }`. Contains PriceInput (limit only), QtyInput, QtySlider, Total, and a Submit button colored by side | ✓ (×2 side-by-side) | ✓ | — | available = Supabase RLS read + Realtime; submit = Supabase RPC `place_spot_order` / `place_forex_order` |
-| `QtySlider` | `{ value: 0..100; onChange; marks: [0,25,50,75,100] }`. Wraps the shadcn `slider` with step 1 and snap marks | ✓ | ✓ | — | static |
+| `BookTradesTabs` | `{ symbol }`. Tabs: Order Book / Latest Trades | ✓ | ✓ (side by side at xl) | -- | -- |
+| `OrderTypeTabs` | `{ value: 'limit'\|'market'; onChange }` | ✓ | ✓ | -- | static |
+| `OrderSidePanel` | `{ side: 'buy'\|'sell'; type; symbol; base; quote; available: Decimal; lastPrice; onSubmit(PlaceOrderInput) }`. Contains PriceInput (limit only), QtyInput, QtySlider, Total, and a Submit button colored by side | ✓ (×2 side-by-side) | ✓ | -- | available = Supabase RLS read + Realtime; submit = Supabase RPC `place_spot_order` / `place_forex_order` |
+| `QtySlider` | `{ value: 0..100; onChange; marks: [0,25,50,75,100] }`. Wraps the shadcn `slider` with step 1 and snap marks | ✓ | ✓ | -- | static |
 | `DecimalInput` | `{ value: string; onChange; precision; step; suffix; min?; max? }` (string-based to avoid float error) | ✓ | ✓ | ✓ | static |
-| `UserOrdersPanel` | `{ kind: 'spot'\|'forex'; symbol?: string; tabs: ('open'\|'history'\|'fills')[] }`. Includes a cancel button (RPC `cancel_order`) | ✓ | ✓ | — | Supabase RLS read + Realtime; cancel = RPC |
-| `OptionsTicket` | `{ symbol; cycles: CycleConfig[]; balance: Decimal; onPlaced(order) }` | — | — | ✓ | cycles = Supabase RLS read (`option_cycles`); balance = RLS read + Realtime; submit = RPC `place_option_order` |
-| `CycleSelector` | `{ cycles: CycleConfig[] /* {seconds, profit_rate, fee_rate, min_premium, max_premium} */; value; onChange }` | — | — | ✓ | Supabase RLS read |
-| `PremiumPicker` | `{ presets: number[]; value; min; max; onChange }`. Preset chips plus a custom amount | — | — | ✓ | static (presets) + cycle limits |
-| `SlideToConfirm` | `{ label; disabled?; tone: 'up'\|'down'; onConfirm(): Promise<void> }`. Built on Motion `drag="x"` with keyboard fallback (Enter/Space ⇒ confirm dialog) | — | — | ✓ | static |
-| `ExpiryCountdown` | `{ expiresAt: string /*server ISO*/; serverOffsetMs: number }`. Computes `remaining = expiresAt − (Date.now() + serverOffsetMs)`, ticks with `requestAnimationFrame`/1 s interval, renders "Settling…" at ≤0 until a Realtime update arrives | — | — | ✓ | derived from Supabase row + `server_time()` offset |
-| `OptionsPositionsTabs` | `{ symbol? }`. Tabs: Positions (open, with countdown and live P/L vs entry), Filled Orders (settled), Statistics (win rate, total premium, net P/L by cycle) | — | — | ✓ | Supabase RLS read + Realtime; stats = RLS read of view/RPC `options_stats` |
+| `UserOrdersPanel` | `{ kind: 'spot'\|'forex'; symbol?: string; tabs: ('open'\|'history'\|'fills')[] }`. Includes a cancel button (RPC `cancel_order`) | ✓ | ✓ | -- | Supabase RLS read + Realtime; cancel = RPC |
+| `OptionsTicket` | `{ symbol; cycles: CycleConfig[]; balance: Decimal; onPlaced(order) }` | -- | -- | ✓ | cycles = Supabase RLS read (`option_cycles`); balance = RLS read + Realtime; submit = RPC `place_option_order` |
+| `CycleSelector` | `{ cycles: CycleConfig[] /* {seconds, profit_rate, fee_rate, min_premium, max_premium} */; value; onChange }` | -- | -- | ✓ | Supabase RLS read |
+| `PremiumPicker` | `{ presets: number[]; value; min; max; onChange }`. Preset chips plus a custom amount | -- | -- | ✓ | static (presets) + cycle limits |
+| `SlideToConfirm` | `{ label; disabled?; tone: 'up'\|'down'; onConfirm(): Promise<void> }`. Built on Motion `drag="x"` with keyboard fallback (Enter/Space ⇒ confirm dialog) | -- | -- | ✓ | static |
+| `ExpiryCountdown` | `{ expiresAt: string /*server ISO*/; serverOffsetMs: number }`. Computes `remaining = expiresAt − (Date.now() + serverOffsetMs)`, ticks with `requestAnimationFrame`/1 s interval, renders "Settling…" at ≤0 until a Realtime update arrives | -- | -- | ✓ | derived from Supabase row + `server_time()` offset |
+| `OptionsPositionsTabs` | `{ symbol? }`. Tabs: Positions (open, with countdown and live P/L vs entry), Filled Orders (settled), Statistics (win rate, total premium, net P/L by cycle) | -- | -- | ✓ | Supabase RLS read + Realtime; stats = RLS read of view/RPC `options_stats` |
 | `PositionsTable` (generic) | `{ columns: ColumnDef<T>[]; rows: T[]; loading; empty; onRowAction? }`. Built on TanStack Table and the shadcn `table` | ✓ | ✓ | ✓ | caller supplies |
 | `MobileTerminalTabs` | `{ tabs: { id: 'chart'\|'book'\|'trades'\|'order'\|'positions'; label; content }[] }` | ✓ | ✓ | ✓ | static |
 | `OrderSheet` (mobile) | `{ open; side; onOpenChange; children }`. Wraps the shadcn `drawer` (vaul) as a bottom sheet | ✓ | ✓ | ✓ | static |
@@ -328,7 +328,15 @@ Dark only. The shell uses the shadcn tokens: `background` `#050505`, `card` and 
 9. Full-width primary button (label per side), then `open_option`.
 10. **Positions (n)** · **Filled** tabs, with a stats icon and a "Current instrument only" checkbox.
 
-Assumption (owner, slice 5): the Fall side was never captured. Every layout uses one plain button (no slide-to-confirm) reading **Call** for Rise and **Put** for Fall; the enum stays `rise`/`fall`.
+Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured layout, these are the assumptions):
+- **Put:** the Fall side was never captured. One plain full-width button on every layout: **Call** (up colour) for Rise, **Put** (dark red, `down` at 80%) for Fall. The enum stays `rise`/`fall`.
+- **Symbol list:** the `options_enabled` markets (BTC, ETH, SOL) by `display_symbol`, in a bottom sheet; no prices or search. The choice is not remembered.
+- **Info sheet:** each enabled period with its profit rate, the fee rate (first enabled period's `fee_bps`) and one line on settlement and the 90 s refund.
+- **Statistics icon:** captured next to the Positions/Fill tabs, not built (hidden).
+- **Floating support:** a brand-green headset button (→ `/support`, like the top bar) bottom right, 12 px above the tab bar, on Options and Spot. It fades out while an element marked `data-fab-avoid` (the Call/Put and Spot confirm buttons, the fee/return row) passes under it. These pages pad the bottom by tab bar + 5rem + safe area so the last row clears it.
+- **Desktop:** Spot's approach: from `md:` the chart and the ticket sit side by side (ticket 340 px), Positions/Fill full width below; with the chart hidden the ticket is centred at 480 px. No three-column terminal.
+- **Current price:** the browser ticker's bid/ask mid at `price_decimals`, display only; `--` without a valid bid and ask. Its colour follows the selected direction.
+- **Periods:** the slider has a stop per `option_periods` row in duration order; disabled stops are greyed and cannot be selected. Premium chips are UI only; the input takes up to two decimals; "Est. return" is premium × rate only, the fee is shown beside it with its amount.
 
 ### 4.9 Evidence tags for the other screens
 | Screen | Evidence |
@@ -353,10 +361,10 @@ Assumption (owner, slice 5): the Fall side was never captured. Every layout uses
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
 | Admin (user list + credit/debit) | `/admin` | Designed |
-| "Coming soon" placeholders | `/spot` (Trade), `/options`, `/support`, `/notifications` (`/market` became the Market tab in slice 3) | Designed |
+| "Coming soon" placeholders | `/support`, `/notifications` (`/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
-- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), which is "Coming soon" until slice 3. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
+- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
 - **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Only Transfer and Bills tiles are live; the other 6 show a "Soon" badge and are not links. The avatar is a generic icon (no extra profile fetch).

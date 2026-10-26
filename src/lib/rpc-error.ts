@@ -17,6 +17,9 @@ export const RPC_ERROR_CODES = [
   "INVALID_NUMBER",
   "MARKET_NOT_FOUND",
   "MARKET_DISABLED",
+  "PERIOD_NOT_FOUND",
+  "PERIOD_DISABLED",
+  "BELOW_MIN_PREMIUM",
 ] as const;
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number];
 
