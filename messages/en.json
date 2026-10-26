@@ -4,8 +4,22 @@
     "description": "Multi-asset trading on a virtual balance. No real money."
   },
   "Home": {
-    "title": "AureonX",
-    "tagline": "Practice trading with a virtual balance. No real money."
+    "totalLabel": "Total asset value",
+    "virtualBalance": "Virtual balance",
+    "showAmounts": "Show amounts",
+    "hideAmounts": "Hide amounts",
+    "hidden": "••••••",
+    "actions": {
+      "deposit": "Deposit",
+      "options": "Options",
+      "forex": "Forex",
+      "perpetual": "Perpetual",
+      "spot": "Spot",
+      "transfer": "Transfer",
+      "support": "Support",
+      "bills": "Bills"
+    },
+    "marketNext": "Markets arrive in the next update."
   },
   "Common": {
     "virtualFundsBadge": "VIRTUAL FUNDS",
@@ -19,7 +33,15 @@
     "genericError": "Something went wrong. Please try again.",
     "signOut": "Sign out",
     "account": "Account",
-    "security": "Security"
+    "security": "Security",
+    "back": "Back",
+    "comingSoon": "Coming soon",
+    "comingSoonBody": "This part of AureonX is not built yet.",
+    "soon": "Soon",
+    "retry": "Try again",
+    "loadMore": "Load more",
+    "noMore": "No more records",
+    "all": "All"
   },
   "Auth": {
     "signInTitle": "Sign in",
@@ -84,5 +106,113 @@
     "phoneTitle": "Phone verification",
     "unavailable": "Not available yet",
     "totpCode": "Code"
+  },
+  "Shell": {
+    "home": "Home",
+    "market": "Market",
+    "trade": "Trade",
+    "options": "Options",
+    "assets": "Assets",
+    "account": "Account",
+    "search": "Search markets",
+    "language": "Language: English only",
+    "notifications": "Notifications",
+    "support": "Support",
+    "virtualPill": "VIRTUAL"
+  },
+  "Wallets": {
+    "capital": "Capital",
+    "spot": "Spot",
+    "forex": "Forex",
+    "options": "Options",
+    "available": "Available",
+    "frozen": "Frozen",
+    "currency": "USD"
+  },
+  "Assets": {
+    "title": "Assets",
+    "total": "Total balance",
+    "transfer": "Transfer",
+    "bills": "Bills"
+  },
+  "Transfer": {
+    "title": "Transfer",
+    "from": "From",
+    "to": "To",
+    "swap": "Swap wallets",
+    "amount": "Amount",
+    "max": "MAX",
+    "available": "Available: {amount} USD",
+    "confirm": "Confirm transfer",
+    "sending": "Transferring…",
+    "success": "Moved {amount} USD from {from} to {to}.",
+    "invalidAmount": "Enter an amount with up to 2 decimals.",
+    "overBalance": "The amount is more than the available balance.",
+    "note": "Moves virtual funds between your own wallets."
+  },
+  "Bills": {
+    "title": "Bills",
+    "empty": "No records yet.",
+    "kind": {
+      "transfer_in": "Transfer in",
+      "transfer_out": "Transfer out",
+      "deposit": "Deposit",
+      "withdrawal_hold": "Withdrawal hold",
+      "withdrawal_release": "Withdrawal release",
+      "withdrawal_paid": "Withdrawal",
+      "admin_credit": "Credit",
+      "admin_debit": "Debit",
+      "order_hold": "Order hold",
+      "order_release": "Order release",
+      "spot_buy": "Spot buy",
+      "spot_sell": "Spot sell",
+      "forex_margin": "Forex margin",
+      "forex_close": "Forex close",
+      "option_premium": "Options premium",
+      "option_settle": "Options settlement",
+      "fee": "Fee"
+    },
+    "transfer": "Transfer: {from} to {to}"
+  },
+  "Admin": {
+    "title": "Admin",
+    "needAdmin": "This page is for administrators.",
+    "stepUpTitle": "Verify to continue",
+    "stepUpBody": "Admin actions need two-step verification for this session.",
+    "stepUp": "Verify with authenticator",
+    "setUpTotp": "Set up an authenticator app in Security first.",
+    "toSecurity": "Open Security",
+    "search": "Search by email or UID",
+    "users": "Users",
+    "noUsers": "No users found.",
+    "selectUser": "Select a user to adjust a balance.",
+    "adjustTitle": "Adjust virtual balance",
+    "wallet": "Wallet",
+    "credit": "Credit",
+    "debit": "Debit",
+    "amount": "Amount (USD)",
+    "reason": "Reason (kept in the audit log)",
+    "submit": "Apply adjustment",
+    "sending": "Applying…",
+    "done": "Applied {amount} USD to {wallet}.",
+    "balances": "Balances"
+  },
+  "Errors": {
+    "INSUFFICIENT_FUNDS": "Not enough available balance.",
+    "SAME_WALLET": "Pick two different wallets.",
+    "INVALID_AMOUNT": "Enter a valid amount.",
+    "INVALID_ARGUMENT": "Something is missing. Check the form.",
+    "IDEMPOTENCY_CONFLICT": "This request was already sent with different values. Try again.",
+    "WALLET_NOT_FOUND": "Wallet not found.",
+    "UNAUTHENTICATED": "Please sign in again.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "AAL2_REQUIRED": "Verify with your authenticator app first.",
+    "NOTE_REQUIRED": "Enter a reason of 3 to 200 characters.",
+    "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
+  },
+  "Public": {
+    "title": "AureonX",
+    "tagline": "Practice trading with a virtual balance. No real money.",
+    "signIn": "Sign in"
   }
 }

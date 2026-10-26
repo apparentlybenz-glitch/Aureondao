@@ -43,5 +43,17 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*"],
+  // Every protected page. The proxy only routes; RLS and the RPC checks are the
+  // security boundary.
+  matcher: [
+    "/home",
+    "/account/:path*",
+    "/assets/:path*",
+    "/admin/:path*",
+    "/market",
+    "/spot",
+    "/options",
+    "/support",
+    "/notifications",
+  ],
 };

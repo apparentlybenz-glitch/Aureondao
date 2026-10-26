@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { SignOutButton } from "@/components/app/sign-out-button";
 import { Field, FormError } from "@/components/auth/field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,9 +66,12 @@ export default function AccountPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t("profileTitle")}</h1>
-        <Link href="/account/security" className="text-sm underline md:hidden">
-          {c("security")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/account/security" className="text-sm underline">
+            {c("security")}
+          </Link>
+          <SignOutButton />
+        </div>
       </div>
 
       <dl className="grid gap-3 rounded-xl border p-4 text-sm md:grid-cols-2">

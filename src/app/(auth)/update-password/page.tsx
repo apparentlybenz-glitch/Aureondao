@@ -23,7 +23,7 @@ export default function UpdatePasswordPage() {
     const { error } = await createClient().auth.updateUser({ password });
     setPending(false);
     if (error) setError(error.message);
-    else router.replace("/account");
+    else router.replace("/home");
   }
 
   return (
