@@ -6,7 +6,7 @@ import { ArrowLeftRight, ChartCandlestick, House, Timer, Wallet } from "lucide-r
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-// Fixed bottom tab bar: 56 px plus the safe-area inset. Pages reserve the same
+// Fixed bottom tab bar: --tab-bar-h plus the bottom safe area. Pages reserve the same
 // space with the pb-tabbar padding in the (app) layout. Trade opens Spot (O24 ★).
 const TABS = [
   { href: "/home", key: "home", Icon: House },
@@ -22,8 +22,8 @@ export function TabBar() {
   const isActive = (href: string) => pathname.startsWith(href);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto grid h-14 max-w-[880px] grid-cols-5">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b)">
+      <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-5">
         {TABS.map(({ href, key, Icon }) => {
           const active = isActive(href);
           if (key === "trade") {
@@ -37,7 +37,7 @@ export function TabBar() {
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
-                  <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background">
+                  <span className="-mt-(--tab-bar-overhang) flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background">
                     <Icon className="size-6" />
                   </span>
                   {t(key)}
