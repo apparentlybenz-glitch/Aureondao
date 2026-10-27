@@ -107,7 +107,7 @@ Run this against `https://aureonx.<subdomain>.workers.dev` after the first produ
    - Open `/account`. Expect to land on `/sign-in?next=%2Faccount`.
    - Repeat with `/account/security`.
    - From a terminal: `curl -sI https://aureonx.<subdomain>.workers.dev/account`. Expect `307` and `location: …/sign-in?next=%2Faccount`.
-   - `curl -sI https://aureonx.<subdomain>.workers.dev/` returns `200` with no redirect (public pages never run the proxy).
+   - `curl -sI https://aureonx.<subdomain>.workers.dev/` returns `200` with no redirect for a signed-out request (the proxy also runs on `/`, `/sign-in` and `/sign-up`, but only redirects a request that carries a valid login token to `/home`; with no auth cookie it passes straight through).
 2. **Sign up**
    - On `/sign-up`, use an address that is a member of the Supabase organization's team (default mailer, see §3).
    - Expect "Check your email". Open the link: you land on `/sign-in` with the invalid-link message (§3), and the address is now confirmed.

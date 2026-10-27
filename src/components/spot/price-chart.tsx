@@ -67,6 +67,11 @@ export function PriceChart({
     () => loadKlines(browserFetch, market, interval),
     () => klinesRefreshDelay(interval, Date.now(), Math.random()),
   );
+  // usePoll clears its data on a failure. Once candles have loaded for this key,
+  // keep drawing them and flag them as delayed instead of showing the overlay.
+  const [held, setHeld] = useState<{ key: string; data: NonNullable<typeof klines.data> } | null>(null);
+  if (klines.data && held?.data !== klines.data) setHeld({ key, data: klines.data });
+  const shown = klines.data ?? (held?.key === key ? held.data : null);
 
   // Create the chart once; the library is loaded only on this screen.
   useEffect(() => {
@@ -139,16 +144,21 @@ export function PriceChart({
   }, [market.priceDecimals, ready]);
 
   useEffect(() => {
-    const candles = klines.data?.candles;
-    if (!ready || !series.current || !candles) return;
-    const bars = candles.map(toBar);
+    if (!ready || !series.current) return;
+    if (!shown) {
+      // A new interval has no candles yet: never leave the old ones drawn.
+      series.current.setData([]);
+      lastBar.current = null;
+      return;
+    }
+    const bars = shown.candles.map(toBar);
     series.current.setData(bars);
     lastBar.current = bars.at(-1) ?? null;
     if (shownKey.current !== key) {
       shownKey.current = key;
       chart.current?.timeScale().scrollToRealTime();
     }
-  }, [klines.data, ready, key]);
+  }, [shown, ready, key]);
 
   // Patch the open candle from the ticker's last price while it is in that candle.
   useEffect(() => {
@@ -215,10 +225,12 @@ export function PriceChart({
       </div>
       <div className={cn("relative", height)}>
         <div ref={container} className="absolute inset-0" />
-        {!klines.data ? (
+        {!shown ? (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
             {klines.failing ? t("chartUnavailable") : t("chartLoading")}
           </p>
+        ) : klines.failing ? (
+          <p className="absolute top-1 left-2 z-10 text-xs text-amber-500">{t("chartDelayed")}</p>
         ) : null}
       </div>
     </section>

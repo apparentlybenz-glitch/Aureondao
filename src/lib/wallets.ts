@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { centsFromText, ZERO_CENTS } from "@/lib/money";
+import { onVisible } from "@/lib/on-visible";
 import { createClient } from "@/lib/supabase/client";
 
 export const ACCOUNTS = ["capital", "spot", "forex", "options"] as const;
@@ -62,10 +63,16 @@ export function useWallets() {
           { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${uid}` },
           () => void reload(),
         )
-        .subscribe();
+        // Realtime does not replay missed changes, so every (re)subscribe and
+        // every return to the tab reloads.
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void reload();
+        });
     });
+    const stopVisible = onVisible(() => void reload());
     return () => {
       active = false;
+      stopVisible();
       if (channel) void supabase.removeChannel(channel);
     };
   }, [reload]);

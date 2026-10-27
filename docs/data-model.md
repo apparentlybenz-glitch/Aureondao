@@ -2,7 +2,7 @@
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins.
 
-> Status: **PROPOSED, NOT APPLIED.** The SQL is in `supabase/migrations/20261025000000_initial_schema.sql`.
+> Status: **PROPOSED, NOT APPLIED.** The SQL is in `supabase/proposals/20261025000000_initial_schema.sql`.
 > Scope: AureonX runs on **virtual funds**. Admins credit virtual balances, and no real money or chain transaction ever passes through the app.
 > Research date: 2026-10-25. Sources are cited inline. They were read through the Supabase docs search tool because direct HTTP fetches of supabase.com are blocked from this sandbox.
 

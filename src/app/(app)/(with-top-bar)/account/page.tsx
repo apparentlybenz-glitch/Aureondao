@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { SignOutButton } from "@/components/app/sign-out-button";
+import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { Field, FormError } from "@/components/auth/field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,9 @@ type Profile = {
 export default function AccountPage() {
   const t = useTranslations("Account");
   const c = useTranslations("Common");
+  const rpcMessage = useRpcMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ code?: string; message: string } | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [copied, setCopied] = useState(false);
 
@@ -32,7 +34,7 @@ export default function AccountPage() {
       .select("uid::text, email, nickname, phone, country, kyc_status")
       .single<Profile>()
       .then(({ data, error }) => {
-        if (error) setError(error.message);
+        if (error) setError(error);
         else setProfile(data);
       });
   }, []);
@@ -50,7 +52,7 @@ export default function AccountPage() {
       })
       .single<Profile>();
     if (error) {
-      setError(error.message);
+      setError(error);
       setStatus("idle");
       return;
     }
@@ -59,7 +61,7 @@ export default function AccountPage() {
   }
 
   if (!profile) {
-    return error ? <FormError message={error} /> : <p className="text-sm">{c("loading")}</p>;
+    return error ? <FormError message={rpcMessage(error)} /> : <p className="text-sm">{c("loading")}</p>;
   }
 
   return (
@@ -114,7 +116,7 @@ export default function AccountPage() {
           autoComplete="country"
         />
         <div className="space-y-2 md:col-span-2">
-          <FormError message={error} />
+          <FormError message={error ? rpcMessage(error) : null} />
           <Button type="submit" className="h-10 w-full md:w-auto" disabled={status === "saving"}>
             {status === "saving" ? c("loading") : status === "saved" ? c("saved") : c("save")}
           </Button>

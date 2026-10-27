@@ -2,7 +2,7 @@
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
 
-> Status: **planning only**. Nothing here is implemented. AureonX runs on **virtual funds** (no real money).
+> Status: **§0 to §9 are the superseded planning text** (OKX, a leader tab with Web Locks, Workers Cache, a separate md Worker and a multi-source median were not built). What shipped is in §10 (slice 3), §11 (slice 4) and `docs/decisions.md` Part 1c, 1d and 1e. Read those first. AureonX runs on **virtual funds** (no real money).
 > "Money path" below means any code that changes virtual balances, positions, fills, margin, liquidation, or options settlement.
 > Provider names appear here only as data sources. **UI copy must never show provider names or branding** (use labels like "Live", "Delayed", "Indicative", "Daily reference rate").
 
@@ -265,6 +265,22 @@ The owner supplied no Binance main or Bybit lines, so those checks stay open.
 | 4 OKX | **Closed, negative result:** the OKX host does not resolve from Lagos (about 22 s to fail). OKX is out of the browser chain (O20) |
 | 10 Proxy header integrity | **Closed for Vision only:** the Lagos browser is not behind the sandbox proxy and still saw a working CORS response |
 | 1 Binance main, 2 Bybit, 5 KuCoin, 6 to 9 | Open. 5 and 8 are exercised by the first deployed `/md/v1/tickers` call (check the Worker logs) |
+
+**Status after the Day 6 audit (2026-10-27):**
+
+| # | Status |
+|---|---|
+| 1 `api.binance.com` | **Obsolete:** no code references it (O12: Vision plus KuCoin only) |
+| 2 Bybit | **Obsolete:** same |
+| 3 Vision | **Partial:** Lagos closed; US and EU residential browsers and the negative preflight check are not recorded. Vision answers from the sandbox and from Supabase eu-west-1 (all 20 markets `source = vision`, a few seconds old) |
+| 4 OKX | **Done, negative result:** no OKX code in `src` or the Edge Function |
+| 5 KuCoin from Cloudflare and Supabase egress | **Still pending:** there is no history to show KuCoin ever produced a snapshot (`price_snapshots` keeps one row per market). Sandbox only: `allTickers` answered 200 with all 20 symbols. A source counter would settle it |
+| 6 Frankfurter, 7 FX and metals hosts | **Deferred:** no FX code (Forex and Perpetual are deferred) |
+| 8 Workers Cache and Placement | **Obsolete:** O13 chose route handlers in the app Worker with in-memory caches; the Cache API does nothing on workers.dev |
+| 9 `price-ingest` egress | **Partial:** the Vision side is done (8,219 succeeded cron runs, 0 failed; every `net._http_response` row 200). The ">= 2 sources" part is obsolete (no median) |
+| 10 Proxy header integrity | **Done for Vision** (Lagos browser) |
+
+The owner's DevTools check (no `OPTIONS` request to `data-api.binance.vision`) is not recorded anywhere; code review supports it (`@sentry/browser` 11.9.0 attaches trace headers only to same-origin requests while `tracePropagationTargets` is unset).
 
 ---
 
@@ -798,7 +814,7 @@ Display only, like §10: the order RPC reads only `price_snapshots`.
 |---|---|---|---|---|
 | Klines | Vision `klines` (limit 300, weight 2), then `GET /md/v1/klines?symbol=&interval=` (KuCoin `market/candles` through the Worker) | On open and on symbol/interval change, then just after each candle closes (1 to 2 s later), at least once a minute | Terminal mounted and page visible | Fallback route; "Chart unavailable. Retrying." when both fail |
 | Live candle | The ticker store's `last` (5 s) | Each ticker update | While the ticker's time falls inside the open candle | Nothing is drawn |
-| Depth | Vision `depth?limit=12` (weight 5) | 5 s | Book tab open, page visible, selected symbol only | "Order book unavailable. Retrying." (no fallback, by decision) |
+| Depth | Vision `depth?limit=20` (weight 5) | 5 s | Book tab open, page visible, selected symbol only | "Order book unavailable. Retrying." (no fallback, by decision) |
 | Trades | Vision `aggTrades?limit=30` (weight 4) | 5 s | Trades tab open, page visible, selected symbol only | "Latest trades unavailable. Retrying." (no fallback) |
 
 - Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout (5 s for `/md/v1/klines`). No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.

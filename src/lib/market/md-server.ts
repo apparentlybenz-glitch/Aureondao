@@ -6,6 +6,8 @@ import { getJson } from "./http";
 import { KUCOIN_URL, normalizeKucoin } from "./kucoin";
 import { kucoinKlinesUrl, normalizeKucoinKlines } from "./klines";
 import type { Candle, Interval } from "./klines";
+import { createNegativeWindow } from "./cooldown";
+import { withRetries } from "./retry";
 import { createStaleCache } from "./stale-cache";
 import { MARKET_COLUMNS, ProviderError, toMarket } from "./types";
 import type { Market, MarketRow, Ticker } from "./types";
@@ -18,37 +20,40 @@ export const TICKERS_NEGATIVE_TTL_MS = 10_000;
 export const TICKERS_MAX_STALE_MS = 60_000;
 export const MARKETS_TTL_MS = 60_000;
 const ATTEMPT_TIMEOUT_MS = 1_200;
-const RETRIES = 2;
-const BACKOFF_MS = 150;
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+// One negative window for the whole KuCoin host: after any failure no route
+// calls it again for TICKERS_NEGATIVE_TTL_MS, whatever its cache key. A call
+// skipped by the window is not a new failure and is not reported.
+const kucoinWindow = createNegativeWindow(TICKERS_NEGATIVE_TTL_MS);
 
-// At most RETRIES retries, with jittered backoff between attempts.
-async function withRetries<T>(attempt: () => Promise<T>): Promise<T> {
-  let lastError: unknown;
-  for (let i = 0; i <= RETRIES; i++) {
-    try {
-      return await attempt();
-    } catch (e) {
-      lastError = e;
-      if (i < RETRIES) await sleep(BACKOFF_MS * (i + 1) * (0.5 + Math.random()));
-    }
+class HostSkipped extends ProviderError {}
+
+async function throughKucoinWindow<T>(call: () => Promise<T>): Promise<T> {
+  if (kucoinWindow.blocked()) throw new HostSkipped("KuCoin: skipped, it failed a moment ago", 503);
+  try {
+    const result = await call();
+    kucoinWindow.succeed();
+    return result;
+  } catch (e) {
+    kucoinWindow.fail();
+    throw e;
   }
-  if (lastError instanceof ProviderError) lastError.retries = RETRIES;
-  throw lastError;
 }
 
 // Names the failing upstream in the message and keeps its status and retry count.
 function labelled(upstream: string, error: unknown): ProviderError {
+  if (error instanceof HostSkipped) return error;
   const source = error instanceof ProviderError ? error : new ProviderError(String(error));
   const out = new ProviderError(`${upstream}: ${source.message}`, source.status);
   out.retries = source.retries;
+  out.retryAfterMs = source.retryAfterMs;
   return out;
 }
 
 // Every failed refresh goes to Workers Logs and Sentry with the upstream status
 // and the retry count. The negative window keeps this to one per 10 s per isolate.
 function reportUpstreamFailure(route: string, error: unknown, info: { servedStale: boolean }) {
+  if (error instanceof HostSkipped) return;
   const failure = error instanceof ProviderError ? error : new ProviderError(String(error));
   const context = {
     route,
@@ -91,8 +96,10 @@ async function readKucoinTickers(): Promise<Ticker[]> {
   const { value: list } = await markets();
   let payload: unknown;
   try {
-    payload = await withRetries(() =>
-      getJson((url, init) => fetch(url, { ...init, cache: "no-store" }), KUCOIN_URL, ATTEMPT_TIMEOUT_MS),
+    payload = await throughKucoinWindow(() =>
+      withRetries(() =>
+        getJson((url, init) => fetch(url, { ...init, cache: "no-store" }), KUCOIN_URL, ATTEMPT_TIMEOUT_MS),
+      ),
     );
   } catch (e) {
     throw labelled("KuCoin", e);
@@ -123,11 +130,13 @@ export async function findEnabledMarket(id: string): Promise<Market | null> {
 async function readKucoinKlines(market: Market, interval: Interval): Promise<Candle[]> {
   let payload: unknown;
   try {
-    payload = await withRetries(() =>
-      getJson(
-        (url, init) => fetch(url, { ...init, cache: "no-store" }),
-        kucoinKlinesUrl(market, interval, Date.now()),
-        ATTEMPT_TIMEOUT_MS,
+    payload = await throughKucoinWindow(() =>
+      withRetries(() =>
+        getJson(
+          (url, init) => fetch(url, { ...init, cache: "no-store" }),
+          kucoinKlinesUrl(market, interval, Date.now()),
+          ATTEMPT_TIMEOUT_MS,
+        ),
       ),
     );
   } catch (e) {

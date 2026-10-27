@@ -377,12 +377,12 @@ Assumptions (Described and Designed screens, plus choices inside the Captured on
 - **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
-- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Only Transfer and Bills tiles are live; the other 6 show a "Soon" badge and are not links. The avatar is a generic icon (no extra profile fetch).
+- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills and Options (live since slice 5) are links; Deposit, Forex, Perpetual and Support show a "Soon" badge and are not links (owner decision, Day 6). The avatar is a generic icon (no extra profile fetch).
 - **Assets:** one card per wallet in fixed order (Capital, Spot, Forex, Options) with available and, when non-zero, frozen. No profit chart (slice 5).
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
 - **Admin:** the page gate reads the `user_role` and `aal` claims. Not admin: a short notice. Admin at aal1 with a TOTP factor: a step-up prompt to `/sign-in/mfa?next=/admin`; without a factor: a link to Security. Search by email substring or exact 8-digit UID; newest 50 users. The form takes wallet, Credit/Debit, amount and a reason (3 to 200 characters, kept in the audit log only). The proxy does not check the role: RLS and the RPC are the boundary.
-- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13). Sign-in lands on `/home`.
+- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13), and since Day 6 `/sign-in` and `/sign-up` too (not `/sign-in/mfa`). Sign-in lands on `/home`.
 
 ## 5. Data sources per component
 
@@ -684,3 +684,13 @@ Assumptions:
 - **Glow:** the brand rules forbid glows on the mark. The glow is a separate backdrop element behind it (owner request); the mark is drawn unchanged.
 - **Mark variants:** the small mark (below 48 px) in the nav and footer, the full mark in the hero.
 - **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` comes from `NEXT_PUBLIC_SITE_URL` when it is set and valid; without it Open Graph image URLs resolve against `http://localhost:3000` (true of every page).
+
+### 4.14 Day 6 bug pass as shipped (error pages, offline, safe areas)
+
+- **404 and errors:** `not-found.tsx` and `error.tsx` use the app tokens (dark theme, `Pages` strings); `global-error.tsx` uses inline brand colors because it replaces the root layout.
+- **Offline:** `/offline` (brand mark, "You are offline", Retry reloads) is served by `public/sw.js` when a navigation fails. It is the only cached page and styles itself inline. Never-cache list and cache versioning: `CLAUDE.md`.
+- **Support button:** hides while the Spot percentage labels, the Options period labels, the premium input, the fee row or a confirm button are under it.
+- **Spot and Options headers:** top padding 0.75 rem plus `--safe-t` (no top bar on these screens).
+- **Options price:** the "current price" shows `--` when the ticker is delayed, as the Spot header does.
+- **Chart:** keyed by market; after candles load once, a poll failure keeps them with a "Delayed" label.
+- **Top bar globe:** stays disabled until the internationalization slice.

@@ -21,7 +21,7 @@ Each slice ships end to end (DB → RPC → UI) and leaves `main` deployable. Sl
 
 Rules for every slice:
 - **Gate:** `pnpm typecheck && pnpm lint && pnpm build && pnpm build:worker`, then record the gzip Worker size from `pnpm exec wrangler deploy --dry-run --outdir /tmp/wd` (budget: 10 MiB).
-- **Migrations:** each slice adds its own migration, cut from the proposed `supabase/migrations/20261025000000_initial_schema.sql` (O18 ★). Apply only that slice's tables (the Free plan, O19, has no Supabase branching, so apply to the project directly), then run Supabase advisors (security + performance): zero errors.
+- **Migrations:** each slice adds its own migration, cut from the proposed `supabase/proposals/20261025000000_initial_schema.sql` (O18 ★). Apply only that slice's tables (the Free plan, O19, has no Supabase branching, so apply to the project directly), then run Supabase advisors (security + performance): zero errors.
 - **Money paths:** add SQL tests for every RPC (happy path, every error code, idempotent replay) and a concurrency test (N parallel calls; `wallet = Σ ledger` afterwards).
 - **Docs:** update CLAUDE.md in the same PR, describing what shipped and nothing planned.
 - **Open decisions:** a slice that depends on a `docs/decisions.md` item starts only after the owner decides it.

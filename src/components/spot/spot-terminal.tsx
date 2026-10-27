@@ -59,7 +59,7 @@ export function SpotTerminal() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+5rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))]">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <MarketPicker market={market} ticker={ticker} onPick={pick} />
@@ -91,7 +91,7 @@ export function SpotTerminal() {
       </dl>
 
       <div className="space-y-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0">
-        <PriceChart market={market} ticker={ticker} />
+        <PriceChart key={market.id} market={market} ticker={ticker} />
         <OrderForm
           key={market.id}
           market={market}

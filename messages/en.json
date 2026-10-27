@@ -97,6 +97,55 @@
     "noMore": "No more records",
     "all": "All"
   },
+  "Errors": {
+    "INSUFFICIENT_FUNDS": "Not enough available balance.",
+    "SAME_WALLET": "Pick two different wallets.",
+    "INVALID_AMOUNT": "Enter a valid amount.",
+    "INVALID_ARGUMENT": "Something is missing. Check the form.",
+    "IDEMPOTENCY_CONFLICT": "This request was already sent with different values. Try again.",
+    "WALLET_NOT_FOUND": "Wallet not found.",
+    "UNAUTHENTICATED": "Please sign in again.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "AAL2_REQUIRED": "Verify with your authenticator app first.",
+    "NOTE_REQUIRED": "Enter a reason of 3 to 200 characters.",
+    "PRICE_STALE": "Prices are refreshing. Try again in a few seconds.",
+    "INSUFFICIENT_ASSET": "You don't have enough of this coin to sell that amount.",
+    "BELOW_MIN_NOTIONAL": "This order is below the minimum order value.",
+    "INVALID_QTY": "Check the quantity.",
+    "INVALID_NUMBER": "Enter a quantity like 0.01.",
+    "MARKET_NOT_FOUND": "This market is not available.",
+    "MARKET_DISABLED": "This market is not available.",
+    "PERIOD_NOT_FOUND": "This option period is not available.",
+    "PERIOD_DISABLED": "This option period is not open right now.",
+    "BELOW_MIN_PREMIUM": "The premium is below the minimum.",
+    "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
+  },
+  "Offline": {
+    "title": "You are offline",
+    "body": "AureonX needs a connection for live prices. Reconnect and try again.",
+    "retry": "Retry"
+  },
+  "Pages": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page does not exist or has moved.",
+    "home": "Go to home",
+    "errorTitle": "Something went wrong",
+    "errorBody": "This page failed to load. Try again.",
+    "retry": "Try again"
+  },
+  "AuthErrors": {
+    "invalidCredentials": "Wrong email or password.",
+    "emailNotConfirmed": "Confirm your email first. Check your inbox for the link.",
+    "userExists": "An account with this email already exists.",
+    "weakPassword": "Choose a stronger password.",
+    "rateLimited": "Too many attempts. Wait a few minutes and try again.",
+    "samePassword": "Choose a password you have not used before.",
+    "mfaFailed": "That code is not right. Try again.",
+    "codeExpired": "That code or link has expired. Request a new one.",
+    "sessionExpired": "Your session has expired. Sign in again.",
+    "signupDisabled": "New sign-ups are closed right now.",
+    "network": "The connection failed. Check your network and try again."
+  },
   "Auth": {
     "signInTitle": "Sign in",
     "signInSubmit": "Sign in",
@@ -252,29 +301,6 @@
     "done": "Applied {amount} USD to {wallet}.",
     "balances": "Balances"
   },
-  "Errors": {
-    "INSUFFICIENT_FUNDS": "Not enough available balance.",
-    "SAME_WALLET": "Pick two different wallets.",
-    "INVALID_AMOUNT": "Enter a valid amount.",
-    "INVALID_ARGUMENT": "Something is missing. Check the form.",
-    "IDEMPOTENCY_CONFLICT": "This request was already sent with different values. Try again.",
-    "WALLET_NOT_FOUND": "Wallet not found.",
-    "UNAUTHENTICATED": "Please sign in again.",
-    "FORBIDDEN": "You are not allowed to do this.",
-    "AAL2_REQUIRED": "Verify with your authenticator app first.",
-    "NOTE_REQUIRED": "Enter a reason of 3 to 200 characters.",
-    "PRICE_STALE": "Prices are refreshing. Try again in a few seconds.",
-    "INSUFFICIENT_ASSET": "You don't have enough of this coin to sell that amount.",
-    "BELOW_MIN_NOTIONAL": "This order is below the minimum order value.",
-    "INVALID_QTY": "Check the quantity.",
-    "INVALID_NUMBER": "Enter a quantity like 0.01.",
-    "MARKET_NOT_FOUND": "This market is not available.",
-    "MARKET_DISABLED": "This market is not available.",
-    "PERIOD_NOT_FOUND": "This option period is not available.",
-    "PERIOD_DISABLED": "This option period is not open right now.",
-    "BELOW_MIN_PREMIUM": "The premium is below the minimum.",
-    "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
-  },
   "Market": {
     "title": "Market",
     "tabs": {
@@ -313,7 +339,8 @@
     "timeframe": "Chart timeframe",
     "more": "More",
     "chartLoading": "Loading chart…",
-    "chartUnavailable": "Chart unavailable. Retrying."
+    "chartUnavailable": "Chart unavailable. Retrying.",
+    "chartDelayed": "Delayed"
   },
   "Options": {
     "chooseMarket": "Choose market, current {symbol}",

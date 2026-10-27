@@ -75,6 +75,8 @@ export class ProviderError extends Error {
   status: number | null;
   // Retries used before giving up (set by the server's retry loop).
   retries = 0;
+  // How long the upstream asked us to wait (Retry-After), or the cool-down we set.
+  retryAfterMs: number | null = null;
   constructor(message: string, status: number | null = null) {
     super(message);
     this.name = "ProviderError";

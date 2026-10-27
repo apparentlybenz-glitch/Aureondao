@@ -257,7 +257,7 @@ export function OrderForm({
           onChange={(e) => onSlide(Number(e.target.value))}
           className="w-full accent-primary"
         />
-        <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
+        <div data-fab-avoid="" className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
           {STEPS.map((s) => (
             <span key={s}>{s}%</span>
           ))}

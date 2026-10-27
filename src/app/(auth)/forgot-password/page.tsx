@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const t = useTranslations("Auth");
+  const authMessage = useAuthMessage();
   const c = useTranslations("Common");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -22,7 +24,7 @@ export default function ForgotPasswordPage() {
       redirectTo: `${window.location.origin}/auth/confirm`,
     });
     setPending(false);
-    if (error) setError(error.message);
+    if (error) setError(authMessage(error));
     else setSentTo(email);
   }
 

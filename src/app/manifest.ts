@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import messages from "../../messages/en.json";
 
 // Static web app manifest, served at /manifest.webmanifest. "any" and "maskable"
 // icons are separate entries: a combined purpose would crop the any icons.
@@ -6,6 +7,9 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "AureonX",
     short_name: "AureonX",
+    id: "/",
+    scope: "/",
+    description: messages.Metadata.description,
     start_url: "/home",
     display: "standalone",
     background_color: "#050505",
