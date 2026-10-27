@@ -19,10 +19,10 @@ import { MarketTable } from "@/components/market/market-table";
 import { formatCents } from "@/lib/money";
 import { totalCents, useWallets } from "@/lib/wallets";
 
-// Tiles without an href are modules later slices build; they show "Soon".
+// Tiles without an href are not built yet (or have only a placeholder page); they show "Soon".
 const ACTIONS = [
   { key: "deposit", Icon: ArrowDownToLine },
-  { key: "options", Icon: Timer },
+  { key: "options", Icon: Timer, href: "/options" },
   { key: "forex", Icon: Coins },
   { key: "perpetual", Icon: InfinityIcon },
   { key: "spot", Icon: CandlestickChart, href: "/spot" },

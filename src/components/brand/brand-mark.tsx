@@ -5,10 +5,13 @@ export function BrandMark({
   variant,
   idPrefix,
   className,
+  size,
 }: {
   variant: "full" | "small";
   idPrefix: string;
   className?: string;
+  // Pixel width and height attributes, for pages that cannot rely on CSS.
+  size?: number;
 }) {
   const id = (name: string) => `${idPrefix}-${name}`;
   const ref = (name: string) => `url(#${id(name)})`;
@@ -19,6 +22,8 @@ export function BrandMark({
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 512 512"
+      width={size}
+      height={size}
       role="img"
       aria-label="AureonX"
       className={className}

@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { centsFromText } from "@/lib/money";
+import { onVisible } from "@/lib/on-visible";
+import { serverNowMs } from "@/lib/server-clock";
 import { createClient } from "@/lib/supabase/client";
+
+// One reload this long after a position expires, in case its Realtime update was missed.
+const SETTLE_RELOAD_MS = 12_000;
 
 // Options reads (RLS: periods for any signed-in user, positions own rows only).
 // Numeric and bigint columns are selected as text (hard rule 1). Both tables are
@@ -112,9 +117,13 @@ export function useOptionPeriods(): OptionPeriod[] | null {
     const channel = supabase
       .channel(`option_periods:${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "option_periods" }, () => void load())
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void load();
+      });
+    const stopVisible = onVisible(() => void load());
     return () => {
       active = false;
+      stopVisible();
       void supabase.removeChannel(channel);
     };
   }, []);
@@ -172,13 +181,28 @@ export function useOptionPositions() {
           { event: "*", schema: "public", table: "options_positions", filter: `user_id=eq.${uid}` },
           () => void reload(),
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void reload();
+        });
     });
+    const stopVisible = onVisible(() => void reload());
     return () => {
       active = false;
+      stopVisible();
       if (channel) void supabase.removeChannel(channel);
     };
   }, [reload]);
+
+  // Settlement normally arrives over Realtime. If that event is missed, reload
+  // once shortly after each position expires, so "Settling" never sticks.
+  const open = data?.open;
+  useEffect(() => {
+    if (!open?.length) return;
+    const timers = open.map((p) =>
+      setTimeout(() => void reload(), Math.max(p.expiresAt + SETTLE_RELOAD_MS - serverNowMs(), 0)),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [open, reload]);
 
   return { open: data?.open ?? null, fills: data?.fills ?? null, error, reload };
 }

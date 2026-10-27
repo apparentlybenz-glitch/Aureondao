@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +14,7 @@ export default function MfaPage() {
   const t = useTranslations("Auth");
   const c = useTranslations("Common");
   const router = useRouter();
+  const authMessage = useAuthMessage();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -25,13 +27,13 @@ export default function MfaPage() {
     const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
     const factor = factors?.totp[0];
     if (listError || !factor) {
-      setError(listError?.message ?? c("genericError"));
+      setError(listError ? authMessage(listError) : c("genericError"));
       setPending(false);
       return;
     }
     const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
     if (error) {
-      setError(error.message);
+      setError(authMessage(error));
       setPending(false);
       return;
     }

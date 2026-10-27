@@ -14,6 +14,13 @@ export const KUCOIN_URL = "https://api.kucoin.com/api/v1/market/allTickers";
 export const ATTEMPT_TIMEOUT_MS = 2500;
 export const MAX_ATTEMPTS = 2;
 export const FAILURE_SKIP_MS = 30_000;
+// A 418 or 429 means we are rate limited: no retry, and the provider is left alone
+// for Retry-After, or this long when the header is absent.
+export const RATE_LIMIT_SKIP_MS = 60_000;
+const MAX_RATE_LIMIT_SKIP_MS = 10 * 60_000;
+// Retries wait at least this long, plus jitter up to RETRY_JITTER_MS.
+const RETRY_FLOOR_MS = 1000;
+const RETRY_JITTER_MS = 500;
 export const MARKETS_TTL_MS = 60_000;
 export const MAX_SOURCE_AGE_MS = 30_000;
 export const MAX_FUTURE_MS = 5_000;
@@ -33,11 +40,23 @@ export type Deps = {
 class UpstreamError extends Error {
   status: number | null;
   retryable: boolean;
-  constructor(message: string, status: number | null, retryable: boolean) {
+  // How long to leave the provider alone after a 418 or 429.
+  skipMs: number | null;
+  constructor(message: string, status: number | null, retryable: boolean, skipMs: number | null = null) {
     super(message);
     this.status = status;
     this.retryable = retryable;
+    this.skipMs = skipMs;
   }
+}
+
+// Retry-After is delta-seconds or an HTTP date; anything else is ignored.
+export function retryAfterMs(header: string | null, nowMs: number): number | null {
+  if (!header) return null;
+  const value = header.trim();
+  if (/^[0-9]+$/.test(value)) return Math.min(Number(value) * 1000, MAX_RATE_LIMIT_SKIP_MS);
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? null : Math.min(Math.max(at - nowMs, 0), MAX_RATE_LIMIT_SKIP_MS);
 }
 
 const DECIMAL = /^[0-9]{1,20}(\.[0-9]{1,18})?$/;
@@ -116,13 +135,19 @@ export function createIngest(deps: Deps) {
   async function getExchange(url: string, name: string): Promise<unknown> {
     let last: UpstreamError | null = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      if (attempt > 0) await deps.sleep(Math.floor(deps.random() * Math.min(2000, 300 * 2 ** attempt)));
+      if (attempt > 0) await deps.sleep(RETRY_FLOOR_MS + Math.floor(deps.random() * RETRY_JITTER_MS));
       try {
         const res = await deps.fetch(url, { signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS) });
         if (res.ok) return await res.json();
-        // 429 and 5xx may pass; any other 4xx (bad symbol, geo block) will not.
-        last = new UpstreamError(`${name}: HTTP ${res.status}`, res.status, res.status === 429 || res.status >= 500);
+        if (res.status === 418 || res.status === 429) {
+          // Rate limited: never retry, go straight to the other provider.
+          const skipMs = retryAfterMs(res.headers.get("retry-after"), deps.now()) ?? RATE_LIMIT_SKIP_MS;
+          throw new UpstreamError(`${name}: HTTP ${res.status}`, res.status, false, skipMs);
+        }
+        // 5xx may pass; any other 4xx (bad symbol, geo block) will not.
+        last = new UpstreamError(`${name}: HTTP ${res.status}`, res.status, res.status >= 500);
       } catch (e) {
+        if (e instanceof UpstreamError) throw e;
         last = new UpstreamError(`${name}: ${e instanceof Error ? e.name : "error"}`, null, true);
       }
       if (!last.retryable) break;
@@ -173,7 +198,7 @@ export function createIngest(deps: Deps) {
       log[source] = `ok:${quotes.length}`;
       return quotes;
     } catch (e) {
-      skipUntil[source] = deps.now() + FAILURE_SKIP_MS;
+      skipUntil[source] = deps.now() + (e instanceof UpstreamError && e.skipMs ? e.skipMs : FAILURE_SKIP_MS);
       log[source] = e instanceof Error ? e.message : "failed";
       return [];
     }

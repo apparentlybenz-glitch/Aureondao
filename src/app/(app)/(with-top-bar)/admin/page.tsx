@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAttemptKey } from "@/lib/attempt-key";
+import { escapeLike } from "@/lib/escape-like";
 import { formatCents, parseAmount, ZERO_CENTS } from "@/lib/money";
 import { serverAnswered } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/client";
@@ -75,7 +76,7 @@ async function fetchUsers(q: string): Promise<UserRow[]> {
     .limit(50);
   const term = q.trim();
   if (/^\d{8}$/.test(term)) req = req.eq("uid", term);
-  else if (term) req = req.ilike("email", `%${term}%`);
+  else if (term) req = req.ilike("email", `%${escapeLike(term)}%`);
   const { data } = await req.overrideTypes<UserRow[], { merge: false }>();
   return data ?? [];
 }

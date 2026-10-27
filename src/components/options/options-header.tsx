@@ -10,7 +10,7 @@ import type { Market } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
 const sheet =
-  "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+env(safe-area-inset-bottom))]";
+  "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
 
 function SheetHeader({ title }: { title: string }) {
   const t = useTranslations("Options");

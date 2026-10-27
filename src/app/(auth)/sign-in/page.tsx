@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +14,7 @@ export default function SignInPage() {
   const t = useTranslations("Auth");
   const c = useTranslations("Common");
   const router = useRouter();
+  const authMessage = useAuthMessage();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -27,7 +29,7 @@ export default function SignInPage() {
       password: String(form.get("password")),
     });
     if (error) {
-      setError(error.message);
+      setError(authMessage(error));
       setPending(false);
       return;
     }

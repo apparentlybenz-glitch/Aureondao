@@ -60,7 +60,7 @@ export function MarketPicker({
               <X className="size-5" />
             </Dialog.Close>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="flex-1 overflow-y-auto px-4 pb-[calc(1rem+var(--safe-b))]">
             <MarketTable
               variant="market"
               query={query}

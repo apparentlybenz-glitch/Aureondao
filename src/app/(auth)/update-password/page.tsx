@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 // Reached from the recovery link: /auth/confirm has already set the session.
 export default function UpdatePasswordPage() {
   const t = useTranslations("Auth");
+  const authMessage = useAuthMessage();
   const c = useTranslations("Common");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export default function UpdatePasswordPage() {
     const password = String(new FormData(e.currentTarget).get("password"));
     const { error } = await createClient().auth.updateUser({ password });
     setPending(false);
-    if (error) setError(error.message);
+    if (error) setError(authMessage(error));
     else router.replace("/home");
   }
 

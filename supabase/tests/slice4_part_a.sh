@@ -157,15 +157,16 @@ select k, v, (select bid::text from public.price_snapshots where market_id='ETH-
 rollback;
 SQL
 ;;
-t11) echo "T11 demand: user heartbeat opens the window; anon cannot; tick with no Vault secrets sends nothing"
+t11) echo "T11 demand: user heartbeat opens the window; anon cannot; with the Vault secrets set the tick queues a request (queued_after > queued_before)"
     as $A "select public.request_price_feed() > now() + interval '4 minutes' window_open;"
     run <<SQL
 begin; set local role anon; select public.request_price_feed(); commit;
 SQL
     # The query endpoint returns only the last statement's result, so these run one by one.
-    echo "select (select count(*) from net.http_request_queue) queued_before;" | run
+    echo "select last_value queued_before from pg_sequences where schemaname = 'net' and sequencename = 'http_request_queue_id_seq';" | run
+    # The Vault secrets are set now, so the tick posts to price-ingest. The queue is drained within a second, so the request-id sequence is counted instead of the rows: expect queued_after > queued_before.
     echo "select private.price_tick();" | run
-    echo "select (select count(*) from net.http_request_queue) queued_after;" | run
+    echo "select last_value queued_after from pg_sequences where schemaname = 'net' and sequencename = 'http_request_queue_id_seq';" | run
     echo "update public.system_state set price_demand_until = '-infinity' where id; select price_demand_until from public.system_state;" | run
 ;;
 cleanup) run <<SQL

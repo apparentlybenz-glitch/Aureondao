@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { PriceChart } from "@/components/spot/price-chart";
 import { isPositiveDecimal } from "@/lib/market/decimal";
+import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
 import { readChartShown, saveChartShown, useOptionPeriods, useOptionPositions } from "@/lib/options";
 import { useServerClockSync } from "@/lib/server-clock";
@@ -22,7 +23,7 @@ const DEFAULT_MARKET = "BTC-USDT";
 // Phone first; from md: the chart and the ticket sit side by side, like Spot.
 export function OptionsTerminal() {
   const m = useTranslations("Market");
-  const { markets, tickers } = useMarketData();
+  const { markets, tickers, now } = useMarketData();
   const { wallets } = useWallets();
   const periods = useOptionPeriods();
   const positions = useOptionPositions();
@@ -39,7 +40,11 @@ export function OptionsTerminal() {
 
   const ticker = tickers[market.id];
   // Display only: the browser's mid of the exchange bid/ask. Never sent anywhere.
-  const mid = ticker && isPositiveDecimal(ticker.bid) && isPositiveDecimal(ticker.ask) ? midPrice(ticker.bid, ticker.ask) : null;
+  // A delayed ticker shows "--", as the Spot header does.
+  const mid =
+    ticker && !isDelayed(ticker.ts, now) && isPositiveDecimal(ticker.bid) && isPositiveDecimal(ticker.ask)
+      ? midPrice(ticker.bid, ticker.ask)
+      : null;
   const options = wallets?.find((w) => w.account === "options") ?? null;
   const priceLines = (positions.open ?? [])
     .filter((p) => p.marketId === market.id)
@@ -51,7 +56,7 @@ export function OptionsTerminal() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 pt-3 pb-[calc(56px+5rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))]">
       <OptionsHeader
         market={market}
         markets={optionMarkets}
@@ -67,7 +72,7 @@ export function OptionsTerminal() {
           !chartShown && "md:mx-auto md:max-w-[480px]",
         )}
       >
-        {chartShown ? <PriceChart market={market} ticker={ticker} priceLines={priceLines} /> : null}
+        {chartShown ? <PriceChart key={market.id} market={market} ticker={ticker} priceLines={priceLines} /> : null}
         <OptionTicket
           key={market.id}
           market={market}

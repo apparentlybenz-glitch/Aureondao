@@ -51,7 +51,7 @@ export function SupportFab() {
       aria-hidden={covered || undefined}
       tabIndex={covered ? -1 : undefined}
       className={cn(
-        "fixed right-4 bottom-[calc(56px+0.75rem+env(safe-area-inset-bottom))] z-30 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-opacity",
+        "fixed right-4 bottom-[calc(var(--tab-bar-h)+0.75rem+var(--safe-b))] z-30 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-opacity",
         covered && "pointer-events-none opacity-0",
       )}
     >

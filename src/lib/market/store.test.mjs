@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import { mock } from "node:test";
-import { MD_PATH, POLL_MS, VISION_SKIP_JITTER_MS, VISION_SKIP_MS, VISION_TIMEOUT_MS, createMarketStore } from "./store.ts";
+import { FAILURE_BACKOFF_MS, MD_PATH, POLL_MS, VISION_SKIP_JITTER_MS, VISION_SKIP_MS, VISION_TIMEOUT_MS, createMarketStore } from "./store.ts";
 import { normalizeKucoin } from "./kucoin.ts";
 import { isDelayed } from "./types.ts";
 import { fixture, seededMarkets } from "./test/helpers.mjs";
@@ -21,6 +21,7 @@ let hidden;
 let visibilityCb;
 let visionMode; // "ok" | "400" | "network" | "hang"
 let mdOk;
+let mdTs; // when set, /md/v1 tickers carry this ts
 let mdFresh; // stamp /md/v1 tickers with the mock clock instead of the recorded time
 let store;
 
@@ -37,7 +38,7 @@ function makeFetch() {
     assert.equal(url, MD_PATH);
     calls.push("md");
     if (!mdOk) return Promise.resolve(json({ error: "market_data_unavailable" }, 502));
-    const tickers = normalizeKucoin(fixture("kucoin-allTickers.json"), markets).map((t) => (mdFresh ? { ...t, ts: Date.now() } : t));
+    const tickers = normalizeKucoin(fixture("kucoin-allTickers.json"), markets).map((t) => (mdTs != null ? { ...t, ts: mdTs } : mdFresh ? { ...t, ts: Date.now() } : t));
     return Promise.resolve(json({ source: "kucoin", tickers }));
   };
 }
@@ -51,6 +52,7 @@ beforeEach(() => {
   visionMode = "ok";
   mdOk = true;
   mdFresh = false;
+  mdTs = null;
   store = createMarketStore({
     loadMarkets: async () => markets,
     fetch: makeFetch(),
@@ -142,9 +144,52 @@ test("when every provider fails it reports once per streak and keeps the old tic
   assert.equal(store.getSnapshot().tickers, before);
   assert.equal(reports.length, 1);
   mdOk = true;
-  mock.timers.tick(POLL_MS);
+  // Two failed cycles in a row: the next poll waits 10 s.
+  mock.timers.tick(FAILURE_BACKOFF_MS[1]);
   await settle();
   assert.equal(store.getSnapshot().failing, false);
+  off();
+});
+
+test("while every provider fails, polling backs off 5, 10, 20, 40 then 60 s and resets on success", async () => {
+  visionMode = "network";
+  mdOk = false;
+  const off = store.subscribe(() => {});
+  await settle();
+  const mdCalls = () => calls.filter((c) => c === "md").length;
+  assert.equal(mdCalls(), 1);
+  let expected = 1;
+  for (const wait of [5_000, 10_000, 20_000, 40_000, 60_000, 60_000]) {
+    mock.timers.tick(wait - 1);
+    await settle();
+    assert.equal(mdCalls(), expected, `no poll before ${wait} ms`);
+    mock.timers.tick(1);
+    await settle();
+    expected += 1;
+    assert.equal(mdCalls(), expected, `poll after ${wait} ms`);
+  }
+  mdOk = true;
+  mock.timers.tick(60_000);
+  await settle();
+  assert.equal(store.getSnapshot().failing, false);
+  const before = mdCalls();
+  mock.timers.tick(POLL_MS);
+  await settle();
+  assert.equal(mdCalls(), before + 1, "back to 5 s after a success");
+  off();
+});
+
+test("an older ticker never replaces a newer one", async () => {
+  const off = store.subscribe(() => {});
+  await settle();
+  const vision = store.getSnapshot().tickers;
+  const id = Object.keys(vision)[0];
+  visionMode = "network";
+  mdTs = 1;
+  mock.timers.tick(POLL_MS);
+  await settle();
+  assert.equal(store.getSnapshot().source, "md");
+  assert.equal(store.getSnapshot().tickers[id], vision[id]);
   off();
 });
 
@@ -190,16 +235,18 @@ test("when /md/v1 errors the last good tickers stay on screen and turn delayed o
   assert.equal(snap.failing, true);
   assert.equal(snap.tickers, before, "the table is not cleared or rebuilt");
   assert.ok(Object.values(snap.tickers).every((t) => !isDelayed(t.ts, snap.now)), "30 s old: not delayed yet");
-  for (let i = 0; i < 8; i++) {
+  // Polls back off (5, 10, 20, 40, 60 s), and Delayed is judged at each poll, so
+  // it shows at the first poll where the data is older than 60 s (t = 80 s here).
+  for (let i = 0; i < 20; i++) {
     mock.timers.tick(POLL_MS);
     await settle();
   }
   snap = store.getSnapshot();
   assert.equal(snap.tickers, before);
-  assert.ok(Object.values(snap.tickers).every((t) => isDelayed(t.ts, snap.now)), "70 s old: delayed");
+  assert.ok(Object.values(snap.tickers).every((t) => isDelayed(t.ts, snap.now)), "over 60 s old: delayed");
   mdOk = true;
   mdFresh = true;
-  mock.timers.tick(POLL_MS);
+  mock.timers.tick(60_000);
   await settle();
   snap = store.getSnapshot();
   assert.equal(snap.failing, false);

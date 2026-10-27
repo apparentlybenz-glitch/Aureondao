@@ -34,6 +34,11 @@ const subscribe = (listener: () => void) => {
 const getSnapshot = () => now;
 const getServerSnapshot = () => 0;
 
+// Server time in epoch ms right now (not tied to the one-second ticker).
+export function serverNowMs(): number {
+  return Date.now() + offsetMs;
+}
+
 // Server time in epoch ms, updated once a second (0 before the first tick).
 export function useServerNow(): number {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -45,12 +50,23 @@ export function useServerClockSync() {
   useEffect(() => {
     const supabase = createClient();
     let active = true;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let failures = 0;
     const sync = async () => {
+      if (retry) clearTimeout(retry);
+      retry = null;
       const sent = Date.now();
       const { data, error } = await supabase.rpc("server_time");
       const received = Date.now();
       const server = typeof data === "string" ? Date.parse(data) : Number.NaN;
-      if (!active || error || Number.isNaN(server)) return;
+      if (!active) return;
+      if (error || Number.isNaN(server)) {
+        // Back off 2, 4, 8, 16 s, then every 30 s, until a sync works.
+        failures += 1;
+        retry = setTimeout(() => void sync(), Math.min(2000 * 2 ** (failures - 1), 30_000));
+        return;
+      }
+      failures = 0;
       offsetMs = server - (sent + received) / 2;
       tick();
     };
@@ -61,6 +77,7 @@ export function useServerClockSync() {
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       active = false;
+      if (retry) clearTimeout(retry);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);

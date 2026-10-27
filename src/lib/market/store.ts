@@ -6,6 +6,8 @@ import type { Market, Ticker } from "./types";
 import { normalizeVision, visionUrl } from "./vision";
 
 export const POLL_MS = 5_000;
+// Delay after n consecutive failed cycles (index n - 1); a success goes back to POLL_MS.
+export const FAILURE_BACKOFF_MS = [5_000, 10_000, 20_000, 40_000, 60_000] as const;
 export const VISION_TIMEOUT_MS = 4_000;
 export const MD_TIMEOUT_MS = 5_000;
 export const VISION_SKIP_MS = 30_000;
@@ -43,6 +45,7 @@ export function createMarketStore(deps: StoreDeps) {
   let inFlight = false;
   let visionSkipUntil = 0;
   let reportedStreak = false;
+  let failures = 0;
   const reported400 = new Set<string>();
 
   const emit = (next: Partial<Snapshot>) => {
@@ -77,6 +80,7 @@ export function createMarketStore(deps: StoreDeps) {
         try {
           emit({ markets: await deps.loadMarkets(), now: Date.now() });
         } catch {
+          failures += 1;
           emit({ failing: true, now: Date.now() });
           return;
         }
@@ -87,13 +91,19 @@ export function createMarketStore(deps: StoreDeps) {
         const { tickers, source } = await fetchTickers(markets);
         reportedStreak = false;
         const merged = { ...snapshot.tickers };
-        for (const t of tickers) merged[t.id] = t;
+        // An older ticker (the other provider, a slow answer) never replaces a newer one.
+        for (const t of tickers) {
+          const known = merged[t.id];
+          if (!known || t.ts >= known.ts) merged[t.id] = t;
+        }
+        failures = 0;
         emit({ tickers: merged, source, failing: false, now: Date.now() });
       } catch (e) {
         if (!reportedStreak) {
           reportedStreak = true;
           deps.report(e instanceof Error ? e : new Error("Market data unavailable"));
         }
+        failures += 1;
         emit({ failing: true, now: Date.now() });
       }
     } finally {
@@ -101,12 +111,18 @@ export function createMarketStore(deps: StoreDeps) {
     }
   }
 
+  // 5 s normally; while every provider keeps failing, 5, 10, 20, 40, then 60 s,
+  // so a down upstream is not polled (and /md/v1/tickers not billed) every 5 s.
+  function nextDelayMs() {
+    return failures === 0 ? POLL_MS : FAILURE_BACKOFF_MS[Math.min(failures, FAILURE_BACKOFF_MS.length) - 1];
+  }
+
   async function poll() {
     if (!running || inFlight) return;
     if (timer) clearTimeout(timer);
     timer = null;
     await cycle();
-    if (running && !deps.isHidden()) timer = setTimeout(() => void poll(), POLL_MS);
+    if (running && !deps.isHidden()) timer = setTimeout(() => void poll(), nextDelayMs());
   }
 
   function onVisibility() {

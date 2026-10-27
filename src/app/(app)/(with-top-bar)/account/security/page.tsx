@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +23,7 @@ function Row({ title, children }: { title: string; children: React.ReactNode }) 
 export default function SecurityPage() {
   const t = useTranslations("Security");
   const c = useTranslations("Common");
+  const authMessage = useAuthMessage();
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
@@ -55,7 +57,7 @@ export default function SecurityPage() {
       }
     }
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
-    if (error) setTotpError(error.message);
+    if (error) setTotpError(authMessage(error));
     else setEnrollment({ factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   }
 
@@ -69,7 +71,7 @@ export default function SecurityPage() {
       code,
     });
     if (error) {
-      setTotpError(error.message);
+      setTotpError(authMessage(error));
       return;
     }
     setEnrollment(null);
@@ -86,7 +88,7 @@ export default function SecurityPage() {
       return;
     }
     const { error } = await supabase.auth.mfa.unenroll({ factorId: totpFactorId });
-    if (error) setTotpError(error.message);
+    if (error) setTotpError(authMessage(error));
     else await loadFactors();
   }
 
@@ -97,7 +99,7 @@ export default function SecurityPage() {
     const formEl = e.currentTarget;
     const password = String(new FormData(formEl).get("new-password"));
     const { error } = await createClient().auth.updateUser({ password });
-    if (error) setPwError(error.message);
+    if (error) setPwError(authMessage(error));
     else {
       setPwDone(true);
       formEl.reset();

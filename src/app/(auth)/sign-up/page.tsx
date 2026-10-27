@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Field, FormError } from "@/components/auth/field";
+import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
   const t = useTranslations("Auth");
+  const authMessage = useAuthMessage();
   const c = useTranslations("Common");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export default function SignUpPage() {
     });
     setPending(false);
     if (error) {
-      setError(error.message);
+      setError(authMessage(error));
       return;
     }
     // With email confirmation off, signUp returns a session right away.

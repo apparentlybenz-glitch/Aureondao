@@ -208,7 +208,7 @@ export function OptionTicket({
                 />
               ))}
             </div>
-            <div className="relative h-4 text-xs tabular-nums">
+            <div data-fab-avoid="" className="relative h-4 text-xs tabular-nums">
               {periods.map((p, i) => (
                 <span
                   key={p.durationS}
@@ -255,6 +255,7 @@ export function OptionTicket({
           ))}
         </div>
         <Input
+          data-fab-avoid=""
           inputMode="decimal"
           autoComplete="off"
           aria-label={t("premiumInput")}

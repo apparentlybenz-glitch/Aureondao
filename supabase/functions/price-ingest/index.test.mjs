@@ -3,7 +3,7 @@ import { beforeEach, test } from "node:test";
 
 // index.ts calls Deno.serve when imported; give it a stand-in first.
 globalThis.Deno = { serve: () => {}, env: { get: () => undefined } };
-const { createIngest, parseKucoin, parseVision, validQuote, FAILURE_SKIP_MS, MAX_ATTEMPTS, VISION_URL, KUCOIN_URL } =
+const { createIngest, parseKucoin, parseVision, validQuote, FAILURE_SKIP_MS, RATE_LIMIT_SKIP_MS, MAX_ATTEMPTS, retryAfterMs, VISION_URL, KUCOIN_URL } =
   await import("./index.ts");
 
 const NOW = Date.UTC(2026, 9, 26, 13, 0, 0);
@@ -103,6 +103,60 @@ test("Vision down: bounded retries, then KuCoin; Vision is skipped for 30 s", as
   routes[2][1] = () => res(visionBody({ BTCUSDT: { closeTime: now }, ETHUSDT: { closeTime: now } }));
   await handle(post());
   assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 1);
+});
+
+test("a 429 or 418 from Vision is not retried: straight to KuCoin, Vision left alone for 60 s", async () => {
+  for (const status of [429, 418]) {
+    calls = [];
+    now = NOW;
+    routes[2][1] = () => res({}, status);
+    const handle = make();
+    await handle(post());
+    assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 1, `status ${status}`);
+    assert.deepEqual(ingested().map((q) => q.source), ["kucoin", "kucoin"]);
+
+    calls = [];
+    now += RATE_LIMIT_SKIP_MS - 1;
+    await handle(post());
+    assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 0);
+    calls = [];
+    now += 2;
+    routes[2][1] = () => res(visionBody({ BTCUSDT: { closeTime: now }, ETHUSDT: { closeTime: now } }));
+    await handle(post());
+    assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 1);
+  }
+});
+
+test("Retry-After sets how long Vision is left alone", async () => {
+  routes[2][1] = () => new Response("{}", { status: 429, headers: { "retry-after": "120" } });
+  const handle = make();
+  await handle(post());
+  calls = [];
+  now += 119_000;
+  await handle(post());
+  assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 0);
+  assert.equal(retryAfterMs("120", NOW), 120_000);
+  assert.equal(retryAfterMs(new Date(NOW + 30_000).toUTCString(), NOW), 30_000);
+  assert.equal(retryAfterMs("soon", NOW), null);
+  assert.equal(retryAfterMs(null, NOW), null);
+});
+
+test("a retry after a 5xx waits at least 1 s plus jitter", async () => {
+  routes[2][1] = () => res({}, 503);
+  const waits = [];
+  const handle = createIngest({
+    fetch: async (url, init = {}) => {
+      calls.push({ url: String(url), init });
+      for (const [prefix, fn] of routes) if (String(url).startsWith(prefix)) return fn(String(url), init);
+      throw new Error(`unexpected ${url}`);
+    },
+    env: (k) => ENV[k],
+    now: () => now,
+    random: () => 0.5,
+    sleep: async (ms) => { waits.push(ms); },
+  });
+  await handle(post());
+  assert.ok(waits.length >= 1 && waits.every((ms) => ms >= 1000 && ms < 1500), JSON.stringify(waits));
 });
 
 test("a 4xx other than 429 is not retried", async () => {
