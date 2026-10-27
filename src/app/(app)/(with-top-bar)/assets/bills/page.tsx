@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
+import { BILL_SELECT, type BillRow, useBillDescription } from "@/lib/bills";
 import { centsFromText, formatCents, ZERO_CENTS } from "@/lib/money";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -11,29 +12,13 @@ import { ACCOUNTS, type Account } from "@/lib/wallets";
 
 const PAGE_SIZE = 20;
 
-type LedgerKind =
-  | "transfer_in" | "transfer_out" | "deposit" | "withdrawal_hold" | "withdrawal_release"
-  | "withdrawal_paid" | "admin_credit" | "admin_debit" | "order_hold" | "order_release"
-  | "spot_buy" | "spot_sell" | "forex_margin" | "forex_close" | "option_premium"
-  | "option_settle" | "fee" | "option_refund";
-
-type BillRow = {
-  id: string;
-  account: Account;
-  kind: LedgerKind;
-  counter_account: Account | null;
-  delta_cents: string;
-  memo: string | null;
-  created_at: string;
-};
-
-const BILL_SELECT = "id::text, account, kind, counter_account, delta_cents::text, memo, created_at";
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
 export default function BillsPage() {
   const t = useTranslations("Bills");
   const w = useTranslations("Wallets");
   const c = useTranslations("Common");
+  const describe = useBillDescription();
   const [filter, setFilter] = useState<Account | "all">("all");
   const [rows, setRows] = useState<BillRow[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -91,17 +76,6 @@ export default function BillsPage() {
       setHasMore(result.more);
     }
     setLoading(false);
-  }
-
-  function describe(row: BillRow): string {
-    if (row.memo) return row.memo;
-    if (row.counter_account && row.kind === "transfer_out") {
-      return t("transfer", { from: w(row.account), to: w(row.counter_account) });
-    }
-    if (row.counter_account && row.kind === "transfer_in") {
-      return t("transfer", { from: w(row.counter_account), to: w(row.account) });
-    }
-    return t(`kind.${row.kind}`);
   }
 
   return (

@@ -370,18 +370,18 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Assets hub | `/assets` | Described |
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
-| Admin (user list + credit/debit) | `/admin` | Designed |
+| Admin (user list + credit/debit) | `/admin` | Designed (replaced by the slice 7 panel, §4.15) |
 | "Coming soon" placeholders | `/support`, `/notifications` (`/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
 - **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
-- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills and Options (live since slice 5) are links; Deposit, Forex, Perpetual and Support show a "Soon" badge and are not links (owner decision, Day 6). The avatar is a generic icon (no extra profile fetch).
+- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills and Options (live since slice 5) are links; Forex, Perpetual and Support show a "Soon" badge and are not links (owner decision, Day 6); Deposit links to `/assets/deposit` since slice 7 (§4.15). The avatar is a generic icon (no extra profile fetch).
 - **Assets:** one card per wallet in fixed order (Capital, Spot, Forex, Options) with available and, when non-zero, frozen. No profit chart (slice 5).
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
-- **Admin:** the page gate reads the `user_role` and `aal` claims. Not admin: a short notice. Admin at aal1 with a TOTP factor: a step-up prompt to `/sign-in/mfa?next=/admin`; without a factor: a link to Security. Search by email substring or exact 8-digit UID; newest 50 users. The form takes wallet, Credit/Debit, amount and a reason (3 to 200 characters, kept in the audit log only). The proxy does not check the role: RLS and the RPC are the boundary.
+- **Admin:** replaced in slice 7 (§4.15).
 - **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13), and since Day 6 `/sign-in` and `/sign-up` too (not `/sign-in/mfa`). Sign-in lands on `/home`.
 
 ## 5. Data sources per component
@@ -694,3 +694,30 @@ Assumptions:
 - **Options price:** the "current price" shows `--` when the ticker is delayed, as the Spot header does.
 - **Chart:** keyed by market; after candles load once, a poll failure keeps them with a "Delayed" label.
 - **Top bar globe:** stays disabled until the internationalization slice.
+
+### 4.15 Slice 7 screens as shipped (Deposit, Withdraw, Admin panel)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Deposit | `/assets/deposit` | Designed |
+| Withdraw | `/assets/withdraw` | Designed |
+| Admin: User Search, Top-Up, Restrictions, Option periods, Audit Log | `/admin`, `/admin/top-up`, `/admin/restrictions`, `/admin/option-periods`, `/admin/audit-log` | Designed |
+
+The owner attached reference screenshots as layout ideas only. These are Designed screens: nothing is copied from them, the name, logo and wording are not used, and none of the screens may be described as matching any reference. This slice supersedes §4.4's deposit and withdraw steppers and request tables, and §4.6's request and KYC queues (decisions: users never request funds, so there are no deposit or withdrawal requests; there is no KYC queue, outcome control or per-user page access in this slice).
+
+Deposit and Withdraw assumptions:
+- **Display only.** No wallet address exists on either page and neither accepts a request. Deposit shows "--" in the address block with a disabled Copy button, an empty square QR frame with the small AureonX mark centered, and one line: "Your balance is virtual and is credited by AureonX. No transfer is needed." There is no form and no submit.
+- **Withdraw:** coin dropdown and network chips as on Deposit, then Address and Amount inputs, "Available: N USD" (the Capital wallet's available balance, `--` while loading) with a MAX control, a two-row summary (Amount, Removed from balance, both `--`), the line "Virtual balances stay on AureonX and cannot be withdrawn." and a Withdraw button. Every input, MAX and the button are disabled. The coin dropdown and network chips stay active so the screen can be explored. No form element, no address stored.
+- **Coins and networks:** BTC (Bitcoin), USDT (TRC-20, ERC-20), USDC (ERC-20), ETH (ERC-20), SOL (Solana), in `src/lib/coins.ts`. The first coin (BTC) and the coin's first network are selected on load; picking a coin selects its first network. The dropdown (Radix Select) shows the initials badge, symbol and name. Withdraw reads its coin and network names from the `Deposit` strings.
+- **Layout:** a card at most 480 px wide, centered; at 390 px it fills the width with the page's 16 px gutter and the tab bar padding comes from the `(with-top-bar)` layout (`pb-tabbar`).
+- **Entry points:** the Home Deposit tile (now live) and the Assets hub buttons Deposit, Withdraw and Transfer (Bills stays as a full-width button under them).
+
+Admin assumptions:
+- **Navigation:** from `md:` a left sidebar (13 rem) lists the five sections with the active one highlighted. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
+- **Gate:** not an admin: a notice. Admin below aal2: a message with "Verify with authenticator" (`/sign-in/mfa?next=<this page>`, only when a factor exists) and "Open Security" (`/account/security`). Every admin RPC and RLS read still needs aal2.
+- **User Search:** the field accepts an email substring (escaped `ilike`) or an exact 8-digit UID; Search and All (the newest 50). Each result shows email, UID and Active or Suspended. Opening one shows the suspension (since, reason), links to Top-Up and Restrictions, the four wallet balances and the 20 newest Bills rows (same text rules as Bills; the second line is hidden when it repeats the type).
+- **Top-Up:** pick a user (from the same search), wallet, Credit or Debit (kept from slice 2), amount and a reason of 3 to 200 characters. `admin_adjust_balance` with one idempotency key per attempt. Success shows the applied amount and the wallet's new balance (read back after the call).
+- **Restrictions:** shows the state, since, and the reason. A reason is required to suspend (3 to 200 characters) and optional to unsuspend. One button: Suspend or Unsuspend. Editing the reason of a suspended user is possible through the RPC but has no screen.
+- **Option periods:** one card per period (30, 60, 90, 120, 300 s) with profit rate (%), fee (%), minimum premium (USD) and an Enabled switch; Save per period (enabled once something changed and the values are valid). Field errors mirror what `admin_set_option_period` refuses (profit 0 to 1000 %, fee 0 to 10 %, up to 2 decimals, minimum above 0, no enabling at a 0 % profit rate); other failures show the mapped RPC message. The list is live (Realtime), as the Options screen's.
+- **Audit Log:** `admin_audit_log` newest first, the latest 100, filter by action (balance adjustment, suspension, unsuspension, option period change). Each row: action, time, a one-line summary from the payload (text from `en.json`), the admin's email and the target user's email ("Deleted user" when the account was removed; option period rows have no target). Amounts come from jsonb numbers, which stay inside the safe integer range because adjustments are capped at 100000000000 cents.
+- **Suspended users:** Home shows a banner "Your account is suspended. Trading and transfers are paused." with the reason on a second line. Spot, Options and Transfer show the same sentence when their call returns `ACCOUNT_SUSPENDED`.

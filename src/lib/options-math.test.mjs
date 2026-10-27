@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bpsToPercent, estReturnCents, formatCountdown } from "./options-math.ts";
+import { bpsToPercent, bpsToPercentText, estReturnCents, formatCountdown, percentToBps } from "./options-math.ts";
 import { feeCents } from "./spot-math.ts";
 
 test("estReturnCents floors premium x rate / 10000 like the server", () => {
@@ -21,6 +21,19 @@ test("bpsToPercent", () => {
   assert.equal(bpsToPercent(650), "6.5%");
   assert.equal(bpsToPercent(1), "0.01%");
   assert.equal(bpsToPercent(0), "0%");
+});
+
+test("percent text and percentToBps round trip", () => {
+  assert.equal(bpsToPercentText(650), "6.5");
+  assert.equal(bpsToPercentText(0), "0");
+  for (const bps of [0, 1, 10, 600, 650, 1000, 100000]) {
+    assert.equal(percentToBps(bpsToPercentText(bps)), bps);
+  }
+  assert.equal(percentToBps(" 6 "), 600);
+  assert.equal(percentToBps("0.15"), 15);
+  for (const bad of ["", ".5", "6.", "6.123", "-1", "1e2", "abc", "12345"]) {
+    assert.equal(percentToBps(bad), null, bad);
+  }
 });
 
 test("formatCountdown rounds up and stops at 0:00", () => {

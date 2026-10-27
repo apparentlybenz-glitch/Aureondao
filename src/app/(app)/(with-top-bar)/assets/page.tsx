@@ -26,14 +26,20 @@ export default function AssetsPage() {
         <p className="text-xs font-medium text-amber-500">{h("virtualBalance")}</p>
       </section>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        <Button asChild className="h-11">
+          <Link href="/assets/deposit">{t("deposit")}</Link>
+        </Button>
+        <Button asChild className="h-11">
+          <Link href="/assets/withdraw">{t("withdraw")}</Link>
+        </Button>
         <Button asChild className="h-11">
           <Link href="/assets/transfer">{t("transfer")}</Link>
         </Button>
-        <Button asChild variant="secondary" className="h-11">
-          <Link href="/assets/bills">{t("bills")}</Link>
-        </Button>
       </div>
+      <Button asChild variant="secondary" className="h-11 w-full">
+        <Link href="/assets/bills">{t("bills")}</Link>
+      </Button>
 
       {error ? <p className="text-sm text-destructive">{c("genericError")}</p> : null}
       <ul className="grid gap-3 md:grid-cols-2">
