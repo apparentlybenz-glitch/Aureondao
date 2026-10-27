@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "AureonX",
     short_name: "AureonX",
-    start_url: "/",
+    start_url: "/home",
     display: "standalone",
     background_color: "#050505",
     theme_color: "#050505",

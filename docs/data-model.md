@@ -575,7 +575,7 @@ Upgrade path: broadcast-from-trigger to private `user:<uid>` channels (D8) when 
 | D6 | **Settlement after a long price outage** | ★ **(a) Settle at the first valid post-expiry price whenever it arrives.** *Good:* never uses a stale price; no extra code. *Bad:* after a 10 min outage, the settle price is 10 min late. · (b) Auto-void (refund premium + fee) if no valid price within `expires_at + 2 min`. *Good:* fair to users. *Bad:* one more status, ledger kind and RPC. · (c) Admin manual void. *Good:* rare and controlled. *Bad:* needs ops attention. |
 | D7 | **Tie (settle = entry)** | ★ (a) Draw: refund the premium, keep the fee. · (b) Loss. *Bad:* feels unfair. · (c) Full refund including the fee. *Good:* friendliest. *Bad:* fee-free retries. |
 | D8 | **Realtime transport** | ★ (a) postgres_changes (current). *Good:* no extra triggers. *Bad:* per-subscriber RLS on a single thread doesn't scale far. · (b) Trigger → `realtime.broadcast_changes` to private `user:<uid>` channels. *Good:* scales; Supabase recommends it. *Bad:* `realtime.messages` policies and topic-prefix matching. |
-| D9 | **Withdrawal gating** | ★ (a) KYC approved + AAL2 if MFA is enrolled (implemented, matches UI D7-A). · (b) No gating (practice only). *Good:* frictionless. *Bad:* the KYC flow loses its purpose. |
+| D9 | **Withdrawal gating** | ★ (a) KYC approved + AAL2 if MFA is enrolled (implemented, matches UI D7-A). · (b) No gating (virtual funds only). *Good:* frictionless. *Bad:* the KYC flow loses its purpose. |
 
 ---
 

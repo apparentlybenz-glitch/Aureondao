@@ -3,6 +3,61 @@
     "title": "AureonX",
     "description": "Multi-asset trading on a virtual balance. No real money."
   },
+  "Landing": {
+    "metaTitle": "AureonX | Spot and options on live crypto prices",
+    "metaDescription": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options. Every account runs on a virtual USD balance.",
+    "ogAlt": "AureonX logo",
+    "nav": {
+      "label": "Main",
+      "logIn": "Log in",
+      "createAccount": "Create account"
+    },
+    "prices": {
+      "label": "Live prices",
+      "change24h": "24h change",
+      "names": {
+        "BTC-USDT": "Bitcoin",
+        "ETH-USDT": "Ethereum",
+        "SOL-USDT": "Solana"
+      }
+    },
+    "hero": {
+      "title": "Spot and options on live crypto prices",
+      "subtitle": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options. Every account runs on a virtual USD balance.",
+      "createAccount": "Create account",
+      "logIn": "Log in"
+    },
+    "features": {
+      "label": "What you can do",
+      "spot": {
+        "title": "Spot",
+        "body": "Buy and sell at the live market price, with depth and recent trades on one screen."
+      },
+      "options": {
+        "title": "Options",
+        "body": "Choose Rise or Fall and a period from 30 seconds to 5 minutes. See your return before you call."
+      },
+      "assets": {
+        "title": "Assets",
+        "body": "Move funds between your Capital, Spot and Options wallets and see every change in Bills."
+      }
+    },
+    "how": {
+      "title": "How virtual balances work",
+      "step1": "Your account holds a virtual USD balance.",
+      "step2": "Orders and options use live market prices.",
+      "step3": "Every balance change is recorded in Bills, so your history always adds up."
+    },
+    "footer": {
+      "tagline": "Live crypto markets on a virtual balance.",
+      "markets": "Markets",
+      "spot": "Spot",
+      "options": "Options",
+      "assets": "Assets",
+      "disclosure": "AureonX runs on virtual balances. No real money is deposited, traded or withdrawn.",
+      "copyright": "© 2026 AureonX"
+    }
+  },
   "Home": {
     "totalLabel": "Total asset value",
     "virtualBalance": "Virtual balance",
@@ -220,11 +275,6 @@
     "BELOW_MIN_PREMIUM": "The premium is below the minimum.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
-  "Public": {
-    "title": "AureonX",
-    "tagline": "Practice trading with a virtual balance. No real money.",
-    "signIn": "Sign in"
-  },
   "Market": {
     "title": "Market",
     "tabs": {
@@ -358,7 +408,7 @@
       "trades": "Trades",
       "orders": "Orders"
     },
-    "bookNote": "Live market depth. Practice orders fill at the quoted price and do not enter this book.",
+    "bookNote": "Live market depth. Orders fill at the quoted price and do not enter this book.",
     "bookUnavailable": "Order book unavailable. Retrying.",
     "tradesUnavailable": "Latest trades unavailable. Retrying.",
     "loading": "Loading…",
