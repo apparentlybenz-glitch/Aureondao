@@ -103,8 +103,8 @@ All tables live in `public` and have RLS enabled. "own" means `user_id = auth.ui
 | email | text | Mirrored from `auth.users` by trigger (insert + email change) |
 | nickname | text 1–32 | Defaults to `raw_user_meta_data.nickname` or `User####` |
 | phone | text, loose E.164-ish CHECK | User-entered, not the auth phone |
-| country | text `^[A-Z]{2}$` | |
-| kyc_status | enum `none, pending, approved, rejected` | Changed only by `submit_kyc` / `admin_review_kyc` |
+| country | text `^[A-Z]{2}$` | Dropped in slice 8: the latest `kyc_submissions` row (`kyc_current`) holds it |
+| kyc_status | enum `none, pending, approved, rejected` | Dropped in slice 8: the status is the latest `kyc_submissions` row (`kyc_current`); no submission means not started |
 | created_at | timestamptz | |
 
 Index: `lower(email)` (for admin search).
@@ -256,7 +256,7 @@ Legend:
 | `request_withdrawal(p_asset, p_network, p_address, p_amount_cents, p_client_request_id) → withdrawals` | D / auth | capital wallet | key | `KYC_REQUIRED, MFA_REQUIRED (verified factor and not AAL2), NETWORK_DISABLED, BELOW_MINIMUM, INVALID_ADDRESS, INVALID_AMOUNT, INSUFFICIENT_FUNDS, IDEMPOTENCY_CONFLICT`. **Holds** amount + fee (`withdrawal_hold`). |
 | `cancel_withdrawal(p_withdrawal_id) → withdrawals` | D / auth | withdrawal (guarded `pending→canceled`) → wallet | Re-cancel returns the row | `REQUEST_NOT_FOUND, REQUEST_NOT_PENDING`. Releases the hold. |
 | `submit_kyc(p_first_name, p_last_name, p_date_of_birth date, p_country, p_document_type, p_doc_front_path, p_doc_back_path, p_selfie_path, p_client_request_id, p_address jsonb default null) → kyc_submissions` | D / auth | profile FOR UPDATE (serializes per user) | key | `KYC_ALREADY_PENDING, KYC_ALREADY_APPROVED, KYC_INVALID_DOB (<18), KYC_PATH_INVALID (path not under `<uid>/` or contains `..`), KYC_FILE_MISSING (no object in bucket `kyc`)`. Sets `profiles.kyc_status='pending'`. |
-| `update_profile(p_nickname, p_phone, p_country) → profiles` | D / auth | none | Naturally idempotent | CHECK violations (`23514`) for a bad phone or country |
+| `update_profile(p_nickname, p_phone) → profiles` (slice 8 dropped `p_country`) | D / auth | none | Naturally idempotent | CHECK violations (`23514`) for a bad phone |
 | `toggle_favorite(p_market_id) → boolean` | D / auth | none | Toggle | `MARKET_NOT_FOUND` |
 | `server_time() → timestamptz` | I / anon, auth | none | none | none |
 | `get_pnl_series(p_range '1D'\|'1W'\|'1M'\|'6M') → (bucket, pnl_cents, cumulative_cents)` | I / auth (RLS) | none | none | An unknown range returns 0 rows. Buckets: hour / day / day / week. Empty buckets are not emitted, so the UI fills the gaps. |
@@ -488,7 +488,7 @@ The following tables are added to the `supabase_realtime` publication:
 - `wallets`, `spot_holdings`
 - `orders`, `forex_positions`, `options_positions`
 - `deposits`, `withdrawals`, `kyc_submissions`
-- `profiles` (kyc_status changes)
+- `profiles` (proposal only: `kyc_status` was dropped in slice 8 and `profiles` left the publication on Day 6)
 - `cycle_config` (admin edits, all rows)
 
 Clients use `postgres_changes` with `filter: user_id=eq.<uid>` (`id=eq.<uid>` for profiles).
