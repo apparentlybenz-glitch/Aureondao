@@ -309,6 +309,16 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 #### Shell palette
 Dark only. The shell uses the shadcn tokens: `background` `#050505`, `card` and `popover` `#121212`, `border` `#262626`, `foreground` `#F5F5F5`, `muted-foreground` `#A3A3A3` and `primary` brand green `#1BA04A` with black text. Up and down amounts use the `up` (`#3DD68C`) and `down` (`#F0505A`) tokens. Roles, contrast and usage rules: `docs/brand.md`.
 
+#### Shell safe areas
+The root viewport sets `viewport-fit=cover`, so the iOS insets are live. Shell geometry lives once in `src/app/globals.css`:
+- `--top-bar-h` 3.5rem and `--tab-bar-h` 3.5rem: the bars' content heights.
+- `--tab-bar-overhang` 1.5rem: how far the raised Trade button rises above the tab bar.
+- `--safe-t` and `--safe-b`: `env(safe-area-inset-top / bottom, 0px)`.
+
+The top bar is `--top-bar-h` plus `--safe-t` tall with `--safe-t` as top padding, so its content keeps its size. The tab bar adds `--safe-b` as bottom padding.
+
+`pb-tabbar` clears the tab bar, the Trade button and the home indicator. Any layout that renders the tab bar applies it to its content, once; pages add no clearance of their own. Bottom overlays (Sheet, Drawer, Toaster) offset by `var(--safe-b)` when they are added.
+
 #### Home (`/home`, signed in; the public homepage stays at `/`, slice 9): Captured
 1. Top bar as above.
 2. **Total asset value** with an eye toggle (hide amounts); large figure plus `USD`. Source: wallets (RLS) valued with the store's prices.
