@@ -683,5 +683,4 @@ Assumptions:
 - **Prices:** browser-direct through the existing market store, so the page itself is static HTML that never varies by user. Price display names come from `en.json`.
 - **Glow:** the brand rules forbid glows on the mark. The glow is a separate backdrop element behind it (owner request); the mark is drawn unchanged.
 - **Mark variants:** the small mark (below 48 px) in the nav and footer, the full mark in the hero.
-- **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` is not set, so Open Graph image URLs resolve against `http://localhost:3000` until a site URL is chosen (also true of every other page).
-- **Copy check:** the Options card says "a period from 30 seconds to 5 minutes" (owner copy). Only the 30 s period is enabled in `option_periods` today.
+- **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` comes from `NEXT_PUBLIC_SITE_URL` when it is set and valid; without it Open Graph image URLs resolve against `http://localhost:3000` (true of every page).
