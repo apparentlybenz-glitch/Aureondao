@@ -73,7 +73,8 @@
       "transfer": "Transfer",
       "support": "Support",
       "bills": "Bills"
-    }
+    },
+    "suspended": "Your account is suspended. Trading and transfers are paused."
   },
   "Common": {
     "virtualFundsBadge": "VIRTUAL FUNDS",
@@ -118,6 +119,7 @@
     "PERIOD_NOT_FOUND": "This option period is not available.",
     "PERIOD_DISABLED": "This option period is not open right now.",
     "BELOW_MIN_PREMIUM": "The premium is below the minimum.",
+    "ACCOUNT_SUSPENDED": "Your account is suspended. Trading and transfers are paused.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -236,7 +238,47 @@
     "title": "Assets",
     "total": "Total balance",
     "transfer": "Transfer",
-    "bills": "Bills"
+    "bills": "Bills",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw"
+  },
+  "Deposit": {
+    "title": "Deposit",
+    "subtitle": "Choose a coin and network.",
+    "selectCoin": "Select Coin",
+    "selectNetwork": "Select Network",
+    "addressLabel": "Deposit Address",
+    "addressEmpty": "--",
+    "copy": "Copy",
+    "note": "Your balance is virtual and is credited by AureonX. No transfer is needed.",
+    "coins": {
+      "BTC": "Bitcoin",
+      "USDT": "Tether USD",
+      "USDC": "USD Coin",
+      "ETH": "Ethereum",
+      "SOL": "Solana"
+    },
+    "networks": {
+      "bitcoin": "Bitcoin",
+      "trc20": "TRC-20",
+      "erc20": "ERC-20",
+      "solana": "Solana"
+    }
+  },
+  "Withdraw": {
+    "title": "Withdraw",
+    "subtitle": "Choose a coin and network.",
+    "address": "Address",
+    "addressPlaceholder": "Enter an address",
+    "amount": "Amount",
+    "amountPlaceholder": "0.00",
+    "available": "Available: {amount} USD",
+    "max": "MAX",
+    "summaryAmount": "Amount",
+    "summaryRemoved": "Removed from balance",
+    "summaryEmpty": "--",
+    "note": "Virtual balances stay on AureonX and cannot be withdrawn.",
+    "submit": "Withdraw"
   },
   "Transfer": {
     "title": "Transfer",
@@ -280,26 +322,113 @@
   },
   "Admin": {
     "title": "Admin",
+    "navLabel": "Admin sections",
+    "openMenu": "Open admin menu",
+    "close": "Close",
     "needAdmin": "This page is for administrators.",
     "stepUpTitle": "Verify to continue",
     "stepUpBody": "Admin actions need two-step verification for this session.",
     "stepUp": "Verify with authenticator",
     "setUpTotp": "Set up an authenticator app in Security first.",
     "toSecurity": "Open Security",
-    "search": "Search by email or UID",
-    "users": "Users",
-    "noUsers": "No users found.",
-    "selectUser": "Select a user to adjust a balance.",
-    "adjustTitle": "Adjust virtual balance",
-    "wallet": "Wallet",
-    "credit": "Credit",
-    "debit": "Debit",
-    "amount": "Amount (USD)",
-    "reason": "Reason (kept in the audit log)",
-    "submit": "Apply adjustment",
-    "sending": "Applying…",
-    "done": "Applied {amount} USD to {wallet}.",
-    "balances": "Balances"
+    "sections": {
+      "search": "User Search",
+      "topUp": "Top-Up",
+      "restrictions": "Restrictions",
+      "optionPeriods": "Option periods",
+      "auditLog": "Audit Log"
+    },
+    "active": "Active",
+    "suspended": "Suspended",
+    "uid": "UID {uid}",
+    "loadError": "Could not load this. Try again.",
+    "search": {
+      "description": "Search users by email or UID. View wallet balances and account status.",
+      "label": "Search users",
+      "placeholder": "Search by email or UID",
+      "submit": "Search",
+      "all": "All",
+      "noUsers": "No users found.",
+      "back": "Back to results",
+      "balances": "Balances",
+      "recentBills": "Recent Bills",
+      "noBills": "No Bills yet.",
+      "topUp": "Top-Up",
+      "restrictions": "Restrictions",
+      "since": "Suspended since {date}",
+      "reason": "Reason: {reason}"
+    },
+    "topUp": {
+      "description": "Credit or debit a user's virtual balance. Every change is written to the audit log.",
+      "pickUser": "Search for a user to continue.",
+      "change": "Change user",
+      "credit": "Credit",
+      "debit": "Debit",
+      "wallet": "Wallet",
+      "amount": "Amount (USD)",
+      "reason": "Reason (kept in the audit log)",
+      "submit": "Apply",
+      "sending": "Applying…",
+      "done": "Applied {amount} USD to {wallet}. New balance: {balance} USD.",
+      "balances": "Balances"
+    },
+    "restrictions": {
+      "description": "Suspend or unsuspend an account. A suspended user cannot place orders, open options or transfer. Admins can still credit the account.",
+      "pickUser": "Search for a user to continue.",
+      "change": "Change user",
+      "status": "Status",
+      "since": "Since {date}",
+      "reasonLabel": "Reason",
+      "noReason": "No reason recorded",
+      "reasonField": "Reason (3 to 200 characters to suspend)",
+      "suspend": "Suspend account",
+      "unsuspend": "Unsuspend account",
+      "sending": "Saving…",
+      "doneSuspended": "{email} is now suspended.",
+      "doneActive": "{email} is now active."
+    },
+    "optionPeriods": {
+      "description": "Profit rate, fee and minimum premium for each option period. Open positions keep the rate they opened with.",
+      "period": "{seconds} s",
+      "profitRate": "Profit rate (%)",
+      "fee": "Fee (%)",
+      "minPremium": "Minimum premium (USD)",
+      "enabled": "Enabled",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "errors": {
+        "profitRate": "Enter a profit rate from 0 to 1000 with up to 2 decimals.",
+        "fee": "Enter a fee from 0 to 10 with up to 2 decimals.",
+        "minPremium": "Enter a minimum premium above 0.",
+        "enabledNeedsRate": "A period needs a profit rate above 0 to be enabled."
+      }
+    },
+    "auditLog": {
+      "description": "Admin actions, newest first.",
+      "filter": "Action",
+      "all": "All actions",
+      "empty": "No audit entries.",
+      "limit": "Showing the latest {count} entries.",
+      "admin": "Admin",
+      "target": "User",
+      "deletedUser": "Deleted user",
+      "actions": {
+        "adjust_balance": "Balance adjustment",
+        "suspend": "Suspension",
+        "unsuspend": "Unsuspension",
+        "set_option_period": "Option period change"
+      },
+      "summary": {
+        "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
+        "debit": "Debited {amount} USD from {wallet}. Reason: {reason}",
+        "reason": "Reason: {reason}",
+        "noReason": "No reason given.",
+        "period": "{seconds} s, profit {rate}, fee {fee}, minimum {min} USD, {state}",
+        "enabled": "enabled",
+        "disabled": "disabled"
+      }
+    }
   },
   "Market": {
     "title": "Market",

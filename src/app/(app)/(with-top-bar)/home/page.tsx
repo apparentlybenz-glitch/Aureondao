@@ -17,11 +17,12 @@ import {
 import { useTranslations } from "next-intl";
 import { MarketTable } from "@/components/market/market-table";
 import { formatCents } from "@/lib/money";
+import { useSuspension } from "@/lib/suspension";
 import { totalCents, useWallets } from "@/lib/wallets";
 
 // Tiles without an href are not built yet (or have only a placeholder page); they show "Soon".
 const ACTIONS = [
-  { key: "deposit", Icon: ArrowDownToLine },
+  { key: "deposit", Icon: ArrowDownToLine, href: "/assets/deposit" },
   { key: "options", Icon: Timer, href: "/options" },
   { key: "forex", Icon: Coins },
   { key: "perpetual", Icon: InfinityIcon },
@@ -36,10 +37,18 @@ export default function HomePage() {
   const c = useTranslations("Common");
   const w = useTranslations("Wallets");
   const { wallets } = useWallets();
+  const suspension = useSuspension();
   const [hidden, setHidden] = useState(false);
 
   return (
     <div className="space-y-6">
+      {suspension?.suspended ? (
+        <div role="alert" className="space-y-1 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <p className="font-medium">{t("suspended")}</p>
+          {suspension.reason ? <p className="text-muted-foreground">{suspension.reason}</p> : null}
+        </div>
+      ) : null}
+
       <section className="space-y-1">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {t("totalLabel")}

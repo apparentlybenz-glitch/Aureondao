@@ -20,6 +20,7 @@ export const RPC_ERROR_CODES = [
   "PERIOD_NOT_FOUND",
   "PERIOD_DISABLED",
   "BELOW_MIN_PREMIUM",
+  "ACCOUNT_SUSPENDED",
 ] as const;
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number];
 
