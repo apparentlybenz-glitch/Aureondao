@@ -14,9 +14,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Base for Open Graph image URLs. Used only when NEXT_PUBLIC_SITE_URL is set and
+// is a valid URL; otherwise it stays unset.
+function siteUrl(): URL | undefined {
+  const value = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!value) return undefined;
+  try {
+    return new URL(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
   return {
+    metadataBase: siteUrl(),
     title: t("title"),
     description: t("description"),
     appleWebApp: { capable: true, title: t("title"), statusBarStyle: "black" },

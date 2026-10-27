@@ -298,7 +298,7 @@ Motion: use `motion/react` with `LazyMotion` + `domAnimation` and the `m.*` comp
 - **Described:** specified in the brief's text only; the layout is our interpretation.
 - **Designed:** neither; we designed it.
 
-Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its practice-account shortcut tile (wording rule).
+Reference-only elements are **never copied**: the reference logo, the mascot/robot illustration, the colors' exact values, and its shortcut tile for the other account type (wording rule).
 
 #### App shell: Captured
 - **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is `primary` (brand green) with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
@@ -365,7 +365,7 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Screen | Path | Evidence |
 |---|---|---|
 | App shell (top bar, bottom tab bar) | every (app) page | Captured |
-| Public root (placeholder; sends signed-in visitors to `/home`) | `/` | Designed |
+| Landing page (public; signed-in visitors are redirected to `/home` by the proxy) | `/` | Designed (slice 9, §4.13) |
 | Home (total, hide-eye, quick actions) | `/home` | Captured (the market table is in §4.11) |
 | Assets hub | `/assets` | Described |
 | Transfer | `/assets/transfer` | Designed |
@@ -382,7 +382,7 @@ Assumptions (Described and Designed screens, plus choices inside the Captured on
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
 - **Admin:** the page gate reads the `user_role` and `aal` claims. Not admin: a short notice. Admin at aal1 with a TOTP factor: a step-up prompt to `/sign-in/mfa?next=/admin`; without a factor: a link to Security. Search by email substring or exact 8-digit UID; newest 50 users. The form takes wallet, Credit/Debit, amount and a reason (3 to 200 characters, kept in the audit log only). The proxy does not check the role: RLS and the RPC are the boundary.
-- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static, outside the proxy; a client check of the local session sends signed-in visitors to `/home`. Sign-in lands on `/home`.
+- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13). Sign-in lands on `/home`.
 
 ## 5. Data sources per component
 
@@ -490,7 +490,7 @@ Sources: OpenNext Cloudflare docs <https://opennext.js.org/cloudflare> (repo `op
 | Server Actions | ✅. Default body limit is **1 MB** (`serverActions.bodySizeLimit`). 1.20.13 fixed action redirects to use the request host. | Only the few secret-holding admin actions (§5.4). Never send uploads through them; KYC files go browser → Storage directly. |
 | `after()` | ✅ ("Support for after"). Maps to `ctx.waitUntil` | Optional, e.g. audit/Sentry flush in server actions. Not needed by the UI. |
 | Turbopack builds | ✅ (docs). The changelog shows ongoing Turbopack-chunk patches for 16.3 (#1359) | Use Turbopack (the scaffold does). If a "Failed to load chunk" error appears, upgrade the adapter or fall back to `next build --webpack` (troubleshooting.mdx). |
-| `instrumentation.ts` (Sentry server) | Works in the server function; the Node proxy bundle has the instrumentation loader stubbed (#1359), so **Sentry does not auto-instrument `proxy.ts`**. | `instrumentation.ts` with `@sentry/nextjs` `register()`; `instrumentation-client.ts` for the browser. Follow Sentry's "Deploying on Cloudflare" guide (<https://docs.sentry.io/platforms/javascript/guides/nextjs/best-practices/deploying-on-cloudflare>): `nodejs_compat` is required and the compatibility date must be recent (already `2026-10-15`). Treat server-side tracing as best-effort; earlier reports showed flush/`waitUntil` gaps (getsentry/sentry-javascript PR #18330). Do **not** enable Sentry `tunnelRoute`, which would route every browser event through the Worker; send events directly to Sentry ingest. Upload source maps at build (`@sentry/wizard -i sourcemaps`). |
+| `instrumentation.ts` (Sentry server) | Works in the server function; the Node proxy bundle has the instrumentation loader stubbed (#1359), so **Sentry does not auto-instrument `proxy.ts`**. | `instrumentation.ts` with `@sentry/nextjs` `register()`; `instrumentation-client.ts` for the browser. Follow Sentry's "Deploying on Cloudflare" guide: `nodejs_compat` is required and the compatibility date must be recent (already `2026-10-15`). Treat server-side tracing as best-effort; earlier reports showed flush/`waitUntil` gaps (getsentry/sentry-javascript PR #18330). Do **not** enable Sentry `tunnelRoute`, which would route every browser event through the Worker; send events directly to Sentry ingest. Upload source maps at build (`@sentry/wizard -i sourcemaps`). |
 | `not-found.tsx`, `error.tsx`, `global-error.tsx`, `loading.tsx` | ✅ | Used. |
 | `generateMetadata` reading request data | Would force SSR | Use static `export const metadata`. |
 | `cookies()` / `headers()` in pages/layouts | Works, but makes the route dynamic (SSR per hit) | Banned in pages/layouts (`dynamic = 'error'`). Used only in route handlers and server actions. |
@@ -551,8 +551,8 @@ Sources: OpenNext Cloudflare docs <https://opennext.js.org/cloudflare> (repo `op
 | | | C. Persist drawings in Supabase (`chart_drawings` table) instead of localStorage | Syncs across devices | One more table plus RLS; write traffic on every edit |
 | D6 | Forex order mechanics | **A. Same as spot (buy/sell base against quote in the Forex wallet) (recommended for v1)** | Reuses SpotOrderForm + `place_order` RPC | Not "real" FX (no leverage or margin) |
 | | | B. Margin positions with leverage, SL/TP | Realistic | New data model, liquidation engine and UI; out of v1 scope |
-| D7 | KYC gating | **A. Require KYC=approved for withdrawals only (recommended)** | Low friction for practice | Users may deposit before verifying |
-| | | B. Require KYC before any trading | Strict | Blocks onboarding in a practice product |
+| D7 | KYC gating | **A. Require KYC=approved for withdrawals only (recommended)** | Low friction for a virtual-funds product | Users may deposit before verifying |
+| | | B. Require KYC before any trading | Strict | Blocks onboarding in a virtual-funds product |
 | D8 | Profit chart source | **A. `portfolio_snapshots` from an hourly pg_cron job valued with server-side prices (recommended)** | Cheap reads; consistent history | Needs a server-side price source (see conflicts) |
 | | | B. Compute from the ledger on the client | No cron | Can't value historical holdings without historical prices |
 | D9 | Admin auth-level operations (ban, reset MFA) | **A. A few server actions with `SUPABASE_SECRET_KEY` (recommended)** | Small surface; the secret stays in a Worker secret | One secret-holding code path to audit |
@@ -656,6 +656,31 @@ Assumptions:
 - **Errors:** PRICE_STALE "Prices are refreshing. Try again in a few seconds."; not enough USD or coin in plain words; below the minimum shows the minimum in USD; too many decimals shows the allowed decimals; IDEMPOTENCY_CONFLICT asks to check the orders and try again; a lost connection keeps the key and says pressing confirm again is safe.
 - **Empty Spot wallet:** a one-line hint with a link to Transfer.
 - **Stats strip:** under the header, 24h High, 24h Low and 24h quote volume (compact, display only) from the ticker.
-- **Book:** a Both / Bids / Asks toggle (Both: 10 asks, the mid price of the best bid and ask, 10 bids; one side: 20 levels). Each row has a depth bar sized by cumulative quantity from the best price, scaled to the largest shown total. No precision grouping; price in red/green, amount rounded to the market's quantity decimals. **Trades:** newest 30, time (24 h), price colored by the taker side, amount. Both carry the note "Live market depth. Practice orders fill at the quoted price and do not enter this book." and show "unavailable" when Vision fails.
+- **Book:** a Both / Bids / Asks toggle (Both: 10 asks, the mid price of the best bid and ask, 10 bids; one side: 20 levels). Each row has a depth bar sized by cumulative quantity from the best price, scaled to the largest shown total. No precision grouping; price in red/green, amount rounded to the market's quantity decimals. **Trades:** newest 30, time (24 h), price colored by the taker side, amount. Both carry the note "Live market depth. Orders fill at the quoted price and do not enter this book." and show "unavailable" when Vision fails.
 - **Orders tab:** two chips, Order history (newest 50 orders across all markets: side, pair, Market, Filled, quantity, price, cost or proceeds, fee, realized PnL on sells, local time) and Holdings (coins with a balance above zero: quantity and cost basis). No pagination yet. The lists reload when the Spot wallet changes (Realtime) and after each fill.
 - **Picker:** a bottom sheet (Radix Dialog) holding the Market tab table: search, Optional / Popular / Gainer / Down, stars, live Sell / Buy / Change. A row tap switches the terminal and closes the sheet.
+
+### 4.13 Slice 9 screens as shipped (landing page and the `/home` move)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Landing page | `/` | Designed |
+
+There is no capture for this screen. The Sterling Capital screenshots the owner attached were layout ideas only; nothing is copied from them and the page must never be described as matching any reference.
+
+Routing: the landing page is `/` in the `(landing)` route group (no tab bar, no top bar). The app Home is `/home`; it was already there from slice 2, so the move changed no code. The proxy matcher now includes `/`: no auth cookie passes straight through; a valid token (local `getClaims()`) redirects to `/home`; a bad token or error shows the landing page. The manifest `start_url` is `/home`. The auth layout logo still links to `/`, which is the landing page.
+
+Sections, top to bottom, at 390 px (stacked) with `md:` and `xl:` enhancements:
+1. **Nav:** mark (small variant) and wordmark left; "Log in" (ghost) and "Create account" (brand green) right, linking to `/sign-in` and `/sign-up`.
+2. **Price strip:** BTC, ETH, SOL with display name, pair, last price and 24 h change (`up` / `down` tokens), read from the shared market store (`useMarketData`). Shows `--` while loading, when a ticker is missing or when it is delayed (older than 60 s). Scrolls horizontally on mobile, centered from `md:`; no page overflow.
+3. **Hero:** headline, subtext, "Create account" and "Log in" buttons; two columns from `md:`. The visual is the full mark with SVG orbit rings and a soft brand-green radial glow in CSS.
+4. **Feature cards:** Spot, Options, Assets; one column, three from `md:`.
+5. **How virtual balances work:** three numbered statements.
+6. **Footer:** mark, tagline, a Markets column (Spot, Options, Assets; signed-out visitors get the normal sign-in redirect), one disclosure line, "© 2026 AureonX". Bottom padding adds `env(safe-area-inset-bottom)`.
+
+Assumptions:
+- **Content rule:** the page claims no regulation, licence, insurance, partner, backer or investor, shows no statistic, balance or P&L, and says nothing about real deposits, withdrawals or real money. The only numbers are live prices.
+- **Prices:** browser-direct through the existing market store, so the page itself is static HTML that never varies by user. Price display names come from `en.json`.
+- **Glow:** the brand rules forbid glows on the mark. The glow is a separate backdrop element behind it (owner request); the mark is drawn unchanged.
+- **Mark variants:** the small mark (below 48 px) in the nav and footer, the full mark in the hero.
+- **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` comes from `NEXT_PUBLIC_SITE_URL` when it is set and valid; without it Open Graph image URLs resolve against `http://localhost:3000` (true of every page).

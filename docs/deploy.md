@@ -49,6 +49,7 @@ Set these under Worker → **Settings → Build → Variables and secrets**. The
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | **yes** | no | The `sb_publishable_...` key. Public by design; RLS protects the data. |
 | `NODE_VERSION` | recommended | no | `22` (the version the build was verified on). |
 | `PNPM_VERSION` | recommended | no | `10.28.0` (matches `packageManager` in `package.json`). |
+| `NEXT_PUBLIC_SITE_URL` | optional | no | The production origin, for example `https://aureonx.example`. Set it in the Cloudflare Workers Builds variables for production. It becomes `metadataBase`, so Open Graph image URLs are absolute. Unset or invalid: `metadataBase` stays unset and they resolve against `http://localhost:3000`. |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | no | Browser Sentry DSN. Without it, browser Sentry stays off. |
 | `SENTRY_ORG` | optional | no | Source-map upload only. |
 | `SENTRY_PROJECT` | optional | no | Source-map upload only. |
