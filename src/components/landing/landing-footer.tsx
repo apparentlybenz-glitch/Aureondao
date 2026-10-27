@@ -13,7 +13,7 @@ export function LandingFooter() {
   const t = useTranslations("Landing.footer");
   return (
     <footer className="mt-auto border-t">
-      <div className="mx-auto max-w-6xl space-y-8 px-4 pt-10 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="mx-auto max-w-6xl space-y-8 px-4 pt-10 pb-[calc(1.5rem+var(--safe-b))]">
         <div className="grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
