@@ -721,3 +721,25 @@ Admin assumptions:
 - **Option periods:** one card per period (30, 60, 90, 120, 300 s) with profit rate (%), fee (%), minimum premium (USD) and an Enabled switch; Save per period (enabled once something changed and the values are valid). Field errors mirror what `admin_set_option_period` refuses (profit 0 to 1000 %, fee 0 to 10 %, up to 2 decimals, minimum above 0, no enabling at a 0 % profit rate); other failures show the mapped RPC message. The list is live (Realtime), as the Options screen's.
 - **Audit Log:** `admin_audit_log` newest first, the latest 100, filter by action (balance adjustment, suspension, unsuspension, option period change). Each row: action, time, a one-line summary from the payload (text from `en.json`), the admin's email and the target user's email ("Deleted user" when the account was removed; option period rows have no target). Amounts come from jsonb numbers, which stay inside the safe integer range because adjustments are capped at 100000000000 cents.
 - **Suspended users:** Home shows a banner "Your account is suspended. Trading and transfers are paused." with the reason on a second line. Spot, Options and Transfer show the same sentence when their call returns `ACCOUNT_SUSPENDED`.
+
+### 4.16 Slice 8 screens as shipped (Verification, KYC Review)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Verification (status card) | `/account/verification` | Designed |
+| Verification flow (4 steps) | `/account/verification/submit` | Designed |
+| Admin: KYC Review | `/admin/kyc` | Designed |
+
+The owner attached KYC captures and a reference verification screenshot as layout ideas only. These are Designed screens: nothing is copied from them, the reference's name, logo and wording are not used, and none of the screens may be described as matching any reference. This slice supersedes §4.5's KYC stepper (no selfie, no front/back, no address) and §4.6's KYC queue wording. KYC gates nothing.
+
+Account assumptions:
+- **Tabs:** `/account` has a layout with three tabs, Profile, Verification and Security (underline on the active one, brand green). The tabs show only on those three routes; the flow route hides them.
+- **Profile:** Country is read only and shows the country of the latest submission (any status) by its English name, or `--`. The Identity verification row shows the status badge and links to Verification. The editable form keeps Nickname and Phone (`update_profile(p_nickname, p_phone)`). The old Security text link is gone (the tab replaces it).
+- **Status card:** title "Identity verification", a badge (Not verified grey, Pending review amber, Verified green, Rejected red), one status line, a four-stop stepper (Country & ID, Personal info, Documents, Review: none done when not started, all four done otherwise), the rejection reason in a red box when rejected, "Submitted <date>" when a submission exists, and one button: Start (not started), Update (verified), Resubmit (rejected), none while pending. The not-started status line, "Verify your identity in four short steps.", is ours; the other three are the owner's.
+- **Flow:** one step per screen in a card at most 480 px wide, a back link to the card and a compact stepper ("Step N of 4 · <step>", dots only). Step 1: a native country select (249 ISO codes from `src/lib/countries.ts`, names from `Intl.DisplayNames`, sorted by name) and three document-type radio cards. Step 2: full legal name, date of birth (native date input, max 18 years back), city. Step 3: the amber line "Upload a sample image only. Never upload a real ID document." above a dashed picker with the preview; JPEG, PNG or WebP up to 5 MB, checked on pick. Step 4: three groups (each with Edit back to its step) and the photo, then Submit. Continue is disabled until the step is valid.
+- **Submit:** one idempotency key per attempt (fields plus the file's name, size and modified time). The photo uploads on Submit to `{user_id}/{key}.{ext}`; `KeyAlreadyExists` on a retry counts as uploaded. Then `submit_kyc` with the same key. Success returns to the card (pending). Errors map to `Kyc.errors` (`useKycMessage`, falling back to `Errors`). A pending submission sends the flow route back to the card.
+
+KYC Review assumptions:
+- **Sidebar:** "KYC Review" sits after Restrictions (icon `IdCard`), in the sidebar and the drawer.
+- **List:** `kyc_submissions` (admin RLS), pending first (enum order), then newest; latest 100; a Status filter (All, Pending review, Verified, Rejected). Each row: email, country · document type, submitted time, badge.
+- **Detail:** email and UID, the badge, the text fields, submitted and decided times, the rejection reason, and the photo through a 60-second signed URL created when the detail opens (one line says so). Pending only: a reason field (3 to 200 characters, required to reject), Reject (red) and Approve. Success shows a line and reloads the list. Approve and reject write `kyc_approve` / `kyc_reject` audit rows; the Audit Log filter lists both.
