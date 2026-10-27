@@ -176,12 +176,11 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 ## Conventions
 
 - Market ids look like `BTC-USDT`. Display them as `BTC/USDT`.
-- Git author for every commit: `apparentlybenz-glitch <apparentlybenz@gmail.com>`.
+- Claude Code commits are authored as `Claude <noreply@anthropic.com>` with the trailer `Co-authored-by: apparentlybenz-glitch <apparentlybenz@gmail.com>`. The owner merges on GitHub; agents never merge.
 - `AGENTS.md` is written by `next dev`. Keep it committed.
 - Wording: funds are **virtual funds** / a **virtual balance**. Never describe the funds or the platform as a trial or imitation version anywhere: files, UI copy, comments, docs and commit messages. The banned words are simulated, demo and practice, plus the others listed in the Phase 2 brief. This line is the only place they may appear.
 - User-facing strings go in `messages/en.json`, never hard-coded.
 - Mobile first: build every screen at 390 px first; `md:` and `xl:` add the tablet and desktop layouts.
-- Merge commits (and every other commit) use the author override: `git -c user.name=apparentlybenz-glitch -c user.email=apparentlybenz@gmail.com merge ...`. Never rely on the sandbox's default git identity.
 - Every scrollable page reserves bottom padding equal to the tab bar height plus the safe-area inset. Use the variables in `globals.css`, never raw `env()` or a hard-coded 56 px: `--safe-t`, `--safe-b`, `--tab-bar-h`, `--tab-bar-overhang`, `--top-bar-h`, and the `pb-tabbar` utility (tab bar + raised Trade button + 0.5 rem + `--safe-b`). The viewport sets `viewportFit: "cover"`. Spot and Options have no top bar, so their headers add `var(--safe-t)` to the top padding.
 
 ## Working rules
