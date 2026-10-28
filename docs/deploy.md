@@ -88,14 +88,53 @@ Why these two paths:
 
 If a redirect URL is not on the list, Supabase falls back to the Site URL.
 
-**Known limitation (open decision from the slice 1 report).** Custom email templates need custom SMTP, which is not configured. So the confirmation and reset emails use the default `{{ .ConfirmationURL }}` link:
-- Supabase verifies the email, then redirects to `/auth/confirm?code=…`.
-- `/auth/confirm` only accepts `token_hash`, so the user lands on `/sign-in` with "This link is invalid or has expired".
-- The address **is** confirmed at that point, so signing in works.
+### 3.1 Auth emails (Resend over custom SMTP)
 
-The fix is either custom SMTP with `token_hash` templates, or routing these links through `/auth/callback`. That is the owner's call.
+Auth emails go through Resend over Supabase custom SMTP. SMTP and templates are Dashboard-only (**Authentication → Emails**): the Management API token has no `auth_config_write`.
 
-The default mailer also sends only to members of the Supabase organization's team, and only 2 emails per hour.
+SMTP settings:
+- Host: `smtp.resend.com`. Port: `465`.
+- Username: the literal string `resend`.
+- Password: a Resend API key. It lives only in the Dashboard; never put it in the repo, the docs or a Worker variable.
+- Sender address: on a domain verified in Resend (`aureonx.app`).
+- After custom SMTP is enabled Supabase's default rate limit is **30 emails per hour**; adjust it under **Authentication → Rate Limits**.
+
+Both templates link to `/auth/confirm` with a `token_hash`, never the default `{{ .ConfirmationURL }}`. **Confirm signup**:
+
+```html
+<h2>Confirm your email</h2>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirm your email address</a></p>
+```
+
+**Reset password**:
+
+```html
+<h2>Reset your password</h2>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Reset your password</a></p>
+```
+
+Behavior:
+- `/auth/confirm` runs `verifyOtp({ type, token_hash })` and sets the session. `type=email` lands signed in at `/home`; `type=recovery` lands at `/update-password`.
+- The links use `{{ .SiteURL }}`, so the Site URL must be the app's real origin and `/auth/confirm` must be on the redirect allow-list. Changing a template or the Site URL can break the flow.
+- Confirm email stays on. Sign-up confirmation is verified live. Password reset is not yet tested live.
+- Invites are unsupported: a Dashboard invite creates a user with no password. Create users with a password through **Authentication → Users → Add user**.
+
+### 3.2 Moving the app to `aureonx.app`
+
+Not done yet. When the owner moves the app, change these (nothing below has been changed):
+
+Dashboard items, in this order:
+1. Cloudflare: attach `aureonx.app` as a custom domain on the `aureonx` Worker (Settings → Domains & Routes) and confirm it serves the app before changing anything else.
+2. Supabase **Redirect URLs**: add `<new origin>/auth/confirm` and `<new origin>/auth/callback` (keep the old ones until old email links expire; the preview wildcard if used).
+3. Supabase **Site URL**: the new origin. The templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
+4. Workers Builds variable `NEXT_PUBLIC_SITE_URL`: the new origin, last. It is a build variable (it sets `metadataBase`), so rebuild and redeploy after changing it.
+
+Sessions on the old host end: cookies belong to the host, so users sign in again on the new one.
+
+Repo places that name the workers.dev host (a grep finds no code that hard-codes it; update the docs):
+- `docs/deploy.md`: the subdomain note and production URL (top of the file), §3 Site URL and redirect URLs, §4 intro and the two `curl` lines, §5.2 step 2.
+- `CLAUDE.md`: the "Production host" line under Workers (the Supabase Auth Site URL).
+- `src/lib/market/md-server.ts` (comment), `docs/market-data.md` (§5 and the Cache API notes) and `CLAUDE.md` (the `/md/v1/tickers` bullet) describe the workers.dev limits; once a custom domain is attached, the planned move of those caches to the Cache API becomes possible.
 
 ---
 
@@ -109,22 +148,22 @@ Run this against `https://aureonx.<subdomain>.workers.dev` after the first produ
    - From a terminal: `curl -sI https://aureonx.<subdomain>.workers.dev/account`. Expect `307` and `location: …/sign-in?next=%2Faccount`.
    - `curl -sI https://aureonx.<subdomain>.workers.dev/` returns `200` with no redirect for a signed-out request (the proxy also runs on `/`, `/sign-in` and `/sign-up`, but only redirects a request that carries a valid login token to `/home`; with no auth cookie it passes straight through).
 2. **Sign up**
-   - On `/sign-up`, use an address that is a member of the Supabase organization's team (default mailer, see §3).
-   - Expect "Check your email". Open the link: you land on `/sign-in` with the invalid-link message (§3), and the address is now confirmed.
-   - If "Confirm email" is off, sign-up goes straight to `/account` instead.
+   - On `/sign-up`, use any address; mail is sent through Resend (§3.1).
+   - Expect "Check your email". Open the link from the Resend email: `/auth/confirm` verifies the address and you land signed in at `/home`.
+   - Confirm email stays on. If it were off, sign-up would go straight to `/home`.
    - In Supabase SQL, the new user has exactly 1 `profiles` row and 4 `wallets` rows at 0:
 
      ```sql
      select count(*) from public.wallets where user_id = (select id from auth.users where email = '<address>');
      ```
 3. **Sign in**
-   - `/sign-in` with that address leads to `/account`.
-   - The page shows the UID, the email, the KYC status "Not started" and the VIRTUAL FUNDS badge in the header.
+   - `/sign-in` with that address leads to `/home`.
+   - Open `/account`. The page shows the UID, the email, the KYC status "Not started" and the VIRTUAL FUNDS badge in the header.
    - Change the nickname and save. The button shows "Saved".
 4. **TOTP step-up**
    - `/account/security` → Authenticator app → **Set up**. Scan the QR code, enter the code, then **Verify and turn on**. The status shows "On".
    - **Sign out**, then sign in again. Expect a redirect to `/sign-in/mfa?next=…`.
-   - Enter a fresh code. Expect to land back on `/account`.
+   - Enter a fresh code. Expect to land back on `/home`.
    - A wrong code shows an error and stays on the MFA page.
 5. **Signed-out again**
    - After **Sign out**, opening `/account` redirects to `/sign-in?next=%2Faccount` (repeat step 1).

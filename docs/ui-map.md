@@ -15,7 +15,7 @@
 | R1 | Market data comes from the browser, through one shared store | All market widgets read from a single client `MarketDataProvider` (designed by the market-data agent). Components subscribe with `useTicker(symbol)`, `useOrderBook(symbol)`, `useTrades(symbol)` and `useCandles(symbol, tf)`. **No component calls fetch or opens a WebSocket for market data itself.** The provider dedupes by `(stream, symbol)` and reference-counts subscribers across components. A `BroadcastChannel` leader election shares one upstream connection across browser tabs (the provider owns this). |
 | R2 | User data is read from Supabase under RLS; live updates come from Realtime | Hooks call `supabase.from(...).select()` once on mount, then patch state from a Realtime subscription. Channel names are `${topic}:${crypto.randomUUID()}`, created per mount and removed on unmount. **No polling of any Next.js route.** |
 | R3 | Writes go through Supabase RPCs | Every mutation goes through `supabase.rpc('<name>', args)`. Server actions are used only where a secret is required (§5.3). |
-| R4 | The proxy covers protected routes only and verifies the JWT locally | See §1.3. `getClaims()` verifies an asymmetric JWT with WebCrypto against a JWKS it caches in memory for 10 minutes. It falls back to the network only when the token has expired (refresh), when the JWKS cache is cold, or when the project still uses HS256. |
+| R4 | The proxy covers the protected routes and the entry pages `/`, `/sign-in`, `/sign-up`, and verifies the JWT locally | See §1.3. `getClaims()` verifies an asymmetric JWT with WebCrypto against a JWKS it caches in memory for 10 minutes. It falls back to the network only when the token has expired (refresh), when the JWKS cache is cold, or when the project still uses HS256. |
 | R5 | Public pages are static, with no ISR | Marketing and auth pages are prerendered. App pages are also static shells that load their data in the browser. Only the auth callback route handlers and server actions run per request. `next/image` is set to `unoptimized` (already true in `next.config.ts`). |
 
 ---
@@ -89,14 +89,14 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 ### 1.3 Proxy / auth gate
 
-- **Matcher (protected only):** `['/spot', '/forex', '/options', '/assets/:path*', '/account/:path*', '/admin/:path*']`. Public pages, `/_next/*`, static assets and the auth routes never run the proxy.
+- **Matcher:** the protected pages (`/home`, `/account/:path*`, `/assets/:path*`, `/admin/:path*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`) plus the entry pages `/`, `/sign-in` and `/sign-up`. `/sign-in/mfa` is deliberately not matched. The shipped file is `src/proxy.ts`; CLAUDE.md is authoritative.
 - **Logic:**
   1. Create `createServerClient` (`@supabase/ssr`).
   2. Call `supabase.auth.getClaims()`.
-  3. If there are no claims, redirect to `/sign-in?next=<path>`.
-  4. For `/admin/*`, require `claims.user_role === 'admin'` (top-level claim set by the custom access token hook, `docs/data-model.md` §4.5) and redirect to `/spot` otherwise.
-  5. For `/admin/*`, also require `claims.aal === 'aal2'`, and redirect to `/sign-in/mfa` otherwise. Regular users who have enrolled factors are stepped up client-side: `(app)/layout` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The withdraw RPCs also check `auth.jwt()->>'aal' = 'aal2'` in SQL.
-  6. Return the `supabaseResponse` that carries the refreshed cookies and cache headers.
+  3. Protected page: with an error or no claims, redirect to `/sign-in?next=<path>`. Entry page: a request with no `sb-*-auth-token` cookie passes through; valid claims redirect to `/home` (the `next` parameter is dropped); an error or no claims falls through to the page.
+  4. **The proxy does not check the admin role or aal2.** The admin gate is the client `AdminShell` (UX only); RLS (`private.is_admin()`) and the admin RPCs enforce the live `user_roles` row and aal2.
+  5. Regular users who have enrolled factors are stepped up client-side: the `(app)` layout's `SessionGuard` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects to `/sign-in/mfa` when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The `user_role` claim is read only by that client gate.
+  6. Return the response that carries the refreshed cookies.
 - **Is it a network call?** In the common case, no. In `@supabase/auth-js@2.118.0`, `getClaims()` decodes the JWT, then calls `fetchJwk(kid)`. That function reads an in-memory `GLOBAL_JWKS` (TTL `JWKS_TTL = 10 min`) and fetches `/.well-known/jwks.json` only when the key is missing or stale. It then verifies with `crypto.subtle.verify`. It falls back to `getUser()` (a network call) only if `alg` is HS* (a legacy symmetric secret) or WebCrypto is missing. Separately, it refreshes the session first (a network call) if the access token is expired or about to expire, which happens once per token lifetime. To remove the cold-isolate JWKS fetch entirely, pass the project JWKS from an env var: `getClaims(undefined, { jwks: JSON.parse(env.SUPABASE_JWKS) })` ("this JSON Web Key Set is going to have precedence over the cached value"). The cost is redeploying when keys rotate; Supabase warns that long caching makes revocation harder.
   - Sources:
     - <https://supabase.com/docs/guides/auth/server-side/creating-a-client> ("On projects with asymmetric signing keys, the default for new projects, it verifies locally against a cached copy of the project's public keys.")
@@ -117,7 +117,7 @@ Legend:
 |---|---|---|---|---|---|
 | Homepage | `/` | (marketing) | S | -- | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, LiveMarketPreview (client island), CtaBand, SupportWidget, Footer |
 | Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | -- | LegalArticle (MDX or TSX), Footer |
-| Sign in | `/sign-in` | (auth) | S | -- (redirects to `/spot` client-side if a session exists) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
+| Sign in | `/sign-in` | (auth) | S | -- (the proxy redirects a signed-in user to `/home`) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
 | MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP via InputOTP, phone OTP, passkey) |
 | Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, country, nickname, terms checkbox, VirtualFundsNote) |
 | Forgot password | `/forgot-password` | (auth) | S | -- | ResetRequestForm |
