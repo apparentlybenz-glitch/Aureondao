@@ -76,6 +76,82 @@
     },
     "suspended": "Your account is suspended. Trading and transfers are paused."
   },
+  "Kyc": {
+    "title": "Identity verification",
+    "badge": {
+      "none": "Not verified",
+      "pending": "Pending review",
+      "approved": "Verified",
+      "rejected": "Rejected"
+    },
+    "status": {
+      "none": "Verify your identity in four short steps.",
+      "pending": "Your details are under review.",
+      "approved": "Your identity is verified.",
+      "rejected": "Your submission was not approved."
+    },
+    "reasonLabel": "Reason",
+    "submittedOn": "Submitted {date}",
+    "start": "Start",
+    "update": "Update",
+    "resubmit": "Resubmit",
+    "steps": {
+      "country": "Country & ID",
+      "personal": "Personal info",
+      "documents": "Documents",
+      "review": "Review"
+    },
+    "stepperLabel": "Verification steps",
+    "stepDone": "done",
+    "stepOf": "Step {step} of {total}",
+    "flowTitle": "Verify your identity",
+    "country": "Country or region of issue",
+    "countryPlaceholder": "Select a country",
+    "documentType": "Document type",
+    "documents": {
+      "passport": "Passport",
+      "national_id": "National ID card",
+      "drivers_license": "Driver's licence"
+    },
+    "fullName": "Full legal name",
+    "fullNameHint": "As shown on the document.",
+    "dateOfBirth": "Date of birth",
+    "city": "City",
+    "sampleOnly": "Upload a sample image only. Never upload a real ID document.",
+    "photoLabel": "Document photo",
+    "choosePhoto": "Choose a photo",
+    "replacePhoto": "Choose another photo",
+    "photoHint": "JPEG, PNG or WebP, up to 5 MB.",
+    "photoAlt": "The selected document photo",
+    "reviewIntro": "Check your details before you submit.",
+    "edit": "Edit",
+    "back": "Back",
+    "continue": "Continue",
+    "submit": "Submit",
+    "submitting": "Submitting…",
+    "invalid": {
+      "country": "Select a country.",
+      "fullName": "Enter 2 to 100 characters.",
+      "dateOfBirth": "Enter a date after 1900 at least 18 years ago.",
+      "city": "Enter a city of up to 80 characters.",
+      "photo": "Choose a photo to continue."
+    },
+    "errors": {
+      "KYC_PENDING": "You already have a submission under review.",
+      "KYC_INVALID_COUNTRY": "Select a country from the list.",
+      "KYC_INVALID_NAME": "Enter your full legal name (2 to 100 characters).",
+      "KYC_INVALID_DOB": "Enter a date of birth after 1900 and at least 18 years ago.",
+      "KYC_INVALID_CITY": "Enter a city of up to 80 characters.",
+      "KYC_PATH_INVALID": "The photo upload failed. Choose the photo again.",
+      "KYC_FILE_MISSING": "The photo did not finish uploading. Submit again.",
+      "KYC_NOT_FOUND": "This submission no longer exists.",
+      "KYC_NOT_PENDING": "This submission was already reviewed.",
+      "PROFILE_NOT_FOUND": "Your profile could not be found. Sign in again.",
+      "photoType": "Choose a JPEG, PNG or WebP image.",
+      "photoSize": "The photo must be 5 MB or smaller.",
+      "uploadFailed": "The photo could not be uploaded. Try again."
+    }
+  },
   "Common": {
     "virtualFundsBadge": "VIRTUAL FUNDS",
     "virtualFundsNote": "AureonX runs on virtual funds. No real money is deposited, traded or paid out.",
@@ -179,16 +255,16 @@
     "uid": "UID",
     "email": "Email",
     "phone": "Phone",
-    "country": "Country (2-letter code)",
-    "kycStatus": "Identity verification",
-    "kyc": {
-      "none": "Not started",
-      "pending": "Under review",
-      "approved": "Verified",
-      "rejected": "Rejected"
-    },
+    "country": "Country",
     "copyUid": "Copy UID",
-    "copied": "Copied"
+    "copied": "Copied",
+    "countryEmpty": "--",
+    "tabsLabel": "Account sections",
+    "tabs": {
+      "profile": "Profile",
+      "verification": "Verification",
+      "security": "Security"
+    }
   },
   "Security": {
     "title": "Security Center",
@@ -336,7 +412,8 @@
       "topUp": "Top-Up",
       "restrictions": "Restrictions",
       "optionPeriods": "Option periods",
-      "auditLog": "Audit Log"
+      "auditLog": "Audit Log",
+      "kyc": "KYC Review"
     },
     "active": "Active",
     "suspended": "Suspended",
@@ -417,7 +494,10 @@
         "adjust_balance": "Balance adjustment",
         "suspend": "Suspension",
         "unsuspend": "Unsuspension",
-        "set_option_period": "Option period change"
+        "set_option_period": "Option period change",
+        "kyc_approve": "KYC approval",
+        "kyc_reject": "KYC rejection",
+        "kyc_photo_view": "KYC photo view"
       },
       "summary": {
         "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
@@ -426,8 +506,30 @@
         "noReason": "No reason given.",
         "period": "{seconds} s, profit {rate}, fee {fee}, minimum {min} USD, {state}",
         "enabled": "enabled",
-        "disabled": "disabled"
+        "disabled": "disabled",
+        "kycApproved": "Identity submission approved.",
+        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}."
       }
+    },
+    "kyc": {
+      "description": "Identity submissions, pending first. Open one to review it.",
+      "filter": "Status",
+      "all": "All statuses",
+      "empty": "No submissions.",
+      "limit": "Showing the latest {count} submissions.",
+      "submitted": "Submitted {date}",
+      "submittedLabel": "Submitted",
+      "decidedLabel": "Decided",
+      "backToList": "Back to the list",
+      "photo": "Document photo",
+      "photoError": "The photo could not be loaded.",
+      "photoNote": "The photo link expires 60 seconds after this view opens.",
+      "reasonField": "Reason (3 to 200 characters to reject)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "sending": "Saving…",
+      "doneApproved": "{email} is now verified.",
+      "doneRejected": "{email} was not approved."
     }
   },
   "Market": {

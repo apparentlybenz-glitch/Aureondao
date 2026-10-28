@@ -55,7 +55,7 @@ Rules for every slice:
 - `proxy.ts`: matcher covers protected routes only, verifies with `getClaims()` (local JWT verification).
 - Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets at 0; no starting credit, see `docs/decisions.md` Part 1b), and the custom access token hook (`user_role` claim).
 - Auth: email confirmation through `verifyOtp({ token_hash, type })`, not PKCE; `emailRedirectTo` on sign-up.
-- `/account`: nickname, UID, email, phone, country, KYC status (read only).
+- `/account`: nickname, UID, email, phone (country and KYC status moved to the latest KYC submission in slice 8).
 - `/account/security`: TOTP enroll/verify, password change, email verification status. Passkeys (O9, deferred) and phone MFA (O8: profile field only) show as unavailable.
 - The "VIRTUAL FUNDS" header badge.
 
@@ -203,7 +203,7 @@ Rules for every slice:
 **Verify:**
 - User A cannot read user B's submission (RLS test).
 - No request carrying file bytes leaves the browser during KYC (network tab), and no storage bucket exists.
-- Approving sets `profiles.kyc_status` and unlocks withdrawals.
+- Approving sets the submission's status (slice 8 dropped `profiles.kyc_status`); KYC gates nothing.
 
 **Done when:** a user submits KYC, an admin approves or rejects it, and the status gates withdrawals.
 

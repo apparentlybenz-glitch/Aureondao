@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ACCOUNTS } from "@/lib/wallets";
 
 const LIMIT = 100;
-const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "set_option_period"] as const;
+const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view"] as const;
 type Action = (typeof ACTIONS)[number];
 
 type AuditRow = {
@@ -83,8 +83,13 @@ export default function AuditLogPage() {
         };
         return delta < BigInt(0) ? t("auditLog.summary.debit", values) : t("auditLog.summary.credit", values);
       }
+      case "kyc_approve":
+        return t("auditLog.summary.kycApproved");
+      case "kyc_photo_view":
+        return t("auditLog.summary.kycPhotoView", { count: num(p.photos) });
       case "suspend":
       case "unsuspend":
+      case "kyc_reject":
         return str(p.reason) ? t("auditLog.summary.reason", { reason: str(p.reason) }) : t("auditLog.summary.noReason");
       case "set_option_period":
         return t("auditLog.summary.period", {

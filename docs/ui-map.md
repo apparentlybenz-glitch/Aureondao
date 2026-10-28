@@ -134,7 +134,7 @@ Legend:
 | Withdraw fiat | `/assets/withdraw/fiat` | (app) | S+C | U + MFA + KYC approved | Stepper: Currency → BeneficiaryForm → Amount → Confirm |
 | Transfer | `/assets/transfer` | (app) | S+C | U | TransferForm (From wallet ⇄ To wallet swap button, asset, amount, Max), RecentTransfers |
 | Bills | `/assets/bills` | (app) | S+C | U | BillsFilters (wallet, type, asset, date range), BillsTable (keyset pagination), BillDetailSheet |
-| Profile | `/account` | (app) | S+C | U | ProfileCard (nickname editable, UID copy, email, phone, country, KycStatusBadge) |
+| Profile | `/account` | (app) | S+C | U | ProfileCard (nickname editable, UID copy, email, phone; country and KycStatusBadge from the latest KYC submission since slice 8) |
 | Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone; needs Supabase's paid Advanced MFA add-on, decisions.md O8), Email verification status, Change password; SecurityScore |
 | KYC | `/account/kyc` | (app) | S+C | U | KycStepper: Country → DocType → PersonalInfo → DocumentUpload (front/back) + Selfie → Review & submit; KycStatusPanel (pending/approved/rejected + reason) |
 | Admin dashboard | `/admin` | admin | S+C | A + MFA | QueueCountCards (pending deposits, withdrawals, KYC), RecentAuditList |
@@ -569,7 +569,7 @@ Sources: OpenNext Cloudflare docs <https://opennext.js.org/cloudflare> (repo `op
 > **Superseded at merge.** This list was the UI agent's request. The authoritative names and shapes are in `docs/data-model.md`, and its §12 maps each item below to what was adopted.
 
 Tables (all RLS; "public read" means readable by `anon` and `authenticated`):
-- `profiles(id uuid pk = auth.uid, uid_display text unique /* short numeric UID shown in UI */, nickname, email, phone, country, kyc_status enum('none','pending','approved','rejected'), role enum('user','admin'), created_at)`. Email/phone are mirrored from `auth.users` by trigger. `role` must also be copied to `app_metadata.role` (custom access token hook or admin RPC) so the proxy and `is_admin()` can read it from the JWT.
+- `profiles(id uuid pk = auth.uid, uid_display text unique /* short numeric UID shown in UI */, nickname, email, phone, country /* dropped in slice 8 */, kyc_status /* dropped in slice 8 */ enum('none','pending','approved','rejected'), role enum('user','admin'), created_at)`. Email/phone are mirrored from `auth.users` by trigger. `role` must also be copied to `app_metadata.role` (custom access token hook or admin RPC) so the proxy and `is_admin()` can read it from the JWT.
 - `wallets(user_id, wallet enum('capital','spot','forex','options'), asset text, available numeric, locked numeric, updated_at, pk(user_id, wallet, asset))`
 - `ledger_entries(id, user_id, wallet, asset, amount numeric /*signed*/, balance_after, kind enum('admin_credit','admin_debit','deposit','withdrawal','transfer_in','transfer_out','trade','fee','option_premium','option_payout','option_refund'), ref_table, ref_id, note, created_at)`. This feeds Bills.
 - `instruments(symbol pk /* 'BTC-USDT' */, category enum('spot','forex','options'), base, quote, price_precision, qty_precision, min_qty, min_notional, enabled, sort, provider_symbol)`. Public read.
@@ -721,3 +721,34 @@ Admin assumptions:
 - **Option periods:** one card per period (30, 60, 90, 120, 300 s) with profit rate (%), fee (%), minimum premium (USD) and an Enabled switch; Save per period (enabled once something changed and the values are valid). Field errors mirror what `admin_set_option_period` refuses (profit 0 to 1000 %, fee 0 to 10 %, up to 2 decimals, minimum above 0, no enabling at a 0 % profit rate); other failures show the mapped RPC message. The list is live (Realtime), as the Options screen's.
 - **Audit Log:** `admin_audit_log` newest first, the latest 100, filter by action (balance adjustment, suspension, unsuspension, option period change). Each row: action, time, a one-line summary from the payload (text from `en.json`), the admin's email and the target user's email ("Deleted user" when the account was removed; option period rows have no target). Amounts come from jsonb numbers, which stay inside the safe integer range because adjustments are capped at 100000000000 cents.
 - **Suspended users:** Home shows a banner "Your account is suspended. Trading and transfers are paused." with the reason on a second line. Spot, Options and Transfer show the same sentence when their call returns `ACCOUNT_SUSPENDED`.
+
+### 4.16 Slice 8 screens as shipped (Verification, KYC Review)
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Verification (status card) | `/account/verification` | Designed |
+| Verification flow (4 steps) | `/account/verification/submit` | Designed |
+| Admin: KYC Review | `/admin/kyc` | Designed |
+
+Desktop captures of Profile, Security Center and Identity Verification step 1 exist. The built screens are Designed and differ from them as listed under "Differences from the captures"; nothing is copied from them, the reference's name, logo and wording are not used, and no screen may be described as matching any reference.
+
+Account assumptions:
+- **Tabs:** `/account` has a layout with three tabs, Profile, Verification and Security (underline on the active one, brand green). The tabs show only on those three routes; the flow route hides them.
+- **Profile:** Country is read only and shows the country of the latest submission (any status) by its English name, or `--`. The Identity verification row shows the status badge and links to Verification. The editable form keeps Nickname and Phone (`update_profile(p_nickname, p_phone)`). The old Security text link is gone (the tab replaces it).
+- **Not started:** no `kyc_current` row means not started: badge "Not verified", status line "Verify your identity in four short steps.", no stepper stop done, and a Start button.
+- **Security:** unchanged from slice 1 apart from living under the Security tab: rows for email verification, authenticator app (enroll, verify, remove), password change, and passkeys and phone showing "Not available yet".
+- **Status card:** title "Identity verification", a badge (Not verified grey, Pending review amber, Verified green, Rejected red), one status line, a four-stop stepper (Country & ID, Personal info, Documents, Review: none done when not started, all four done otherwise), the rejection reason in a red box when rejected, "Submitted <date>" when a submission exists, and one button: Start (not started), Update (verified), Resubmit (rejected), none while pending. The not-started status line, "Verify your identity in four short steps.", is ours; the other three are the owner's.
+- **Flow:** one step per screen in a card at most 480 px wide, a back link to the card and a compact stepper ("Step N of 4 · <step>", dots only). Step 1: a native country select (249 ISO codes from `src/lib/countries.ts`, names from `Intl.DisplayNames`, sorted by name) and three document-type radio cards. Step 2: full legal name, date of birth (native date input, max 18 years back), city. Step 3: the amber line "Upload a sample image only. Never upload a real ID document." above a dashed picker with the preview; JPEG, PNG or WebP up to 5 MB, checked on pick. Step 4: three groups (each with Edit back to its step) and the photo, then Submit. Continue is disabled until the step is valid.
+- **Submit:** one idempotency key per attempt (fields plus the file's name, size and modified time). The photo uploads on Submit to `{user_id}/{key}.{ext}`; `KeyAlreadyExists` on a retry counts as uploaded. Then `submit_kyc` with the same key. Success returns to the card (pending). Errors map to `Kyc.errors` (`useKycMessage`, falling back to `Errors`). A pending submission sends the flow route back to the card.
+
+Differences from the captures (the tab set, the four-step flow with its dot stepper and the Security rows are described above):
+- Step 1 holds the country select and the document type cards together, with no numbered heading.
+- Step 1 has no info card about the process and no privacy note with a shield icon; the only notice is the sample-image warning on the photo step.
+- Profile is one block (UID with Copy, Email, Country, Identity verification) plus the Nickname and Phone form: no separate Account Info and KYC Details blocks, no Edit button, no Copy on Email or Phone.
+- The Identity verification row is a badge that links to Verification, not a "View Details" button.
+- Security rows do not each end in one outlined button: the password change is an inline form, the authenticator uses filled or red buttons, and email, passkeys and phone show status text only.
+
+KYC Review assumptions:
+- **Sidebar:** "KYC Review" sits after Restrictions (icon `IdCard`), in the sidebar and the drawer.
+- **List:** `kyc_submissions` (admin RLS), pending first (enum order), then newest; latest 100; a Status filter (All, Pending review, Verified, Rejected). Each row: email, country · document type, submitted time, badge.
+- **Detail:** email and UID, the badge, the text fields, submitted and decided times, the rejection reason, and the photo through a 60-second signed URL created when the detail opens (one line says so). Each open first calls `admin_log_kyc_photo_view`, which writes one `kyc_photo_view` audit row; if it fails no URL is created and the photo shows the error state. The list never calls it. The detail is in-page state, not a route, so no link prefetch can write a row. Pending only: a reason field (3 to 200 characters, required to reject), Reject (red) and Approve. Success shows a line and reloads the list. Approve and reject write `kyc_approve` / `kyc_reject` audit rows; the Audit Log filter lists both.
