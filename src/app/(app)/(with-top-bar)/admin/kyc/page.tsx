@@ -168,20 +168,25 @@ function ReviewDetail({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  // A fresh 60-second signed URL each time the detail opens. Storage RLS lets
-  // only an admin at aal2 sign another user's file.
+  // Each time the detail opens: one audit row (admin_log_kyc_photo_view), then a
+  // fresh 60-second signed URL. Fail closed: when the audit call fails, no URL is
+  // created. Storage RLS lets only an admin at aal2 sign another user's file.
   useEffect(() => {
     let active = true;
-    createClient()
-      .storage.from(KYC_BUCKET)
-      .createSignedUrl(submission.photo_path, SIGNED_URL_SECONDS)
-      .then(({ data, error }) => {
-        if (active) setPhoto(error ? null : data.signedUrl);
-      });
+    const supabase = createClient();
+    void (async () => {
+      const { error: auditError } = await supabase.rpc("admin_log_kyc_photo_view", { p_submission_id: submission.id });
+      if (auditError) {
+        if (active) setPhoto(null);
+        return;
+      }
+      const { data, error } = await supabase.storage.from(KYC_BUCKET).createSignedUrl(submission.photo_path, SIGNED_URL_SECONDS);
+      if (active) setPhoto(error ? null : data.signedUrl);
+    })();
     return () => {
       active = false;
     };
-  }, [submission.photo_path]);
+  }, [submission.id, submission.photo_path]);
 
   const trimmed = reason.trim();
   const canReject = !sending && trimmed.length >= 3 && trimmed.length <= 200;

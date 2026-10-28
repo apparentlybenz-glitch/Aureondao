@@ -496,7 +496,8 @@
         "unsuspend": "Unsuspension",
         "set_option_period": "Option period change",
         "kyc_approve": "KYC approval",
-        "kyc_reject": "KYC rejection"
+        "kyc_reject": "KYC rejection",
+        "kyc_photo_view": "KYC photo view"
       },
       "summary": {
         "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
@@ -506,7 +507,8 @@
         "period": "{seconds} s, profit {rate}, fee {fee}, minimum {min} USD, {state}",
         "enabled": "enabled",
         "disabled": "disabled",
-        "kycApproved": "Identity submission approved."
+        "kycApproved": "Identity submission approved.",
+        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}."
       }
     },
     "kyc": {

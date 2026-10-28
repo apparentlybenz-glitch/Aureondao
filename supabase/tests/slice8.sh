@@ -183,6 +183,18 @@ t8) echo "T8 signed URLs: an admin at aal2 can read any photo; a non-admin canno
     expect "C reads none of A's state" '"count":0' "$(user $C "select count(*) from public.kyc_current where user_id = '$A';")"
     expect "admin at aal1 reads no submissions" '"count":0' "$(as $B aal1 admin "select count(*) from public.kyc_submissions;")"
     expect "admin at aal2 reads A's submissions" '"count":3' "$(adm "select count(*) from public.kyc_submissions where user_id = '$A';")";;
+t10) echo "T10 admin_log_kyc_photo_view: one audit row per detail open; refused calls write nothing"
+    S=$(echo "select id from public.kyc_submissions where user_id = '$A' order by submitted_at limit 1;" | run | jq -r '.[0].id')
+    views() { echo "select count(*) n from public.admin_audit_log where action = 'kyc_photo_view' and target_id = '$S';" | run; }
+    expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select public.admin_log_kyc_photo_view('$S');")"
+    expect "admin at aal1 -> AAL2_REQUIRED" AAL2_REQUIRED "$(as $B aal1 admin "select public.admin_log_kyc_photo_view('$S');")"
+    expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select public.admin_log_kyc_photo_view('$S');")"
+    expect "unknown submission -> KYC_NOT_FOUND" KYC_NOT_FOUND "$(adm "select public.admin_log_kyc_photo_view('00000000-0000-4000-8000-000000000001');")"
+    expect "refused calls wrote nothing" '"n":0' "$(views)"
+    adm "select public.admin_log_kyc_photo_view('$S');" > /dev/null
+    expect "one detail open writes exactly one row" '"n":1' "$(views)"
+    expect "the row names the admin, the user, the submission and one photo" "\"admin_id\":\"$B\",\"target_user_id\":\"$A\",\"photos\":\"1\"" \
+      "$(echo "select admin_id, target_user_id, payload ->> 'photos' photos from public.admin_audit_log where action = 'kyc_photo_view' and target_id = '$S';" | run)";;
 t9) echo "T9 kyc-cleanup removes a deleted user's files and leaves other folders alone"
     expect "D uploads" '^200 ' "$(upload "$TD" "$D/$(key 91).png" "$TMP/a.png" image/png)"
     expect "D submits" '"status":"pending"' "$(submit $D "$(key 91)" "$D/$(key 91).png")"
@@ -215,7 +227,9 @@ select (select count(*) from auth.users where id in ($ALL)) users,
        (select count(*) from public.profiles where id in ($ALL)) profiles,
        (select count(*) from public.kyc_submissions where user_id in ($ALL)) submissions,
        (select count(*) from storage.objects where bucket_id = 'kyc-photos' and (storage.foldername(name))[1] in ($ALL)) files,
-       (select count(*) from public.admin_audit_log where client_request_id::text like '88888888-0000-4000-8000-%') audit_rows;
+       (select count(*) from public.admin_audit_log where client_request_id::text like '88888888-0000-4000-8000-%') audit_rows,
+       (select count(*) from public.admin_audit_log where action = 'kyc_photo_view' and target_id is not null
+          and not exists (select 1 from public.kyc_submissions k where k.id = target_id)) orphan_view_rows;
 SQL
 ;;
 *) echo "unknown step $1"; exit 1;;
@@ -234,7 +248,7 @@ trap 'restore; exit 130' INT
 trap 'restore; exit 143' TERM
 trap 'restore; exit 1' ERR
 
-steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7 t8 t9)
+steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7 t8 t10 t9)
 step setup
 for s in "${steps[@]}"; do step "$s"; echo; done
 echo "== $FAILS check(s) failed"
