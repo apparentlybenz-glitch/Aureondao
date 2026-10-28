@@ -72,10 +72,12 @@ select private.wallet_apply((select id from public.wallets where user_id='$A' an
 select user_id, account, available_cents from public.wallets where user_id = '$A' order by account;
 SQL
     job aureonx-price-tick false; job aureonx-options-void false;;
-t1) echo "T1 admin_set_suspension: FORBIDDEN, AAL2_REQUIRED and argument checks; nothing changes"
+t1) echo "T1 admin_set_suspension: FORBIDDEN and argument checks; nothing changes"
     K=$(key 1); LONG=$(printf 'x%.0s' $(seq 1 201))
     expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
-    expect "admin at aal1 -> AAL2_REQUIRED" AAL2_REQUIRED "$(as $B aal1 admin "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
+    expect "plain user at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 user "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
+    expect "admin claim without an admin row at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 admin "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
+    expect "admin at aal1 passes the gate (unknown user -> INVALID_ARGUMENT)" INVALID_ARGUMENT "$(as $B aal1 admin "select (public.admin_set_suspension('00000000-0000-4000-8000-000000000001', true, 'abuse review', '$K')).action;")"
     expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
     expect "suspend without a reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(adm "select (public.admin_set_suspension('$A', true, null, '$K')).action;")"
     expect "reason of 2 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(adm "select (public.admin_set_suspension('$A', true, 'ab', '$K')).action;")"
@@ -132,11 +134,12 @@ t6) echo "T6 after unsuspend all three money RPCs work again"
     expect "spot_market_order" '"side":"buy"' "$(user $A "select (public.spot_market_order('BTC-USDT','buy','0.001','$(key 61)')).side;")"
     expect "open_option" '"id"' "$(user $A "select public.open_option('BTC-USDT','rise',30,4900,'$(key 62)') id;")"
     expect "transfer_between_wallets" '"amount_cents":"?10000' "$(user $A "select (public.transfer_between_wallets('capital','spot',10000,'$(key 63)')).amount_cents;")";;
-t7) echo "T7 audit rows: written by every RPC call, readable by an admin at aal2 only"
+t7) echo "T7 audit rows: written by every RPC call, readable by an admin (aal1 or aal2)"
     expect "actions and admin on every row" '"actions":"adjust_balance,suspend,unsuspend","wrong_admin":0,"suspend_without_reason":0' "$(adm "select string_agg(distinct action, ',' order by action) actions, count(*) filter (where admin_id is distinct from '$B') wrong_admin,
       count(*) filter (where action = 'suspend' and payload ->> 'reason' is null) suspend_without_reason from public.admin_audit_log where target_user_id = '$A';")"
     expect "a plain user reads no audit rows" '"count":0' "$(user $A "select count(*) from public.admin_audit_log;")"
-    expect "an admin at aal1 reads no audit rows" '"count":0' "$(as $B aal1 admin "select count(*) from public.admin_audit_log;")"
+    expect "an admin at aal1 reads them too" '"count":[1-9]' "$(as $B aal1 admin "select count(*) from public.admin_audit_log;")"
+    expect "a plain user at aal1 reads none" '"count":0' "$(as $C aal1 user "select count(*) from public.admin_audit_log;")"
     expect "an admin at aal2 reads them" '"n":[1-9]' "$(adm "select count(*) n from public.admin_audit_log where target_user_id = '$A';")";;
 cleanup) job aureonx-price-tick true; job aureonx-options-void true; run <<SQL
 delete from public.admin_audit_log where admin_id in ('$A','$B','$C') or target_user_id in ('$A','$B','$C');
