@@ -8,6 +8,7 @@ import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 // AAL1 -> AAL2 step-up with the user's verified TOTP factor.
 export default function MfaPage() {
@@ -17,6 +18,7 @@ export default function MfaPage() {
   const authMessage = useAuthMessage();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const hydrated = useHydrated();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,7 +56,7 @@ export default function MfaPage() {
         required
       />
       <FormError message={error} />
-      <Button type="submit" className="h-10 w-full" disabled={pending}>
+      <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("mfaSubmit")}
       </Button>
     </form>

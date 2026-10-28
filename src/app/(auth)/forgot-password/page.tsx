@@ -6,6 +6,7 @@ import { Field, FormError } from "@/components/auth/field";
 import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function ForgotPasswordPage() {
   const t = useTranslations("Auth");
@@ -13,6 +14,7 @@ export default function ForgotPasswordPage() {
   const c = useTranslations("Common");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const hydrated = useHydrated();
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -37,7 +39,7 @@ export default function ForgotPasswordPage() {
       <h1 className="text-lg font-semibold">{t("forgotTitle")}</h1>
       <Field id="email" type="email" label={c("email")} autoComplete="email" required />
       <FormError message={error} />
-      <Button type="submit" className="h-10 w-full" disabled={pending}>
+      <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("forgotSubmit")}
       </Button>
     </form>
