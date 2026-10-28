@@ -12,8 +12,8 @@ import { createStaleCache } from "./stale-cache";
 import { MARKET_COLUMNS, ProviderError, toMarket } from "./types";
 import type { Market, MarketRow, Ticker } from "./types";
 
-// Caches live in this isolate's memory. The Cache API does nothing on a
-// workers.dev address, so each isolate keeps its own copy (docs/market-data.md §5).
+// Caches live in this isolate's memory, so each isolate keeps its own copy. The
+// Cache API would share them on the custom domain (docs/market-data.md §5).
 export const TICKERS_TTL_MS = 5_000;
 export const TICKERS_NEGATIVE_TTL_MS = 10_000;
 // When KuCoin fails, the last good response is still served for this long.
