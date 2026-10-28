@@ -3,10 +3,10 @@
 This guide covers deploying the app from GitHub with **Workers Builds** (Cloudflare's Git integration) into the new Cloudflare account. It describes the repo as of slice 1.
 
 Placeholders used below:
-- `<subdomain>`: the account's workers.dev subdomain (Workers & Pages → Overview → "Your subdomain"; you pick it on first use).
+- `<subdomain>`: the account's workers.dev subdomain (Workers & Pages → Overview → "Your subdomain"). It only matters for the fallback host.
 - `<ref>`: the Supabase project ref (the `SUPABASE_PROJECT_REF` value).
 
-The production URL is `https://aureonx.<subdomain>.workers.dev`. `aureonx` comes from `name` in `wrangler.jsonc`.
+Production is `https://aureonx.app` (a Worker custom domain attached in the Cloudflare dashboard, §3.2). The workers.dev address `https://aureonx.<subdomain>.workers.dev` is the fallback host and still serves during the transition. `aureonx` comes from `name` in `wrangler.jsonc`.
 
 **Never commit values.** Every value below goes into the Cloudflare or Supabase dashboard, not into the repo.
 
@@ -76,11 +76,12 @@ Set these under Worker → **Settings → Variables and secrets**.
 
 In Supabase → **Authentication → URL Configuration**:
 
-- **Site URL:** `https://aureonx.<subdomain>.workers.dev`
-- **Redirect URLs.** Add these and keep the existing localhost entries for local development:
-  - `https://aureonx.<subdomain>.workers.dev/auth/confirm`
-  - `https://aureonx.<subdomain>.workers.dev/auth/callback`
-  - Preview versions (optional, only if you sign in on preview URLs): `https://*-aureonx.<subdomain>.workers.dev/**`
+- **Site URL (primary):** `https://aureonx.app`
+- **Redirect URLs.** Keep the existing localhost entries for local development, and list:
+  - `https://aureonx.app/auth/confirm`
+  - `https://aureonx.app/auth/callback`
+  - Transition entries, which the owner removes after confirming the new host: the same two paths on `https://aureonx.<subdomain>.workers.dev`, and (optional, only if you sign in on preview URLs) `https://*-aureonx.<subdomain>.workers.dev/**`
+- Email links are built from the Site URL, so every confirmation and reset link opens on `aureonx.app` whichever host the user signed up on.
 
 Why these two paths:
 - Sign-up (`emailRedirectTo`) and password reset (`redirectTo`) send users to `<origin>/auth/confirm`.
@@ -121,32 +122,27 @@ Behavior:
 
 ### 3.2 Moving the app to `aureonx.app`
 
-Not done yet. When the owner moves the app, change these (nothing below has been changed):
+Done by hand in the dashboards. The final order was:
+1. Cloudflare: `aureonx.app` attached as a custom domain on the `aureonx` Worker (Settings → Domains & Routes), confirmed serving the app before anything else changed. **The custom domain lives in the dashboard only, never in `wrangler.jsonc`:** a `routes` or `custom_domain` entry there would be re-applied (or removed) by every deploy.
+2. Supabase **Redirect URLs**: `https://aureonx.app/auth/confirm` and `https://aureonx.app/auth/callback` added; the workers.dev entries stay as transition entries while that host is still in use and while old email links are valid.
+3. Supabase **Site URL**: `https://aureonx.app`. The templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
+4. Workers Builds variable `NEXT_PUBLIC_SITE_URL`: `https://aureonx.app`, last. It is a build variable (it sets `metadataBase`), so it needs a rebuild and redeploy to take effect.
 
-Dashboard items, in this order:
-1. Cloudflare: attach `aureonx.app` as a custom domain on the `aureonx` Worker (Settings → Domains & Routes) and confirm it serves the app before changing anything else.
-2. Supabase **Redirect URLs**: add `<new origin>/auth/confirm` and `<new origin>/auth/callback` (keep the old ones until old email links expire; the preview wildcard if used).
-3. Supabase **Site URL**: the new origin. The templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
-4. Workers Builds variable `NEXT_PUBLIC_SITE_URL`: the new origin, last. It is a build variable (it sets `metadataBase`), so rebuild and redeploy after changing it.
+Cookies belong to the host, so a session on the workers.dev host does not carry to `aureonx.app`: users sign in again after a move.
 
-Sessions on the old host end: cookies belong to the host, so users sign in again on the new one.
-
-Repo places that name the workers.dev host (a grep finds no code that hard-codes it; update the docs):
-- `docs/deploy.md`: the subdomain note and production URL (top of the file), §3 Site URL and redirect URLs, §4 intro and the two `curl` lines, §5.2 step 2.
-- `CLAUDE.md`: the "Production host" line under Workers (the Supabase Auth Site URL).
-- `src/lib/market/md-server.ts` (comment), `docs/market-data.md` (§5 and the Cache API notes) and `CLAUDE.md` (the `/md/v1/tickers` bullet) describe the workers.dev limits; once a custom domain is attached, the planned move of those caches to the Cache API becomes possible.
+The workers.dev host keeps serving as a fallback. Open item: the in-memory market caches (`src/lib/market/md-server.ts`, `docs/market-data.md` §5) can now move to the Cache API, which works on the custom domain.
 
 ---
 
 ## 4. Post-deploy checklist
 
-Run this against `https://aureonx.<subdomain>.workers.dev` after the first production deploy. Use a private window.
+Run this against `https://aureonx.app` after the first production deploy. Use a private window. The fallback host `https://aureonx.<subdomain>.workers.dev` answers the same checks while it serves, but confirmation and reset emails always open on `aureonx.app`.
 
 1. **Signed-out redirect**
    - Open `/account`. Expect to land on `/sign-in?next=%2Faccount`.
    - Repeat with `/account/security`.
-   - From a terminal: `curl -sI https://aureonx.<subdomain>.workers.dev/account`. Expect `307` and `location: …/sign-in?next=%2Faccount`.
-   - `curl -sI https://aureonx.<subdomain>.workers.dev/` returns `200` with no redirect for a signed-out request (the proxy also runs on `/`, `/sign-in` and `/sign-up`, but only redirects a request that carries a valid login token to `/home`; with no auth cookie it passes straight through).
+   - From a terminal: `curl -sI https://aureonx.app/account`. Expect `307` and `location: …/sign-in?next=%2Faccount`.
+   - `curl -sI https://aureonx.app/` returns `200` with no redirect for a signed-out request (the proxy also runs on `/`, `/sign-in` and `/sign-up`, but only redirects a request that carries a valid login token to `/home`; with no auth cookie it passes straight through).
 2. **Sign up**
    - On `/sign-up`, use any address; mail is sent through Resend (§3.1).
    - Expect "Check your email". Open the link from the Resend email: `/auth/confirm` verifies the address and you land signed in at `/home`.
@@ -190,7 +186,7 @@ Run this against `https://aureonx.<subdomain>.workers.dev` after the first produ
 
 Steps:
 1. Sign in on the production URL (§4 step 3). Signing in from a fresh browser keeps the access token far from expiry.
-2. Load `https://aureonx.<subdomain>.workers.dev/account` once. This request may be cold.
+2. Load `https://aureonx.app/account` once. This request may be cold.
 3. Within a minute, reload `/account` 3–5 more times.
 4. Open Observability → **Traces** and filter to the `aureonx` service and the last 15 minutes. Open the traces for `GET /account`.
 5. Expected:
