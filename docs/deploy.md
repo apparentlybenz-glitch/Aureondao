@@ -160,11 +160,13 @@ Run this against `https://aureonx.<subdomain>.workers.dev` after the first produ
    - `/sign-in` with that address leads to `/home`.
    - Open `/account`. The page shows the UID, the email, the KYC status "Not started" and the VIRTUAL FUNDS badge in the header.
    - Change the nickname and save. The button shows "Saved".
-4. **TOTP step-up**
+4. **TOTP step-up (optional)**
+   - TOTP is optional for everyone, admins included: admin features work without it (decisions C21). Run this step only to check that the step-up works for an account that opts in.
    - `/account/security` → Authenticator app → **Set up**. Scan the QR code, enter the code, then **Verify and turn on**. The status shows "On".
    - **Sign out**, then sign in again. Expect a redirect to `/sign-in/mfa?next=…`.
    - Enter a fresh code. Expect to land back on `/home`.
    - A wrong code shows an error and stays on the MFA page.
+   - An account with a verified factor is stepped up on every `(app)` route by `SessionGuard`, admin or not.
 5. **Signed-out again**
    - After **Sign out**, opening `/account` redirects to `/sign-in?next=%2Faccount` (repeat step 1).
 

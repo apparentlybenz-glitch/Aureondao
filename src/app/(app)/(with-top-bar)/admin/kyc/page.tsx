@@ -26,8 +26,8 @@ type Loaded = { rows: KycSubmission[]; people: Map<string, Person> };
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 const dobFormat = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" });
 
-// kyc_submissions and profiles under RLS: private.is_admin() needs the admin row
-// and aal2. The status enum sorts pending first.
+// kyc_submissions and profiles under RLS: private.is_admin() needs the admin row.
+// The status enum sorts pending first.
 async function loadSubmissions(filter: Filter): Promise<Loaded | null> {
   const supabase = createClient();
   let req = supabase
@@ -170,7 +170,7 @@ function ReviewDetail({
 
   // Each time the detail opens: one audit row (admin_log_kyc_photo_view), then a
   // fresh 60-second signed URL. Fail closed: when the audit call fails, no URL is
-  // created. Storage RLS lets only an admin at aal2 sign another user's file.
+  // created. Storage RLS lets only an admin sign another user's file.
   useEffect(() => {
     let active = true;
     const supabase = createClient();

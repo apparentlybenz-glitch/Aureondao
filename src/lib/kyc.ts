@@ -33,7 +33,7 @@ export const KYC_SELECT =
 export type OwnKyc = { userId: string; current: KycSubmission | null };
 
 // The signed-in user's latest submission (kyc_current), or null when not started.
-// The view is filtered by user id because an admin at aal2 reads every row.
+// The view is filtered by user id because an admin reads every row.
 // Reloads when the tab becomes visible; undefined while loading, null if it failed.
 export function useOwnKyc(): { kyc: OwnKyc | null | undefined; reload: () => Promise<void> } {
   const [kyc, setKyc] = useState<OwnKyc | null | undefined>(undefined);

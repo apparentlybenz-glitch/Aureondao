@@ -188,7 +188,9 @@ SQL
 t9) echo "T9 admin_set_option_period"
     as $B aal2 admin "select duration_s, profit_rate_bps, fee_bps, min_premium_cents, enabled from public.admin_set_option_period(60, 700, 10, 4900, true);"
     as $B aal2 admin "select duration_s, profit_rate_bps, enabled from public.admin_set_option_period(60, 0, 10, 4900, false);"
-    as $B aal1 admin "select public.admin_set_option_period(60, 700, 10, 4900, true);" | sed 's/^/[aal1] /'
+    as $B aal1 admin "select public.admin_set_option_period(45, 700, 10, 4900, true);" | sed 's/^/[aal1 admin passes the gate: 45 s -> argument error] /'
+    as $A aal1 user "select public.admin_set_option_period(60, 700, 10, 4900, true);" | sed 's/^/[aal1 user] /'
+    as $A aal1 admin "select public.admin_set_option_period(60, 700, 10, 4900, true);" | sed 's/^/[aal1 forged claim] /'
     as $A aal2 user "select public.admin_set_option_period(60, 700, 10, 4900, true);" | sed 's/^/[user] /'
     as $A aal2 admin "select public.admin_set_option_period(60, 700, 10, 4900, true);" | sed 's/^/[forged claim] /'
     as $B aal2 admin "select public.admin_set_option_period(60, 0, 10, 4900, true);" | sed 's/^/[enabled at 0 bps] /'

@@ -35,7 +35,9 @@ SQL
 t1) echo "T1 admin aal2 credits A spot 100.00"; as $B aal2 admin "select (public.admin_adjust_balance('$A','spot',10000,'slice 2 test credit',gen_random_uuid())).action;"; bal $A;;
 t2) echo "T2 non-admin calls admin RPC"; as $A aal2 user "select public.admin_adjust_balance('$A','spot',10000,'self credit',gen_random_uuid());"
     echo "T2b non-admin with a forged admin claim"; as $A aal2 admin "select public.admin_adjust_balance('$A','spot',10000,'self credit',gen_random_uuid());";;
-t3) echo "T3 admin at aal1"; as $B aal1 admin "select public.admin_adjust_balance('$A','spot',10000,'aal1 credit',gen_random_uuid());"; bal $A;;
+t3) echo "T3 admin at aal1 passes the gate (debit too large -> INSUFFICIENT_FUNDS, nothing changes)"; as $B aal1 admin "select public.admin_adjust_balance('$A','capital',-999999,'too much',gen_random_uuid());"
+    echo "T3b plain user at aal1 -> FORBIDDEN"; as $A aal1 user "select public.admin_adjust_balance('$A','spot',10000,'self credit',gen_random_uuid());"
+    echo "T3c admin claim without an admin row at aal1 -> FORBIDDEN"; as $A aal1 admin "select public.admin_adjust_balance('$A','spot',10000,'self credit',gen_random_uuid());"; bal $A;;
 t4) echo "T4 transfer more than balance"; as $A aal1 user "select public.transfer_between_wallets('spot','options',10001,gen_random_uuid());"
     echo "T4b same wallet"; as $A aal1 user "select public.transfer_between_wallets('spot','spot',100,gen_random_uuid());"; bal $A;;
 t5) echo "T5 20 parallel transfers of 10.00 from spot (100.00) plus 10 opposite-direction transfers"
@@ -66,7 +68,7 @@ t7) echo "T7 RLS as A"; as $A aal2 user "select (select count(*) from public.wal
     as $A aal2 user "select count(*) from public.admin_audit_log;"
     as $A aal2 user "update public.wallets set available_cents=999999 where user_id='$A';"
     as $A aal2 user "select private.wallet_apply(gen_random_uuid(),1,0,'admin_credit','admin_adjustment',gen_random_uuid());"
-    echo "T7b admin B at aal1 vs aal2"
+    echo "T7b admin B reads all rows at aal1 and at aal2"
     as $B aal1 admin "select (select count(*) from public.profiles) profiles, (select count(*) from public.wallets) wallets;"
     as $B aal2 admin "select (select count(*) from public.profiles) profiles, (select count(*) from public.wallets) wallets;"
     echo "T7c anon"; run <<SQL

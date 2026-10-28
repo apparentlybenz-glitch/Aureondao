@@ -7,7 +7,6 @@ import { Ban, IdCard, Menu, ScrollText, Timer, Users, Wallet, X } from "lucide-r
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -21,40 +20,17 @@ const SECTIONS = [
 ] as const;
 
 // UX gate only. The real boundary is in SQL: RLS admin reads and every admin RPC
-// require the admin row and aal2.
-type Gate = "loading" | "not_admin" | "step_up" | "needs_factor" | "ok";
+// require the live admin row (no second factor, docs/decisions.md C21).
+type Gate = "loading" | "not_admin" | "ok";
 
 function useAdminGate(): Gate {
   const [gate, setGate] = useState<Gate>("loading");
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getClaims().then(async ({ data }) => {
-      const claims = data?.claims;
-      if (claims?.user_role !== "admin") return setGate("not_admin");
-      if (claims.aal === "aal2") return setGate("ok");
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      setGate(factors?.totp.some((f) => f.status === "verified") ? "step_up" : "needs_factor");
-    });
+    createClient()
+      .auth.getClaims()
+      .then(({ data }) => setGate(data?.claims?.user_role === "admin" ? "ok" : "not_admin"));
   }, []);
   return gate;
-}
-
-function StepUp({ hasFactor, here }: { hasFactor: boolean; here: string }) {
-  const t = useTranslations("Admin");
-  return (
-    <div className="space-y-3 rounded-xl border bg-card p-4">
-      <p className="font-medium">{t("stepUpTitle")}</p>
-      <p className="text-sm text-muted-foreground">{hasFactor ? t("stepUpBody") : t("setUpTotp")}</p>
-      {hasFactor ? (
-        <Button asChild className="h-11 w-full">
-          <Link href={`/sign-in/mfa?next=${encodeURIComponent(here)}`}>{t("stepUp")}</Link>
-        </Button>
-      ) : null}
-      <Button asChild variant={hasFactor ? "secondary" : "default"} className="h-11 w-full">
-        <Link href="/account/security">{t("toSecurity")}</Link>
-      </Button>
-    </div>
-  );
 }
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
@@ -97,7 +73,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   if (gate === "loading") return <p className="text-sm">{c("loading")}</p>;
   if (gate === "not_admin") return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
-  if (gate !== "ok") return <StepUp hasFactor={gate === "step_up"} here={pathname} />;
 
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 

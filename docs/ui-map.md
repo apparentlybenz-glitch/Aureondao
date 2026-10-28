@@ -94,7 +94,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
   1. Create `createServerClient` (`@supabase/ssr`).
   2. Call `supabase.auth.getClaims()`.
   3. Protected page: with an error or no claims, redirect to `/sign-in?next=<path>`. Entry page: a request with no `sb-*-auth-token` cookie passes through; valid claims redirect to `/home` (the `next` parameter is dropped); an error or no claims falls through to the page.
-  4. **The proxy does not check the admin role or aal2.** The admin gate is the client `AdminShell` (UX only); RLS (`private.is_admin()`) and the admin RPCs enforce the live `user_roles` row and aal2.
+  4. **The proxy does not check the admin role or aal2.** The admin gate is the client `AdminShell` (UX only); RLS (`private.is_admin()`) and the admin RPCs enforce the live `user_roles` row only; since 2026-10-28 (decisions C21) no `aal2` is required.
   5. Regular users who have enrolled factors are stepped up client-side: the `(app)` layout's `SessionGuard` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects to `/sign-in/mfa` when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The `user_role` claim is read only by that client gate.
   6. Return the response that carries the refreshed cookies.
 - **Is it a network call?** In the common case, no. In `@supabase/auth-js@2.118.0`, `getClaims()` decodes the JWT, then calls `fetchJwk(kid)`. That function reads an in-memory `GLOBAL_JWKS` (TTL `JWKS_TTL = 10 min`) and fetches `/.well-known/jwks.json` only when the key is missing or stale. It then verifies with `crypto.subtle.verify`. It falls back to `getUser()` (a network call) only if `alg` is HS* (a legacy symmetric secret) or WebCrypto is missing. Separately, it refreshes the session first (a network call) if the access token is expired or about to expire, which happens once per token lifetime. To remove the cold-isolate JWKS fetch entirely, pass the project JWKS from an env var: `getClaims(undefined, { jwks: JSON.parse(env.SUPABASE_JWKS) })` ("this JSON Web Key Set is going to have precedence over the cached value"). The cost is redeploying when keys rotate; Supabase warns that long caching makes revocation harder.
@@ -111,7 +111,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 Legend:
 - **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. RH = route handler, run per request.
-- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (proxy plus RPC check). MFA = AAL2 required (the proxy redirects if factors are enrolled).
+- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (proxy plus RPC check). MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
@@ -714,7 +714,7 @@ Deposit and Withdraw assumptions:
 
 Admin assumptions:
 - **Navigation:** from `md:` a left sidebar (13 rem) lists the five sections with the active one highlighted. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
-- **Gate:** not an admin: a notice. Admin below aal2: a message with "Verify with authenticator" (`/sign-in/mfa?next=<this page>`, only when a factor exists) and "Open Security" (`/account/security`). Every admin RPC and RLS read still needs aal2.
+- **Gate:** not an admin: a notice. No second-factor gate: the admin claim opens the panel, and every admin RPC and RLS read needs only the live admin row (decisions C21). An account with a verified factor is still stepped up by `SessionGuard`.
 - **User Search:** the field accepts an email substring (escaped `ilike`) or an exact 8-digit UID; Search and All (the newest 50). Each result shows email, UID and Active or Suspended. Opening one shows the suspension (since, reason), links to Top-Up and Restrictions, the four wallet balances and the 20 newest Bills rows (same text rules as Bills; the second line is hidden when it repeats the type).
 - **Top-Up:** pick a user (from the same search), wallet, Credit or Debit (kept from slice 2), amount and a reason of 3 to 200 characters. `admin_adjust_balance` with one idempotency key per attempt. Success shows the applied amount and the wallet's new balance (read back after the call).
 - **Restrictions:** shows the state, since, and the reason. A reason is required to suspend (3 to 200 characters) and optional to unsuspend. One button: Suspend or Unsuspend. Editing the reason of a suspended user is possible through the RPC but has no screen.
