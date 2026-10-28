@@ -8,6 +8,7 @@ import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type Enrollment = { factorId: string; qr: string; secret: string };
 
@@ -30,6 +31,7 @@ export default function SecurityPage() {
   const [totpError, setTotpError] = useState<string | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwDone, setPwDone] = useState(false);
+  const hydrated = useHydrated();
 
   const loadFactors = useCallback(async () => {
     const { data } = await createClient().auth.mfa.listFactors();
@@ -163,7 +165,7 @@ export default function SecurityPage() {
           <Field id="new-password" type="password" label={c("password")} autoComplete="new-password" required />
           <FormError message={pwError} />
           {pwDone && <p className="text-sm">{t("passwordChanged")}</p>}
-          <Button type="submit" className="h-10 w-full md:w-auto">
+          <Button type="submit" className="h-10 w-full md:w-auto" disabled={!hydrated}>
             {t("passwordSubmit")}
           </Button>
         </form>

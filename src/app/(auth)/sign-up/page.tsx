@@ -8,6 +8,7 @@ import { Field, FormError } from "@/components/auth/field";
 import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function SignUpPage() {
   const t = useTranslations("Auth");
@@ -16,6 +17,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const hydrated = useHydrated();
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -60,7 +62,7 @@ export default function SignUpPage() {
       <Field id="password" type="password" label={c("password")} autoComplete="new-password" required />
       <Field id="nickname" label={t("nickname")} maxLength={32} autoComplete="nickname" />
       <FormError message={error} />
-      <Button type="submit" className="h-10 w-full" disabled={pending}>
+      <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("signUpSubmit")}
       </Button>
       <p className="text-center text-sm">

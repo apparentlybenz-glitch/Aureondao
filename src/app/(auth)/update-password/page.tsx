@@ -7,6 +7,7 @@ import { Field, FormError } from "@/components/auth/field";
 import { useAuthMessage } from "@/components/auth/use-auth-message";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 // Reached from the recovery link: /auth/confirm has already set the session.
 export default function UpdatePasswordPage() {
@@ -16,6 +17,7 @@ export default function UpdatePasswordPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const hydrated = useHydrated();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,7 +35,7 @@ export default function UpdatePasswordPage() {
       <h1 className="text-lg font-semibold">{t("updatePasswordTitle")}</h1>
       <Field id="password" type="password" label={t("newPassword")} autoComplete="new-password" required />
       <FormError message={error} />
-      <Button type="submit" className="h-10 w-full" disabled={pending}>
+      <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("updatePasswordSubmit")}
       </Button>
     </form>
