@@ -79,6 +79,6 @@ export const config = {
     "/spot",
     "/options",
     "/support",
-    "/notifications",
+    "/legal",
   ],
 };

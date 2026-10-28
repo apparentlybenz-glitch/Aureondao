@@ -297,9 +297,18 @@
     "account": "Account",
     "search": "Search symbol",
     "language": "Language: English only",
-    "notifications": "Notifications",
     "support": "Support",
-    "virtualPill": "VIRTUAL"
+    "virtualPill": "VIRTUAL",
+    "menu": {
+      "admin": "Admin",
+      "profile": "Profile",
+      "security": "Security",
+      "legal": "Legal and disclosures"
+    }
+  },
+  "Legal": {
+    "title": "Legal and disclosures",
+    "virtualFunds": "All balances on AureonX are virtual funds."
   },
   "Wallets": {
     "capital": "Capital",
@@ -400,6 +409,7 @@
     "title": "Admin",
     "navLabel": "Admin sections",
     "openMenu": "Open admin menu",
+    "backToApp": "Back to app",
     "close": "Close",
     "needAdmin": "This page is for administrators.",
     "stepUpTitle": "Verify to continue",
