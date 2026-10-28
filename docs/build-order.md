@@ -52,7 +52,7 @@ Rules for every slice:
 ## Slice 1: Auth, profile and Security Center
 **Scope**
 - Pages: sign-up, sign-in, reset password, `/auth/callback`, `/auth/confirm`.
-- `proxy.ts`: matcher covers protected routes only, verifies with `getClaims()` (local JWT verification).
+- `proxy.ts`: matcher covers the protected routes and, since the Day 6 bug pass, the entry pages `/`, `/sign-in` and `/sign-up`; verifies with `getClaims()` (local JWT verification).
 - Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets at 0; no starting credit, see `docs/decisions.md` Part 1b), and the custom access token hook (`user_role` claim).
 - Auth: email confirmation through `verifyOtp({ token_hash, type })`, not PKCE; `emailRedirectTo` on sign-up.
 - `/account`: nickname, UID, email, phone (country and KYC status moved to the latest KYC submission in slice 8).
@@ -62,7 +62,7 @@ Rules for every slice:
 **Files:** `src/proxy.ts`, `src/app/(auth)/**`, `src/app/(app)/layout.tsx`, `src/app/(app)/account/**`, `supabase/migrations/*_auth_profiles.sql`.
 
 **Verify:**
-- `pnpm preview`: signed-out users get a redirect on protected paths; public paths never run the proxy.
+- `pnpm preview`: signed-out users get a redirect on protected paths; the entry pages (`/`, `/sign-in`, `/sign-up`) run the proxy but pass through without an auth cookie, and other public paths never run it.
 - A warm request makes no Auth network call (check Worker logs).
 - Every signup creates exactly 1 profile and 4 wallets.
 - A non-admin JWT has `user_role = 'user'`.
@@ -222,6 +222,6 @@ Rules for every slice:
 ## Slice 10: Additional locales (deferred until after day 6)
 **Scope:** add locales to next-intl. First revisit the i18n routing default in `docs/decisions.md` (lower-stakes table): a second locale probably means adding `[locale]` routing, and translate `messages/*.json`.
 
-**Verify:** public pages stay static, and the proxy matcher still covers protected routes only.
+**Verify:** public pages stay static, and the proxy matcher is still the protected routes plus the entry pages `/`, `/sign-in` and `/sign-up`.
 
 **Done when:** every user-facing string comes from messages, and each new locale is complete.
