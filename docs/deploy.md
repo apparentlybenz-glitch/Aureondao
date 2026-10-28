@@ -93,7 +93,7 @@ If a redirect URL is not on the list, Supabase falls back to the Site URL.
 Auth emails go through Resend over Supabase custom SMTP. SMTP and templates are Dashboard-only (**Authentication → Emails**): the Management API token has no `auth_config_write`.
 
 SMTP settings:
-- Host: `smtp.resend.com`. Port: as Resend's SMTP documentation lists.
+- Host: `smtp.resend.com`. Port: `465`.
 - Username: the literal string `resend`.
 - Password: a Resend API key. It lives only in the Dashboard; never put it in the repo, the docs or a Worker variable.
 - Sender address: on a domain verified in Resend (`aureonx.app`).
@@ -123,11 +123,13 @@ Behavior:
 
 Not done yet. When the owner moves the app, change these (nothing below has been changed):
 
-Dashboard items:
-- Cloudflare: attach `aureonx.app` as a custom domain on the `aureonx` Worker (Settings → Domains & Routes).
-- Supabase **Site URL**: the new origin. Do this before sending mail: the templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
-- Supabase **Redirect URLs**: `<new origin>/auth/confirm` and `<new origin>/auth/callback` (keep the old ones until old links expire; the preview wildcard if used).
-- Workers Builds variable `NEXT_PUBLIC_SITE_URL`: the new origin (rebuild; it sets `metadataBase`).
+Dashboard items, in this order:
+1. Cloudflare: attach `aureonx.app` as a custom domain on the `aureonx` Worker (Settings → Domains & Routes) and confirm it serves the app before changing anything else.
+2. Supabase **Redirect URLs**: add `<new origin>/auth/confirm` and `<new origin>/auth/callback` (keep the old ones until old email links expire; the preview wildcard if used).
+3. Supabase **Site URL**: the new origin. The templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
+4. Workers Builds variable `NEXT_PUBLIC_SITE_URL`: the new origin, last. It is a build variable (it sets `metadataBase`), so rebuild and redeploy after changing it.
+
+Sessions on the old host end: cookies belong to the host, so users sign in again on the new one.
 
 Repo places that name the workers.dev host (a grep finds no code that hard-codes it; update the docs):
 - `docs/deploy.md`: the subdomain note and production URL (top of the file), §3 Site URL and redirect URLs, §4 intro and the two `curl` lines, §5.2 step 2.
@@ -155,13 +157,13 @@ Run this against `https://aureonx.<subdomain>.workers.dev` after the first produ
      select count(*) from public.wallets where user_id = (select id from auth.users where email = '<address>');
      ```
 3. **Sign in**
-   - `/sign-in` with that address leads to `/account`.
-   - The page shows the UID, the email, the KYC status "Not started" and the VIRTUAL FUNDS badge in the header.
+   - `/sign-in` with that address leads to `/home`.
+   - Open `/account`. The page shows the UID, the email, the KYC status "Not started" and the VIRTUAL FUNDS badge in the header.
    - Change the nickname and save. The button shows "Saved".
 4. **TOTP step-up**
    - `/account/security` → Authenticator app → **Set up**. Scan the QR code, enter the code, then **Verify and turn on**. The status shows "On".
    - **Sign out**, then sign in again. Expect a redirect to `/sign-in/mfa?next=…`.
-   - Enter a fresh code. Expect to land back on `/account`.
+   - Enter a fresh code. Expect to land back on `/home`.
    - A wrong code shows an error and stays on the MFA page.
 5. **Signed-out again**
    - After **Sign out**, opening `/account` redirects to `/sign-in?next=%2Faccount` (repeat step 1).
