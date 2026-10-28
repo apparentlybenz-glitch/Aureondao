@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { type Account, toWallets, type Wallet, WALLET_SELECT } from "@/lib/wallets";
 
 // Admin reads. The browser reads these tables under RLS: private.is_admin()
-// needs an admin row and an aal2 session, so a non-admin gets no rows at all.
+// needs the live admin row, so a non-admin gets no rows at all.
 export type AdminUser = {
   id: string;
   uid: string;

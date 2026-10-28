@@ -39,7 +39,7 @@ async function loadAudit(action: Action | "all") {
   const { data, error } = await req.overrideTypes<AuditRow[], { merge: false }>();
   if (error) return null;
 
-  // Emails come from profiles, which an admin at aal2 can read.
+  // Emails come from profiles, which an admin can read.
   const ids = [...new Set(data.flatMap((r) => [r.admin_id, r.target_user_id]).filter((id): id is string => id !== null))];
   const emails = new Map<string, string>();
   if (ids.length > 0) {
