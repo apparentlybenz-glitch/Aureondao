@@ -89,7 +89,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 ### 1.3 Proxy / auth gate
 
-- **Matcher:** the protected pages (`/home`, `/account/:path*`, `/assets/:path*`, `/admin/:path*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`) plus the entry pages `/`, `/sign-in` and `/sign-up`. `/sign-in/mfa` is deliberately not matched. The shipped file is `src/proxy.ts`; CLAUDE.md is authoritative.
+- **Matcher:** the protected pages (`/home`, `/account/:path*`, `/assets/:path*`, `/admin/:path*`, `/market`, `/spot`, `/options`, `/support`, `/legal`) plus the entry pages `/`, `/sign-in` and `/sign-up`. `/sign-in/mfa` is deliberately not matched. The shipped file is `src/proxy.ts`; CLAUDE.md is authoritative.
 - **Logic:**
   1. Create `createServerClient` (`@supabase/ssr`).
   2. Call `supabase.auth.getClaims()`.
@@ -303,7 +303,7 @@ Reference-only elements are **never copied**: the reference logo, the mascot/rob
 #### App shell: Captured
 - **Bottom tab bar** (fixed, 5 slots): Home · Market · **Trade** (centre, raised round button with a swap icon) · Options · Assets. Active tab is `primary` (brand green) with a label; the others are muted. Height 56 px + `env(safe-area-inset-bottom)`.
 - **Trade** destination: O24.
-- **Top bar (Home only):** avatar (→ /account) · symbol search pill (→ market search sheet) · language globe · notifications bell · support headset.
+- **Top bar (Home only):** account menu (avatar) · symbol search pill (→ market search sheet) · language globe · support headset.
 - Dark theme by default.
 
 #### Shell palette
@@ -352,7 +352,7 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Screen | Evidence |
 |---|---|
 | Spot, Forex terminals; Assets; Bills; Transfer; Deposit/Withdraw; Account; Security Center; KYC; Admin; public homepage | Described |
-| Auth pages, error/404 pages, Market tab list, notifications, support placeholder | Designed |
+| Auth pages, error/404 pages, Market tab list, support placeholder | Designed |
 
 **Assumptions** for every Described or Designed screen:
 - Same dark theme, bottom tab bar and top-bar patterns as the Captured screens.
@@ -371,7 +371,7 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
 | Admin (user list + credit/debit) | `/admin` | Designed (replaced by the slice 7 panel, §4.15) |
-| "Coming soon" placeholders | `/support`, `/notifications` (`/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
+| "Coming soon" placeholders | `/support` (`/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
 - **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
@@ -382,7 +382,7 @@ Assumptions (Described and Designed screens, plus choices inside the Captured on
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
 - **Admin:** replaced in slice 7 (§4.15).
-- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/notifications`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13), and since Day 6 `/sign-in` and `/sign-up` too (not `/sign-in/mfa`). Sign-in lands on `/home`.
+- **Proxy matcher:** `/home`, `/account/*`, `/assets/*`, `/admin/*`, `/market`, `/spot`, `/options`, `/support`, `/legal`. `/` is public and static; since slice 9 the proxy matcher also covers `/` for the signed-in redirect to `/home` (§4.13), and since Day 6 `/sign-in` and `/sign-up` too (not `/sign-in/mfa`). Sign-in lands on `/home`.
 
 ## 5. Data sources per component
 

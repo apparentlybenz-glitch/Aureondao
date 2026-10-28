@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Ban, IdCard, Menu, ScrollText, Timer, Users, Wallet, X } from "lucide-react";
+import { useState } from "react";
+import { Ban, House, IdCard, Menu, ScrollText, Timer, Users, Wallet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
-import { createClient } from "@/lib/supabase/client";
+import { useAccount } from "@/lib/use-account";
 import { cn } from "@/lib/utils";
 
+// Every admin section, in drawer order. A new section is one entry here plus its
+// route and its `Admin.sections` string.
 const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
   { key: "topUp", href: "/admin/top-up", Icon: Wallet },
@@ -19,67 +21,31 @@ const SECTIONS = [
   { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText },
 ] as const;
 
-// UX gate only. The real boundary is in SQL: RLS admin reads and every admin RPC
-// require the live admin row (no second factor, docs/decisions.md C21).
-type Gate = "loading" | "not_admin" | "ok";
+const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
-function useAdminGate(): Gate {
-  const [gate, setGate] = useState<Gate>("loading");
-  useEffect(() => {
-    createClient()
-      .auth.getClaims()
-      .then(({ data }) => setGate(data?.claims?.user_role === "admin" ? "ok" : "not_admin"));
-  }, []);
-  return gate;
-}
-
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  const t = useTranslations("Admin");
-  return (
-    <nav aria-label={t("navLabel")}>
-      <ul className="space-y-1">
-        {SECTIONS.map(({ key, href, Icon }) => {
-          const active = pathname === href;
-          return (
-            <li key={key}>
-              <Link
-                href={href}
-                onClick={onNavigate}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
-                  active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <Icon className="size-4" />
-                {t(`sections.${key}`)}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
-
-// Gate, then the section navigation: a sidebar from md:, and on a phone a bar
-// under the top bar whose hamburger opens the same list in a drawer from the left.
+// Gate, then a bar under the top bar whose hamburger opens the section list in a
+// drawer from the left, at every width. The gate is UX only. The real boundary is
+// in SQL: RLS admin reads and every admin RPC require the live admin row (no
+// second factor, docs/decisions.md C21).
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");
   const pathname = usePathname();
-  const gate = useAdminGate();
-  const [open, setOpen] = useState(false);
+  const { ready, isAdmin } = useAccount();
+  // The page the drawer was opened on: it is open only while still there, so a
+  // route change closes it.
+  const [openedOn, setOpenedOn] = useState<string | null>(null);
+  const close = () => setOpenedOn(null);
 
-  if (gate === "loading") return <p className="text-sm">{c("loading")}</p>;
-  if (gate === "not_admin") return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
+  if (!ready) return <p className="text-sm">{c("loading")}</p>;
+  if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 
   return (
     <SelectedUserProvider>
-      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur md:hidden">
-        <Dialog.Root open={open} onOpenChange={setOpen}>
+      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+        <Dialog.Root open={openedOn === pathname} onOpenChange={(next) => setOpenedOn(next ? pathname : null)}>
           <Dialog.Trigger
             aria-label={t("openMenu")}
             className="-ml-2 flex size-9 items-center justify-center rounded-full text-muted-foreground"
@@ -98,22 +64,37 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   <X className="size-5" />
                 </Dialog.Close>
               </div>
-              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+              <nav aria-label={t("navLabel")} className="flex flex-1 flex-col justify-between gap-3">
+                <ul className="space-y-1">
+                  {SECTIONS.map(({ key, href, Icon }) => {
+                    const active = pathname === href;
+                    return (
+                      <li key={key}>
+                        <Link
+                          href={href}
+                          onClick={close}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(linkClass, active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted")}
+                        >
+                          <Icon className="size-4" />
+                          {t(`sections.${key}`)}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <Link href="/home" className={cn(linkClass, "border-t text-muted-foreground hover:bg-muted")}>
+                  <House className="size-4" />
+                  {t("backToApp")}
+                </Link>
+              </nav>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
         <p className="text-sm font-semibold">{t(`sections.${current.key}`)}</p>
       </div>
 
-      <div className="md:grid md:grid-cols-[13rem_minmax(0,1fr)] md:gap-6">
-        <aside className="hidden md:block">
-          <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t)+1rem)] space-y-3">
-            <p className="px-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{t("title")}</p>
-            <NavLinks pathname={pathname} />
-          </div>
-        </aside>
-        <div className="min-w-0 space-y-5">{children}</div>
-      </div>
+      <div className="space-y-5">{children}</div>
     </SelectedUserProvider>
   );
 }
