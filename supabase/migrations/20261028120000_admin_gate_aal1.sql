@@ -1,4 +1,4 @@
--- Admin power needs a live user_roles row only; an aal2 session is no longer required (docs/decisions.md C17).
+-- Admin power needs a live user_roles row only; an aal2 session is no longer required (docs/decisions.md C21).
 -- Drops the aal2 condition from private.is_admin() and the AAL2_REQUIRED check from the five admin RPCs.
 -- Nothing else changes: both FORBIDDEN checks, the bodies and the grants stay.
 -- To restore the aal2 requirement, apply supabase/proposals/rollback_admin_gate_aal2.sql.

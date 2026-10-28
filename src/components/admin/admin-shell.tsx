@@ -20,7 +20,7 @@ const SECTIONS = [
 ] as const;
 
 // UX gate only. The real boundary is in SQL: RLS admin reads and every admin RPC
-// require the live admin row (no second factor, docs/decisions.md C17).
+// require the live admin row (no second factor, docs/decisions.md C21).
 type Gate = "loading" | "not_admin" | "ok";
 
 function useAdminGate(): Gate {
