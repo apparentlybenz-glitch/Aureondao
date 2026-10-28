@@ -3,10 +3,10 @@
 This guide covers deploying the app from GitHub with **Workers Builds** (Cloudflare's Git integration) into the new Cloudflare account. It describes the repo as of slice 1.
 
 Placeholders used below:
-- `<subdomain>`: the account's workers.dev subdomain (Workers & Pages → Overview → "Your subdomain"; you pick it on first use).
+- `<subdomain>`: the account's workers.dev subdomain (Workers & Pages → Overview → "Your subdomain"). It only matters for the fallback host.
 - `<ref>`: the Supabase project ref (the `SUPABASE_PROJECT_REF` value).
 
-The production URL is `https://aureonx.app` (a custom domain attached in the Cloudflare dashboard, §3.2). The workers.dev address `https://aureonx.<subdomain>.workers.dev` stays as a fallback. `aureonx` comes from `name` in `wrangler.jsonc`.
+Production is `https://aureonx.app` (a Worker custom domain attached in the Cloudflare dashboard, §3.2). The workers.dev address `https://aureonx.<subdomain>.workers.dev` is the fallback host and still serves during the transition. `aureonx` comes from `name` in `wrangler.jsonc`.
 
 **Never commit values.** Every value below goes into the Cloudflare or Supabase dashboard, not into the repo.
 
@@ -76,12 +76,12 @@ Set these under Worker → **Settings → Variables and secrets**.
 
 In Supabase → **Authentication → URL Configuration**:
 
-- **Site URL:** `https://aureonx.app`
-- **Redirect URLs.** Add these and keep the existing localhost entries for local development:
+- **Site URL (primary):** `https://aureonx.app`
+- **Redirect URLs.** Keep the existing localhost entries for local development, and list:
   - `https://aureonx.app/auth/confirm`
   - `https://aureonx.app/auth/callback`
-  - The same two paths on `https://aureonx.<subdomain>.workers.dev` while the fallback host is in use
-  - Preview versions (optional, only if you sign in on preview URLs): `https://*-aureonx.<subdomain>.workers.dev/**`
+  - Transition entries, which the owner removes after confirming the new host: the same two paths on `https://aureonx.<subdomain>.workers.dev`, and (optional, only if you sign in on preview URLs) `https://*-aureonx.<subdomain>.workers.dev/**`
+- Email links are built from the Site URL, so every confirmation and reset link opens on `aureonx.app` whichever host the user signed up on.
 
 Why these two paths:
 - Sign-up (`emailRedirectTo`) and password reset (`redirectTo`) send users to `<origin>/auth/confirm`.
@@ -124,7 +124,7 @@ Behavior:
 
 Done by hand in the dashboards. The final order was:
 1. Cloudflare: `aureonx.app` attached as a custom domain on the `aureonx` Worker (Settings → Domains & Routes), confirmed serving the app before anything else changed. **The custom domain lives in the dashboard only, never in `wrangler.jsonc`:** a `routes` or `custom_domain` entry there would be re-applied (or removed) by every deploy.
-2. Supabase **Redirect URLs**: `https://aureonx.app/auth/confirm` and `https://aureonx.app/auth/callback` added; the workers.dev entries stay while that host is still in use and while old email links are valid.
+2. Supabase **Redirect URLs**: `https://aureonx.app/auth/confirm` and `https://aureonx.app/auth/callback` added; the workers.dev entries stay as transition entries while that host is still in use and while old email links are valid.
 3. Supabase **Site URL**: `https://aureonx.app`. The templates read `{{ .SiteURL }}`, and links in emails already sent keep the old host.
 4. Workers Builds variable `NEXT_PUBLIC_SITE_URL`: `https://aureonx.app`, last. It is a build variable (it sets `metadataBase`), so it needs a rebuild and redeploy to take effect.
 
@@ -136,7 +136,7 @@ The workers.dev host keeps serving as a fallback. Open item: the in-memory marke
 
 ## 4. Post-deploy checklist
 
-Run this against `https://aureonx.app` after the first production deploy. Use a private window.
+Run this against `https://aureonx.app` after the first production deploy. Use a private window. The fallback host `https://aureonx.<subdomain>.workers.dev` answers the same checks while it serves, but confirmation and reset emails always open on `aureonx.app`.
 
 1. **Signed-out redirect**
    - Open `/account`. Expect to land on `/sign-in?next=%2Faccount`.
