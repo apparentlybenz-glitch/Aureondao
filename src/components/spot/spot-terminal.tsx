@@ -59,7 +59,7 @@ export function SpotTerminal() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))]">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))] md:pb-8">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <MarketPicker market={market} ticker={ticker} onPick={pick} />

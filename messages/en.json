@@ -303,7 +303,10 @@
     "assets": "Assets",
     "account": "Account",
     "search": "Search symbol",
-    "language": "Language: English only",
+    "language": "Language",
+    "languageEnglish": "English",
+    "mainNav": "Main",
+    "searchOpen": "Search",
     "support": "Support",
     "virtualPill": "VIRTUAL",
     "menu": {

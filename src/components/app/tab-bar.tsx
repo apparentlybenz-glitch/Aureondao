@@ -2,19 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, ChartCandlestick, House, Timer, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-// Fixed bottom tab bar: --tab-bar-h plus the bottom safe area. Pages reserve the same
-// space with the pb-tabbar padding in the (app) layout. Trade opens Spot (O24 ★).
-const TABS = [
-  { href: "/home", key: "home", Icon: House },
-  { href: "/market", key: "market", Icon: ChartCandlestick },
-  { href: "/spot", key: "trade", Icon: ArrowLeftRight },
-  { href: "/options", key: "options", Icon: Timer },
-  { href: "/assets", key: "assets", Icon: Wallet },
-] as const;
+// Fixed bottom tab bar, mobile only (below md; the desktop top bar replaces it):
+// --tab-bar-h plus the bottom safe area. Pages reserve the same space with the
+// pb-tabbar padding below md.
 
 export function TabBar() {
   const t = useTranslations("Shell");
@@ -22,9 +16,9 @@ export function TabBar() {
   const isActive = (href: string) => pathname.startsWith(href);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b)">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b) md:hidden">
       <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-5">
-        {TABS.map(({ href, key, Icon }) => {
+        {NAV_ITEMS.map(({ href, key, Icon }) => {
           const active = isActive(href);
           if (key === "trade") {
             return (

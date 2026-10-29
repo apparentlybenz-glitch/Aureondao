@@ -13,7 +13,7 @@ const divider = "my-1 h-px bg-border";
 
 // The one account entry point: the top bar avatar opens this menu. Admin shows
 // only for an admin session; /admin and the admin RPCs enforce the role themselves.
-export function AccountMenu() {
+export function AccountMenu({ align = "start" }: { align?: "start" | "end" }) {
   const t = useTranslations("Shell");
   const c = useTranslations("Common");
   const { email, isAdmin } = useAccount();
@@ -29,7 +29,7 @@ export function AccountMenu() {
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          align="start"
+          align={align}
           sideOffset={8}
           collisionPadding={8}
           className="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-lg border bg-background p-1 shadow-lg"
@@ -50,9 +50,6 @@ export function AccountMenu() {
             <Link href="/account/security">{t("menu.security")}</Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className={divider} />
-          <DropdownMenu.Item asChild className={item}>
-            <Link href="/support">{t("support")}</Link>
-          </DropdownMenu.Item>
           <DropdownMenu.Item asChild className={item}>
             <Link href="/legal">{t("menu.legal")}</Link>
           </DropdownMenu.Item>

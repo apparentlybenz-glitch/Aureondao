@@ -94,8 +94,16 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
+/* md and up: the desktop top bar is slimmer and there is no tab bar. */
+@media (min-width: 48rem) {
+  :root {
+    --top-bar-h: 3rem;
+  }
+}
+
 /* Clears the tab bar, the raised Trade button and the home indicator. Any layout
-   that renders the tab bar applies this class to its content. */
+   that renders the tab bar applies this class to its content; the tab bar is
+   hidden from md, so those layouts add md:pb-* as well. */
 @utility pb-tabbar {
   padding-bottom: calc(var(--tab-bar-h) + var(--tab-bar-overhang) + 0.5rem + var(--safe-b));
 }
