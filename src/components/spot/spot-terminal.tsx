@@ -67,10 +67,10 @@ export function SpotTerminal() {
             <span className="text-2xl font-semibold tabular-nums">
               {ticker ? formatPrice(ticker.last, market.priceDecimals) : "--"}
             </span>
-            {ticker && isDelayed(ticker.ts, now) ? <span className="text-xs text-amber-500">{m("delayed")}</span> : null}
+            {ticker && isDelayed(ticker.ts, now) ? <span className="text-xs text-muted-foreground">{m("delayed")}</span> : null}
           </p>
         </div>
-        <span className="mt-1 shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+        <span className="mt-1 shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
           {shell("virtualPill")}
         </span>
       </header>

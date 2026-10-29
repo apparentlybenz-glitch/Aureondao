@@ -13,7 +13,7 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-[calc(var(--top-bar-h)+var(--safe-t))] items-center gap-2 bg-background/95 px-4 pt-(--safe-t) backdrop-blur md:hidden">
       <AccountMenu />
-      <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-black">
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
         {t("virtualPill")}
       </span>
       <TopBarSearch />

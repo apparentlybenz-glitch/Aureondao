@@ -25,7 +25,7 @@ type StatusFilter = SupportStatus | "all";
 type TopicFilter = SupportTopic | "all";
 
 const selectClass =
-  "h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // Every ticket under RLS (private.is_admin()), newest update first, with the
 // owner's email from profiles.

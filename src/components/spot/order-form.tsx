@@ -174,7 +174,7 @@ export function OrderForm({
       onClick={() => reset(s)}
       className={cn(
         "h-9 rounded-lg text-sm font-semibold",
-        side === s ? (s === "buy" ? "bg-up text-black" : "bg-down text-white") : "bg-muted text-muted-foreground",
+        side === s ? (s === "buy" ? "bg-up text-black" : "bg-down/60 text-white") : "bg-muted text-muted-foreground",
       )}
     >
       {t(s)}
@@ -313,7 +313,7 @@ export function OrderForm({
         disabled={!canSubmit}
         className={cn(
           "h-11 w-full text-base font-semibold",
-          side === "buy" ? "bg-up text-black hover:bg-up/85" : "bg-down text-white hover:bg-down/85",
+          side === "buy" ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
         )}
       >
         {!ticker ? t("pricesUnavailable") : pending ? t("sending") : t(side === "buy" ? "confirmBuy" : "confirmSell", { asset })}

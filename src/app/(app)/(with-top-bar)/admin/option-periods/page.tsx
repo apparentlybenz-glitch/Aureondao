@@ -173,7 +173,7 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
       <FormError message={enabledError} />
       <FormError message={error} />
       {saved ? (
-        <p role="status" className="text-sm text-emerald-500">
+        <p role="status" className="text-sm text-up">
           {t("optionPeriods.saved")}
         </p>
       ) : null}

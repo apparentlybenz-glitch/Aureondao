@@ -3,7 +3,7 @@ import type { SupportStatus } from "@/lib/support";
 import { cn } from "@/lib/utils";
 
 const TONE: Record<SupportStatus, string> = {
-  open: "bg-amber-500/15 text-amber-500",
+  open: "bg-foreground/15 text-foreground",
   answered: "bg-primary/15 text-primary",
   closed: "bg-muted text-muted-foreground",
 };

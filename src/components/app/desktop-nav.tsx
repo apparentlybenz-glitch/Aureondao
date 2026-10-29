@@ -46,7 +46,7 @@ export function DesktopNav() {
         })}
       </nav>
       <div className="ml-auto flex items-center gap-1">
-        <span className="mr-2 shrink-0 rounded-full bg-card px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
+        <span className="mr-2 shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
           {t("virtualPill")}
         </span>
         {searching ? (

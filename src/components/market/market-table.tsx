@@ -119,7 +119,7 @@ export function MarketTable({
       </div>
 
       {failing && !hasTickers && markets ? (
-        <p className="text-xs text-amber-500">{t("unavailable")}</p>
+        <p className="text-xs text-muted-foreground">{t("unavailable")}</p>
       ) : null}
 
       <div className={cn("flex items-center text-xs text-muted-foreground", isMarket && "pl-8")}>
@@ -146,9 +146,9 @@ export function MarketTable({
             const ticker = tickers[m.id];
             const change = ticker ? formatChange(ticker.changePct) : null;
             const tone = change?.startsWith("+")
-              ? "bg-emerald-500/15 text-emerald-500"
+              ? "bg-up/15 text-up"
               : change?.startsWith("-")
-                ? "bg-red-500/15 text-red-500"
+                ? "bg-down/15 text-down"
                 : "bg-muted text-muted-foreground";
             const starred = favorites?.has(m.id) ?? false;
             const symbol = `${m.base}/${m.quote}`;
@@ -162,7 +162,7 @@ export function MarketTable({
                     aria-label={t(starred ? "removeFavorite" : "addFavorite", { symbol })}
                     className="flex size-8 shrink-0 items-center justify-center"
                   >
-                    <Star className={cn("size-4", starred ? "fill-amber-500 text-amber-500" : "text-muted-foreground")} />
+                    <Star className={cn("size-4", starred ? "fill-primary text-primary" : "text-muted-foreground")} />
                   </button>
                 ) : null}
                 <button type="button" onClick={() => {
@@ -175,7 +175,7 @@ export function MarketTable({
                       <span className="block truncate text-sm font-medium">{m.displaySymbol}</span>
                       {ticker ? (
                         isDelayed(ticker.ts, now) ? (
-                          <span className="block text-[11px] text-amber-500">{t("delayed")}</span>
+                          <span className="block text-[11px] text-muted-foreground">{t("delayed")}</span>
                         ) : (
                           <span className="block text-[11px] tabular-nums text-muted-foreground">
                             {timeFormat.format(ticker.ts)}

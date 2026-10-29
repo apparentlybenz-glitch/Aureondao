@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export const supportDate = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
 export const textareaClass =
-  "min-h-36 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+  "min-h-36 w-full resize-y rounded-lg border border-input bg-input px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // One open thread: the ticket and its messages, oldest first (undefined while
 // loading, null if it failed). Refetches both when NotificationListener reports

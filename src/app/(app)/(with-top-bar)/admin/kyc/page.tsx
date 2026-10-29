@@ -98,7 +98,7 @@ export default function KycReviewPage() {
                 setResult(undefined);
                 setFilter(e.target.value as Filter);
               }}
-              className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:max-w-xs"
+              className="h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:max-w-xs"
             >
               <option value="all">{t("kyc.all")}</option>
               {KYC_STATUSES.map((s) => (
@@ -263,7 +263,7 @@ function ReviewDetail({
         </div>
 
         {done ? (
-          <p role="status" className="text-sm text-emerald-500">
+          <p role="status" className="text-sm text-up">
             {done}
           </p>
         ) : null}

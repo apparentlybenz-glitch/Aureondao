@@ -156,7 +156,7 @@ export function OptionTicket({
                 onClick={() => change(() => setDirection(d))}
                 className={cn(
                   "flex size-16 items-center justify-center rounded-full transition-[box-shadow,opacity]",
-                  d === "rise" ? "bg-up text-black" : "bg-down/70 text-white",
+                  d === "rise" ? "bg-up text-black" : "bg-down/60 text-white",
                   selected
                     ? d === "rise"
                       ? "opacity-100 ring-8 ring-up/25"
@@ -275,7 +275,7 @@ export function OptionTicket({
         <p className="text-muted-foreground">
           {t.rich("estReturn", {
             amount: est !== null && problem === null ? formatCents(est) : "--",
-            value: (chunks) => <span className="text-amber-500">{chunks}</span>,
+            value: (chunks) => <span className="text-primary">{chunks}</span>,
           })}
         </p>
       </div>
@@ -293,7 +293,7 @@ export function OptionTicket({
         disabled={!canSubmit}
         className={cn(
           "h-12 w-full text-base font-semibold",
-          rise ? "bg-up text-black hover:bg-up/85" : "bg-down/80 text-white hover:bg-down/70",
+          rise ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
         )}
       >
         {pending ? t("sending") : !period && periods ? t("noPeriod") : t(rise ? "call" : "put")}

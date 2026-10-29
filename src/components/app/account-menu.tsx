@@ -32,7 +32,7 @@ export function AccountMenu({ align = "start" }: { align?: "start" | "end" }) {
           align={align}
           sideOffset={8}
           collisionPadding={8}
-          className="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-lg border bg-background p-1 shadow-lg"
+          className="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-lg border bg-popover p-1 shadow-lg"
         >
           <DropdownMenu.Label className="truncate px-3 py-2 text-xs text-muted-foreground">
             {email ?? "--"}

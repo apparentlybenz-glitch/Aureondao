@@ -22,7 +22,7 @@ function Countdown({ expiresAt }: { expiresAt: number }) {
   return left > 0 ? (
     <span className="text-lg font-semibold tabular-nums">{formatCountdown(left)}</span>
   ) : (
-    <span className="text-sm font-medium text-amber-500">{t("settling")}</span>
+    <span className="text-sm font-medium text-muted-foreground">{t("settling")}</span>
   );
 }
 

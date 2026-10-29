@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ACCOUNTS, type Account, useWallets } from "@/lib/wallets";
 
 const selectClass =
-  "h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export default function TransferPage() {
   const t = useTranslations("Transfer");
@@ -152,7 +152,7 @@ export default function TransferPage() {
 
         <FormError message={error} />
         {success ? (
-          <p role="status" className="text-sm text-emerald-500">
+          <p role="status" className="text-sm text-up">
             {success}
           </p>
         ) : null}
