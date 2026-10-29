@@ -3,7 +3,7 @@
 # Usage: supabase/tests/support.sh [t1 ... t5]  (Management API, write token required)
 # Always runs setup, the given steps (all by default), then cleanup, in one process. A trap on
 # EXIT, INT, TERM and ERR runs cleanup, which deletes the test users (their tickets, messages
-# and notifications cascade).
+# and notifications cascade) and their admin_audit_log rows.
 # The project comes from SUPABASE_PROJECT_REF; abort before any query unless it matches the
 # ref in NEXT_PUBLIC_SUPABASE_URL.
 REF=${SUPABASE_PROJECT_REF:?SUPABASE_PROJECT_REF is not set}
@@ -29,6 +29,10 @@ adm() { as $B admin "$1"; }
 expect() { if printf '%s' "$3" | grep -Eq "$2"; then echo "PASS $1"; else echo "FAIL $1 (expected /$2/): $3"; FAILS=$((FAILS+1)); fi; }
 key() { printf '99999999-0000-4000-8000-%012d' "$1"; }
 ticket() { echo "select id from public.support_tickets where client_request_id = '$(key 1)';" | run | jq -r '.[0].id'; }
+# audit <action>: count, admin and from_status of the audit rows for the test ticket.
+audit() { echo "select count(*) n, count(*) filter (where admin_id = '$B') by_admin, min(payload ->> 'from_status') from_status,
+  count(*) filter (where payload ->> 'subject' = 'Cannot see my balance') with_subject
+  from public.admin_audit_log where action = '$1' and target_id = '$(ticket)' and target_user_id = '$A';" | run; }
 status() { echo "select status from public.support_tickets where client_request_id = '$(key 1)';" | run; }
 
 step() {
@@ -79,17 +83,29 @@ t3) echo "T3 support_reply: is_staff and status set by the server, notification 
     expect "staff reply is_staff true" '"is_staff":true' "$(adm "select (public.support_reply('$T', 'We are checking.', '$(key 31)')).is_staff;")"
     expect "status answered" '"status":"answered"' "$(status)"
     expect "one notification for the owner" '"n":1,"k":"support_reply"' "$(echo "select count(*) n, min(kind) k from public.notifications where user_id = '$A' and ticket_id = '$T';" | run)"
+    expect "one support_reply audit row by the admin" '"n":1,"by_admin":1,.*"with_subject":1' "$(audit support_reply)"
+    expect "the audit row carries the reply's key" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$(key 31)';" | run)"
     adm "select public.support_reply('$T', 'We are checking.', '$(key 31)');" > /dev/null
     expect "same key twice: one staff message, one notification" '"m":1,"n":1' "$(echo "select (select count(*) from public.support_messages where client_request_id = '$(key 31)') m, (select count(*) from public.notifications where ticket_id = '$T') n;" | run)"
+    expect "same key twice: one audit row" '"n":1' "$(audit support_reply)"
     expect "owner reply is_staff false" '"is_staff":false' "$(user $A "select (public.support_reply('$T', 'Thanks.', '$(key 32)')).is_staff;")"
     expect "status open again" '"status":"open"' "$(status)"
-    expect "no notification for a user reply" '"n":1' "$(echo "select count(*) n from public.notifications where ticket_id = '$T';" | run)";;
+    expect "no notification for a user reply" '"n":1' "$(echo "select count(*) n from public.notifications where ticket_id = '$T';" | run)"
+    expect "no audit row for a user reply" '"n":1' "$(audit support_reply)"
+    expect "the owner reads no audit rows" '"n":0' "$(user $A "select count(*) n from public.admin_audit_log;")"
+    expect "another user reads no audit rows" '"n":0' "$(user $C "select count(*) n from public.admin_audit_log;")"
+    expect "an admin reads the reply audit row" '"n":1' "$(adm "select count(*) n from public.admin_audit_log where action = 'support_reply' and target_id = '$T';")";;
 t4) echo "T4 closing: admin only, then no replies"
     T=$(ticket)
     expect "owner cannot close -> FORBIDDEN" FORBIDDEN "$(user $A "select public.admin_support_close('$T');")"
     expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C admin "select public.admin_support_close('$T');")"
+    expect "refused closes write no audit row" '"n":0' "$(audit support_close)"
     expect "admin closes" '"status":"closed"' "$(adm "select (public.admin_support_close('$T')).status;")"
+    expect "one support_close audit row from open" '"n":1,"by_admin":1,"from_status":"open","with_subject":1' "$(audit support_close)"
     expect "closing again returns it closed" '"status":"closed"' "$(adm "select (public.admin_support_close('$T')).status;")"
+    expect "closing again writes no second row" '"n":1' "$(audit support_close)"
+    expect "the owner cannot read the close audit row" '"n":0' "$(user $A "select count(*) n from public.admin_audit_log where action = 'support_close';")"
+    expect "an admin claim without the row reads none" '"n":0' "$(as $C admin "select count(*) n from public.admin_audit_log;")"
     expect "owner reply -> SUPPORT_CLOSED" SUPPORT_CLOSED "$(user $A "select public.support_reply('$T', 'one more', gen_random_uuid());")"
     expect "staff reply -> SUPPORT_CLOSED" SUPPORT_CLOSED "$(adm "select public.support_reply('$T', 'one more', gen_random_uuid());")"
     expect "still closed" '"status":"closed"' "$(status)";;
@@ -103,11 +119,13 @@ t5) echo "T5 notifications: own rows only, mark read"
     expect "marking again changes nothing" '"mark_notifications_read":0' "$(user $A "select public.mark_notifications_read(array['$N']::uuid[]);")"
     expect "no direct update" 'permission denied' "$(user $A "update public.notifications set read_at = null where id = '$N';")";;
 cleanup) run <<SQL
+delete from public.admin_audit_log where admin_id in ('$A','$B','$C') or target_user_id in ('$A','$B','$C');
 delete from auth.users where id in ('$A','$B','$C');
 select (select count(*) from public.profiles where id in ('$A','$B','$C')) profiles,
        (select count(*) from public.support_tickets where user_id in ('$A','$B','$C')) tickets,
        (select count(*) from public.support_messages where client_request_id::text like '99999999-%') messages,
-       (select count(*) from public.notifications where user_id in ('$A','$B','$C')) notifications;
+       (select count(*) from public.notifications where user_id in ('$A','$B','$C')) notifications,
+       (select count(*) from public.admin_audit_log where action like 'support_%' and admin_id is null and target_user_id is null) orphan_audit;
 SQL
 ;;
 *) echo "unknown step $1"; exit 1;;

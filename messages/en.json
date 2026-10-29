@@ -515,7 +515,9 @@
         "set_option_period": "Option period change",
         "kyc_approve": "KYC approval",
         "kyc_reject": "KYC rejection",
-        "kyc_photo_view": "KYC photo view"
+        "kyc_photo_view": "KYC photo view",
+        "support_reply": "Support reply",
+        "support_close": "Support ticket closed"
       },
       "summary": {
         "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
@@ -526,7 +528,8 @@
         "enabled": "enabled",
         "disabled": "disabled",
         "kycApproved": "Identity submission approved.",
-        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}."
+        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}.",
+        "ticket": "Ticket: {subject}"
       }
     },
     "kyc": {

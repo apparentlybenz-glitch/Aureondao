@@ -4,13 +4,15 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { notify } from "@/lib/notify";
 import { onVisible } from "@/lib/on-visible";
+import { reportTicketActivity } from "@/lib/support";
 import { createClient } from "@/lib/supabase/client";
 
-type Row = { id: string; kind: "support_reply"; support_tickets: { subject: string } | null };
+type Row = { id: string; kind: "support_reply"; ticket_id: string | null; support_tickets: { subject: string } | null };
 
 // Shows each unread notifications row once as a toast, then marks it read.
 // Loads on every Realtime (re)subscribe, on each new row and when the tab
-// becomes visible, so rows written while the app was closed still pop.
+// becomes visible, so rows written while the app was closed still pop. Each
+// row's ticket is reported to reportTicketActivity, so an open thread refetches.
 export function NotificationListener() {
   const t = useTranslations("Notifications");
 
@@ -24,7 +26,7 @@ export function NotificationListener() {
     async function load(userId: string) {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, kind, support_tickets(subject)")
+        .select("id, kind, ticket_id, support_tickets(subject)")
         .eq("user_id", userId)
         .is("read_at", null)
         .order("created_at")
@@ -36,6 +38,7 @@ export function NotificationListener() {
       for (const n of fresh) {
         shown.add(n.id);
         notify({ title: t("supportReply"), description: n.support_tickets?.subject, href: "/support" });
+        if (n.ticket_id) reportTicketActivity(n.ticket_id);
       }
       await supabase.rpc("mark_notifications_read", { p_ids: fresh.map((n) => n.id) });
     }

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { FormError } from "@/components/auth/field";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { Button } from "@/components/ui/button";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { serverAnswered } from "@/lib/rpc-error";
-import { fetchMessages, type SupportMessage } from "@/lib/support";
+import { afterReply, fetchMessages, fetchTicket, onTicketActivity, type SupportMessage, type SupportTicket } from "@/lib/support";
 import { BODY_MAX, bodyOk } from "@/lib/support-rules";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -18,19 +18,53 @@ export const supportDate = new Intl.DateTimeFormat("en", { dateStyle: "medium", 
 export const textareaClass =
   "min-h-36 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-// The thread's messages, oldest first. undefined while loading, null if it failed.
-export function useMessages(ticketId: string) {
+// One open thread: the ticket and its messages, oldest first (undefined while
+// loading, null if it failed). Refetches both when NotificationListener reports
+// activity on this ticket. onChange gets every change to the ticket, so the
+// surrounding list stays in step. Used by the user and the admin thread.
+export function useThread<T extends SupportTicket>(initial: T, onChange: (changes: Partial<SupportTicket>) => void) {
+  const [ticket, setTicket] = useState(initial);
   const [messages, setMessages] = useState<SupportMessage[] | null | undefined>(undefined);
+  const changed = useRef(onChange);
+  useEffect(() => {
+    changed.current = onChange;
+  });
+
+  const id = initial.id;
   useEffect(() => {
     let active = true;
-    fetchMessages(ticketId).then((m) => {
-      if (active) setMessages(m);
+    const loadMessages = () =>
+      void fetchMessages(id).then((m) => {
+        if (active) setMessages(m);
+      });
+    loadMessages();
+    const stop = onTicketActivity((ticketId) => {
+      if (ticketId !== id) return;
+      loadMessages();
+      void fetchTicket(id).then((fresh) => {
+        if (active && fresh) update(fresh);
+      });
     });
     return () => {
       active = false;
+      stop();
     };
-  }, [ticketId]);
-  return { messages, append: (m: SupportMessage) => setMessages((list) => [...(list ?? []), m]) };
+  }, [id]);
+
+  function update(changes: Partial<SupportTicket>) {
+    setTicket((current) => ({ ...current, ...changes }));
+    changed.current(changes);
+  }
+
+  return {
+    ticket,
+    messages,
+    update,
+    applyReply(m: SupportMessage) {
+      setMessages((list) => [...(list ?? []), m]);
+      update(afterReply(ticket, m));
+    },
+  };
 }
 
 // Staff messages always carry the "AureonX Support" label, never an admin's name.

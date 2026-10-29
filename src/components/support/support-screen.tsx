@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { FormError } from "@/components/auth/field";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { SupportStatusBadge } from "@/components/support/status-badge";
-import { Counter, MessageList, ReplyBox, supportDate, textareaClass, useMessages } from "@/components/support/thread";
+import { Counter, MessageList, ReplyBox, supportDate, textareaClass, useThread } from "@/components/support/thread";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import { useAttemptKey } from "@/lib/attempt-key";
 import { notify } from "@/lib/notify";
 import { onVisible } from "@/lib/on-visible";
 import { serverAnswered } from "@/lib/rpc-error";
-import { afterReply, fetchOwnTickets, type SupportTicket } from "@/lib/support";
+import { fetchOwnTickets, type SupportTicket } from "@/lib/support";
 import { BODY_MAX, SUBJECT_MAX, SUPPORT_TOPICS, ticketOk } from "@/lib/support-rules";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -43,8 +43,13 @@ export function SupportScreen() {
   }, []);
 
   const open = tickets?.find((x) => x.id === openId) ?? null;
-  const replace = (next: SupportTicket) =>
-    setTickets((list) => [next, ...(list ?? []).filter((x) => x.id !== next.id)]);
+  // Merges a change into its ticket and keeps the list newest update first.
+  const merge = (id: string, changes: Partial<SupportTicket>) =>
+    setTickets((list) =>
+      (list ?? [])
+        .map((x) => (x.id === id ? { ...x, ...changes } : x))
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
+    );
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -57,7 +62,7 @@ export function SupportScreen() {
       </header>
 
       {open ? (
-        <Thread key={open.id} ticket={open} onBack={() => setOpenId(null)} onChanged={replace} />
+        <Thread key={open.id} ticket={open} onBack={() => setOpenId(null)} onChanged={(changes) => merge(open.id, changes)} />
       ) : (
         <>
           <NewTicketForm onCreated={(ticket) => setTickets((list) => [ticket, ...(list ?? [])])} />
@@ -212,16 +217,16 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
 }
 
 function Thread({
-  ticket,
+  ticket: initial,
   onBack,
   onChanged,
 }: {
   ticket: SupportTicket;
   onBack: () => void;
-  onChanged: (ticket: SupportTicket) => void;
+  onChanged: (changes: Partial<SupportTicket>) => void;
 }) {
   const t = useTranslations("Support");
-  const { messages, append } = useMessages(ticket.id);
+  const { ticket, messages, applyReply } = useThread(initial, onChanged);
   return (
     <div className="space-y-4">
       <Button type="button" variant="ghost" className="-ml-2 h-9 gap-1 px-2" onClick={onBack}>
@@ -243,10 +248,7 @@ function Thread({
           <div className="border-t pt-4">
             <ReplyBox
               ticketId={ticket.id}
-              onSent={(m) => {
-                append(m);
-                onChanged(afterReply(ticket, m));
-              }}
+              onSent={applyReply}
             />
           </div>
         )}

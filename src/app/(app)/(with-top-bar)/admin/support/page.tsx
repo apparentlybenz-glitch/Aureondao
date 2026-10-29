@@ -7,10 +7,9 @@ import { AdminHeading } from "@/components/admin/admin-heading";
 import { FormError } from "@/components/auth/field";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { SupportStatusBadge } from "@/components/support/status-badge";
-import { MessageList, ReplyBox, supportDate, useMessages } from "@/components/support/thread";
+import { MessageList, ReplyBox, supportDate, useThread } from "@/components/support/thread";
 import { Button } from "@/components/ui/button";
 import {
-  afterReply,
   SUPPORT_STATUSES,
   type SupportStatus,
   type SupportTicket,
@@ -153,8 +152,7 @@ function AdminThread({ ticket, onBack, onChanged }: { ticket: AdminTicket; onBac
   const t = useTranslations("Admin");
   const s = useTranslations("Support");
   const rpcMessage = useRpcMessage();
-  const { messages, append } = useMessages(ticket.id);
-  const [row, setRow] = useState(ticket);
+  const { ticket: row, messages, update, applyReply } = useThread(ticket, onChanged);
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = row.profiles?.email ?? t("support.unknownUser");
@@ -167,8 +165,7 @@ function AdminThread({ ticket, onBack, onChanged }: { ticket: AdminTicket; onBac
       .single<SupportTicket>();
     setClosing(false);
     if (error) return setError(rpcMessage(error));
-    setRow({ ...row, ...data });
-    onChanged();
+    update(data);
   }
 
   return (
@@ -194,11 +191,7 @@ function AdminThread({ ticket, onBack, onChanged }: { ticket: AdminTicket; onBac
           <div className="space-y-3 border-t pt-4">
             <ReplyBox
               ticketId={row.id}
-              onSent={(m) => {
-                append(m);
-                setRow((r) => ({ ...r, ...afterReply(r, m) }));
-                onChanged();
-              }}
+              onSent={applyReply}
             />
             <FormError message={error} />
             <Button type="button" variant="outline" className="h-11 w-full" disabled={closing} onClick={close}>

@@ -53,3 +53,28 @@ export async function fetchMessages(ticketId: string): Promise<SupportMessage[] 
 export function afterReply(ticket: SupportTicket, message: SupportMessage): SupportTicket {
   return { ...ticket, status: message.is_staff ? "answered" : "open", updated_at: message.created_at };
 }
+
+export async function fetchTicket(ticketId: string): Promise<SupportTicket | null> {
+  const { data } = await createClient()
+    .from("support_tickets")
+    .select(TICKET_SELECT)
+    .eq("id", ticketId)
+    .maybeSingle()
+    .overrideTypes<SupportTicket, { merge: false }>();
+  return data;
+}
+
+// Ticket activity: NotificationListener reports the ticket of each new
+// notifications row here, and an open thread (useThread) refetches itself.
+const activity = new Set<(ticketId: string) => void>();
+
+export function onTicketActivity(listener: (ticketId: string) => void): () => void {
+  activity.add(listener);
+  return () => {
+    activity.delete(listener);
+  };
+}
+
+export function reportTicketActivity(ticketId: string) {
+  for (const l of activity) l(ticketId);
+}

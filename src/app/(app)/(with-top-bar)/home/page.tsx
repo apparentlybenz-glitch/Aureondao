@@ -20,7 +20,7 @@ import { formatCents } from "@/lib/money";
 import { useSuspension } from "@/lib/suspension";
 import { totalCents, useWallets } from "@/lib/wallets";
 
-// Tiles without an href are not built yet (or have only a placeholder page); they show "Soon".
+// Tiles without an href are not built yet; they show "Soon".
 const ACTIONS = [
   { key: "deposit", Icon: ArrowDownToLine, href: "/assets/deposit" },
   { key: "options", Icon: Timer, href: "/options" },
@@ -28,7 +28,7 @@ const ACTIONS = [
   { key: "perpetual", Icon: InfinityIcon },
   { key: "spot", Icon: CandlestickChart, href: "/spot" },
   { key: "transfer", Icon: ArrowRightLeft, href: "/assets/transfer" },
-  { key: "support", Icon: LifeBuoy },
+  { key: "support", Icon: LifeBuoy, href: "/support" },
   { key: "bills", Icon: ReceiptText, href: "/assets/bills" },
 ] as const;
 
