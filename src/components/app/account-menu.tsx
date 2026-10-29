@@ -51,7 +51,7 @@ export function AccountMenu({ align = "start" }: { align?: "start" | "end" }) {
           </DropdownMenu.Item>
           <DropdownMenu.Separator className={divider} />
           <DropdownMenu.Item asChild className={item}>
-            <Link href="/legal">{t("menu.legal")}</Link>
+            <Link href="/terms">{t("menu.legal")}</Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className={divider} />
           <DropdownMenu.Item className={item} onSelect={signOut}>
