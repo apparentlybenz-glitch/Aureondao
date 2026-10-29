@@ -172,7 +172,9 @@
     "retry": "Try again",
     "loadMore": "Load more",
     "noMore": "No more records",
-    "all": "All"
+    "all": "All",
+    "view": "View",
+    "close": "Close"
   },
   "Errors": {
     "INSUFFICIENT_FUNDS": "Not enough available balance.",
@@ -196,6 +198,11 @@
     "PERIOD_DISABLED": "This option period is not open right now.",
     "BELOW_MIN_PREMIUM": "The premium is below the minimum.",
     "ACCOUNT_SUSPENDED": "Your account is suspended. Trading and transfers are paused.",
+    "SUPPORT_INVALID_TOPIC": "Choose a topic.",
+    "SUPPORT_INVALID_SUBJECT": "Enter a subject of 1 to 120 characters.",
+    "SUPPORT_INVALID_BODY": "Enter a message of 1 to 2,000 characters.",
+    "SUPPORT_NOT_FOUND": "This ticket was not found.",
+    "SUPPORT_CLOSED": "This ticket is closed.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -423,7 +430,8 @@
       "restrictions": "Restrictions",
       "optionPeriods": "Option periods",
       "auditLog": "Audit Log",
-      "kyc": "KYC Review"
+      "kyc": "KYC Review",
+      "support": "Support tickets"
     },
     "active": "Active",
     "suspended": "Suspended",
@@ -507,7 +515,9 @@
         "set_option_period": "Option period change",
         "kyc_approve": "KYC approval",
         "kyc_reject": "KYC rejection",
-        "kyc_photo_view": "KYC photo view"
+        "kyc_photo_view": "KYC photo view",
+        "support_reply": "Support reply",
+        "support_close": "Support ticket closed"
       },
       "summary": {
         "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
@@ -518,7 +528,8 @@
         "enabled": "enabled",
         "disabled": "disabled",
         "kycApproved": "Identity submission approved.",
-        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}."
+        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}.",
+        "ticket": "Ticket: {subject}"
       }
     },
     "kyc": {
@@ -540,6 +551,19 @@
       "sending": "Saving…",
       "doneApproved": "{email} is now verified.",
       "doneRejected": "{email} was not approved."
+    },
+    "support": {
+      "description": "Read and answer user tickets. Your replies show as AureonX Support.",
+      "status": "Status",
+      "topic": "Topic",
+      "all": "All",
+      "empty": "No tickets match these filters.",
+      "unknownUser": "Unknown user",
+      "limit": "Showing the newest {count} tickets.",
+      "backToList": "Back to tickets",
+      "userLabel": "User",
+      "close": "Close ticket",
+      "closedNote": "This ticket is closed."
     }
   },
   "Market": {
@@ -752,5 +776,49 @@
       "asks": "Asks"
     },
     "mid": "Mid"
+  },
+  "Support": {
+    "title": "Support",
+    "subtitle": "Send us a message and the support team will reply here.",
+    "topic": "Topic",
+    "topicPlaceholder": "Select a topic",
+    "subject": "Subject",
+    "subjectPlaceholder": "What do you need help with?",
+    "message": "Message",
+    "messagePlaceholder": "Tell us what happened",
+    "counter": "{count}/{max}",
+    "submit": "Submit ticket",
+    "sending": "Sending…",
+    "submitted": "Ticket submitted. The support team will reply here.",
+    "yourTickets": "Your tickets",
+    "noTickets": "You have no tickets yet.",
+    "loadError": "Could not load this. Try again.",
+    "updated": "Updated {date}",
+    "backToTickets": "Back to your tickets",
+    "youLabel": "You",
+    "staffLabel": "AureonX Support",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply",
+    "send": "Send reply",
+    "closedNote": "This ticket is closed. Open a new ticket if you need more help.",
+    "status": {
+      "open": "Open",
+      "answered": "Answered",
+      "closed": "Closed"
+    },
+    "topics": {
+      "account": "Account",
+      "balance_funding": "Balance and funding",
+      "trading": "Trading",
+      "verification": "Verification",
+      "security": "Security",
+      "other": "Other"
+    }
+  },
+  "Notifications": {
+    "supportReply": "AureonX Support replied",
+    "newTicket": "New ticket: {subject}",
+    "newReply": "New reply: {subject}",
+    "adminSummary": "You have {count} new support messages"
   }
 }
