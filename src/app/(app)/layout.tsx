@@ -1,5 +1,7 @@
+import { NotificationListener } from "@/components/app/notification-listener";
 import { SessionGuard } from "@/components/app/session-guard";
 import { TabBar } from "@/components/app/tab-bar";
+import { Toaster } from "@/components/app/toaster";
 
 // Static shell: user data loads in client components. An accidental
 // cookies()/headers() call fails the build.
@@ -11,8 +13,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <SessionGuard />
+      <NotificationListener />
       {children}
       <TabBar />
+      <Toaster />
     </>
   );
 }

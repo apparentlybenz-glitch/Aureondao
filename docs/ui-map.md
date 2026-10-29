@@ -352,7 +352,7 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Screen | Evidence |
 |---|---|
 | Spot, Forex terminals; Assets; Bills; Transfer; Deposit/Withdraw; Account; Security Center; KYC; Admin; public homepage | Described |
-| Auth pages, error/404 pages, Market tab list, support placeholder | Designed |
+| Auth pages, error/404 pages, Market tab list | Designed |
 
 **Assumptions** for every Described or Designed screen:
 - Same dark theme, bottom tab bar and top-bar patterns as the Captured screens.
@@ -371,7 +371,7 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | Transfer | `/assets/transfer` | Designed |
 | Bills | `/assets/bills` | Designed |
 | Admin (user list + credit/debit) | `/admin` | Designed (replaced by the slice 7 panel, §4.15) |
-| "Coming soon" placeholders | `/support` (`/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
+| "Coming soon" placeholders | none (`/support` became the Support page with tickets, `/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
 - **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
