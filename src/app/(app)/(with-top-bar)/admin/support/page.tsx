@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AdminHeading } from "@/components/admin/admin-heading";
@@ -40,7 +41,28 @@ async function loadTickets(status: StatusFilter, topic: TopicFilter): Promise<Ad
   return error ? null : data;
 }
 
-export default function SupportTicketsPage() {
+async function loadTicket(id: string): Promise<AdminTicket | null> {
+  const { data } = await createClient()
+    .from("support_tickets")
+    .select(`${TICKET_SELECT}, profiles(email)`)
+    .eq("id", id)
+    .maybeSingle()
+    .overrideTypes<AdminTicket, { merge: false }>();
+  return data;
+}
+
+// useSearchParams needs the Suspense on a prerendered page.
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <SupportTickets />
+    </Suspense>
+  );
+}
+
+// The open thread comes from ?ticket=, so a list tap, Back and an admin toast's
+// link all work the same way.
+function SupportTickets() {
   const t = useTranslations("Admin");
   const s = useTranslations("Support");
   const c = useTranslations("Common");
@@ -48,9 +70,23 @@ export default function SupportTicketsPage() {
   const [topic, setTopic] = useState<TopicFilter>("all");
   const [version, setVersion] = useState(0);
   const [result, setResult] = useState<AdminTicket[] | null | undefined>(undefined);
-  // Kept as picked, so a reload that filters it out (after a reply or a close)
-  // does not close the thread.
-  const [open, setOpen] = useState<AdminTicket | null>(null);
+  const router = useRouter();
+  const openId = useSearchParams().get("ticket");
+  // Loaded by id, so a reload that filters it out of the list (after a reply or
+  // a close) does not close the thread. null when the ticket was not found.
+  const [opened, setOpened] = useState<{ id: string; row: AdminTicket | null } | null>(null);
+  const open = openId && opened?.id === openId ? opened : null;
+
+  useEffect(() => {
+    if (!openId) return;
+    let active = true;
+    loadTicket(openId).then((row) => {
+      if (active) setOpened({ id: openId, row });
+    });
+    return () => {
+      active = false;
+    };
+  }, [openId]);
 
   useEffect(() => {
     let active = true;
@@ -65,8 +101,25 @@ export default function SupportTicketsPage() {
   return (
     <>
       <AdminHeading title={t("sections.support")} description={t("support.description")} />
-      {open ? (
-        <AdminThread key={open.id} ticket={open} onBack={() => setOpen(null)} onChanged={() => setVersion((v) => v + 1)} />
+      {openId ? (
+        open?.row ? (
+          <AdminThread
+            key={open.id}
+            ticket={open.row}
+            onBack={() => router.push("/admin/support")}
+            onChanged={() => setVersion((v) => v + 1)}
+          />
+        ) : open ? (
+          <div className="space-y-3">
+            <Button type="button" variant="ghost" className="-ml-2 h-9 gap-1 px-2" onClick={() => router.push("/admin/support")}>
+              <ChevronLeft className="size-4" />
+              {t("support.backToList")}
+            </Button>
+            <p className="text-sm text-destructive">{t("loadError")}</p>
+          </div>
+        ) : (
+          <p className="text-sm">{c("loading")}</p>
+        )
       ) : (
         <>
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -122,7 +175,10 @@ export default function SupportTicketsPage() {
               <li key={row.id}>
                 <button
                   type="button"
-                  onClick={() => setOpen(row)}
+                  onClick={() => {
+                    setOpened({ id: row.id, row });
+                    router.push(`/admin/support?ticket=${row.id}`);
+                  }}
                   className="flex w-full items-center justify-between gap-3 rounded-xl border bg-card p-3 text-left"
                 >
                   <span className="min-w-0 space-y-0.5">

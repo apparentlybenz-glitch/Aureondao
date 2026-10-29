@@ -816,6 +816,9 @@
     }
   },
   "Notifications": {
-    "supportReply": "AureonX Support replied"
+    "supportReply": "AureonX Support replied",
+    "newTicket": "New ticket: {subject}",
+    "newReply": "New reply: {subject}",
+    "adminSummary": "You have {count} new support messages"
   }
 }

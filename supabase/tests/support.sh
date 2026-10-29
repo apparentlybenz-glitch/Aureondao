@@ -1,6 +1,6 @@
 #!/bin/bash
 # Support tickets tests. Prints PASS/FAIL lines (no keys) and exits non-zero if any check fails.
-# Usage: supabase/tests/support.sh [t1 ... t5]  (Management API, write token required)
+# Usage: supabase/tests/support.sh [t1 ... t6]  (t2 to t5 need the ticket t1 creates)  (Management API, write token required)
 # Always runs setup, the given steps (all by default), then cleanup, in one process. A trap on
 # EXIT, INT, TERM and ERR runs cleanup, which deletes the test users (their tickets, messages
 # and notifications cascade) and their admin_audit_log rows.
@@ -12,6 +12,7 @@ if [ "$REF" != "$URL_REF" ]; then echo "SUPABASE_PROJECT_REF does not match NEXT
 A=aaaaaaaa-0000-4000-8000-0000000000aa   # ticket owner
 B=bbbbbbbb-0000-4000-8000-0000000000bb   # admin
 C=cccccccc-0000-4000-8000-0000000000cc   # another user (never an admin row)
+D=dddddddd-0000-4000-8000-0000000000dd   # a second admin
 FAILS=0
 run() { jq -Rs '{query: ., read_only: false}' | curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" -H 'Content-Type: application/json' --data-binary @-; echo; }
 # as <uid> <user_role> <sql>
@@ -33,6 +34,18 @@ ticket() { echo "select id from public.support_tickets where client_request_id =
 audit() { echo "select count(*) n, count(*) filter (where admin_id = '$B') by_admin, min(payload ->> 'from_status') from_status,
   count(*) filter (where payload ->> 'subject' = 'Cannot see my balance') with_subject
   from public.admin_audit_log where action = '$1' and target_id = '$(ticket)' and target_user_id = '$A';" | run; }
+# fan <ticket> <kind> <author>: every live admin except the author has exactly one row of
+# this kind for the ticket, and nobody else has one. Live admins in the project count too.
+fan() { echo "with a as (select r.user_id from public.user_roles r join public.profiles p on p.id = r.user_id
+                where r.role = 'admin' and r.user_id <> '$3'),
+       n as (select user_id from public.notifications where ticket_id = '$1' and kind = '$2')
+  select (select count(*) from a where user_id not in (select user_id from n)) missing,
+         (select count(*) from n where user_id not in (select user_id from a)) extra,
+         (select count(*) from n) - (select count(distinct user_id) from n) dupes;" | run; }
+# rows <ticket>: notifications rows for the ticket, and unread admin rows.
+rows() { echo "select count(*) n, count(*) filter (where read_at is null and kind <> 'support_reply') unread_admin
+  from public.notifications where ticket_id = '$1';" | run; }
+tid() { echo "select id from public.support_tickets where client_request_id = '$(key $1)';" | run | jq -r '.[0].id'; }
 status() { echo "select status from public.support_tickets where client_request_id = '$(key 1)';" | run; }
 
 step() {
@@ -41,9 +54,10 @@ setup) run <<SQL
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000','$A','authenticated','authenticated','support-test-a@aureonx.invalid','',now(),'{}','{"nickname":"TestA"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$B','authenticated','authenticated','support-test-b@aureonx.invalid','',now(),'{}','{"nickname":"TestB"}',now(),now()),
-       ('00000000-0000-0000-0000-000000000000','$C','authenticated','authenticated','support-test-c@aureonx.invalid','',now(),'{}','{"nickname":"TestC"}',now(),now());
-insert into public.user_roles (user_id, role) values ('$B','admin');
-select count(*) profiles from public.profiles where id in ('$A','$B','$C');
+       ('00000000-0000-0000-0000-000000000000','$C','authenticated','authenticated','support-test-c@aureonx.invalid','',now(),'{}','{"nickname":"TestC"}',now(),now()),
+       ('00000000-0000-0000-0000-000000000000','$D','authenticated','authenticated','support-test-d@aureonx.invalid','',now(),'{}','{"nickname":"TestD"}',now(),now());
+insert into public.user_roles (user_id, role) values ('$B','admin'), ('$D','admin');
+select count(*) profiles from public.profiles where id in ('$A','$B','$C','$D');
 SQL
 ;;
 t1) echo "T1 support_create_ticket: validation, trimming, replay"
@@ -86,11 +100,11 @@ t3) echo "T3 support_reply: is_staff and status set by the server, notification 
     expect "one support_reply audit row by the admin" '"n":1,"by_admin":1,.*"with_subject":1' "$(audit support_reply)"
     expect "the audit row carries the reply's key" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$(key 31)';" | run)"
     adm "select public.support_reply('$T', 'We are checking.', '$(key 31)');" > /dev/null
-    expect "same key twice: one staff message, one notification" '"m":1,"n":1' "$(echo "select (select count(*) from public.support_messages where client_request_id = '$(key 31)') m, (select count(*) from public.notifications where ticket_id = '$T') n;" | run)"
+    expect "same key twice: one staff message, one notification" '"m":1,"n":1' "$(echo "select (select count(*) from public.support_messages where client_request_id = '$(key 31)') m, (select count(*) from public.notifications where user_id = '$A' and ticket_id = '$T') n;" | run)"
     expect "same key twice: one audit row" '"n":1' "$(audit support_reply)"
     expect "owner reply is_staff false" '"is_staff":false' "$(user $A "select (public.support_reply('$T', 'Thanks.', '$(key 32)')).is_staff;")"
     expect "status open again" '"status":"open"' "$(status)"
-    expect "no notification for a user reply" '"n":1' "$(echo "select count(*) n from public.notifications where ticket_id = '$T';" | run)"
+    expect "no owner notification for a user reply" '"n":1' "$(echo "select count(*) n from public.notifications where user_id = '$A' and ticket_id = '$T';" | run)"
     expect "no audit row for a user reply" '"n":1' "$(audit support_reply)"
     expect "the owner reads no audit rows" '"n":0' "$(user $A "select count(*) n from public.admin_audit_log;")"
     expect "another user reads no audit rows" '"n":0' "$(user $C "select count(*) n from public.admin_audit_log;")"
@@ -118,13 +132,40 @@ t5) echo "T5 notifications: own rows only, mark read"
     expect "owner marks it" '"mark_notifications_read":1' "$(user $A "select public.mark_notifications_read(array['$N']::uuid[]);")"
     expect "marking again changes nothing" '"mark_notifications_read":0' "$(user $A "select public.mark_notifications_read(array['$N']::uuid[]);")"
     expect "no direct update" 'permission denied' "$(user $A "update public.notifications set read_at = null where id = '$N';")";;
+t6) echo "T6 admin notifications: fan-out to live admins, retries, clearing on staff reply and close"
+    expect "new ticket: one row per live admin" '"missing":0,"extra":0,"dupes":0' "$(user $A "select (public.support_create_ticket('trading', 'Order stuck', 'It never filled.', '$(key 61)')).status;" > /dev/null; fan "$(tid 61)" support_new_ticket $A)"
+    T=$(tid 61); BEFORE=$(rows $T)
+    user $A "select public.support_create_ticket('trading', 'Order stuck', 'It never filled.', '$(key 61)');" > /dev/null
+    [ "$BEFORE" = "$(rows $T)" ] && expect "retried ticket adds no rows" . x || expect "retried ticket adds no rows" NEVER "$BEFORE vs $(rows $T)"
+    expect "the author and the non-admin get no admin row" '"a":0,"c":0' "$(echo "select count(*) filter (where user_id = '$A') a, count(*) filter (where user_id = '$C') c from public.notifications where ticket_id = '$T';" | run)"
+    expect "user reply: one row per live admin" '"missing":0,"extra":0,"dupes":0' "$(user $A "select public.support_reply('$T', 'Any news?', '$(key 62)');" > /dev/null; fan $T support_user_reply $A)"
+    BEFORE=$(rows $T); user $A "select public.support_reply('$T', 'Any news?', '$(key 62)');" > /dev/null
+    [ "$BEFORE" = "$(rows $T)" ] && expect "retried reply adds no rows" . x || expect "retried reply adds no rows" NEVER "$BEFORE vs $(rows $T)"
+    expect "the owner reads no admin rows" '"n":0' "$(user $A "select count(*) n from public.notifications where kind <> 'support_reply';")"
+    expect "another user reads no admin rows" '"n":0' "$(user $C "select count(*) n from public.notifications where kind <> 'support_reply';")"
+    expect "an admin claim without the row reads none" '"n":0' "$(as $C admin "select count(*) n from public.notifications where ticket_id = '$T';")"
+    expect "an admin reads only their own rows" '"own":2,"other":0' "$(as $D admin "select count(*) filter (where user_id = '$D') own, count(*) filter (where user_id <> '$D') other from public.notifications where ticket_id = '$T';")"
+    expect "admin rows unread before the staff reply" '"unread_admin":[2-9]' "$(rows $T)"
+    adm "select public.support_reply('$T', 'Checking now.', '$(key 63)');" > /dev/null
+    expect "staff reply marks every admin row read, D's too" '"unread_admin":0' "$(rows $T)"
+    expect "D's rows are read" '"n":0' "$(echo "select count(*) n from public.notifications where user_id = '$D' and ticket_id = '$T' and read_at is null;" | run)"
+    expect "the owner still gets the staff reply row, unread" '"n":1' "$(echo "select count(*) n from public.notifications where user_id = '$A' and ticket_id = '$T' and kind = 'support_reply' and read_at is null;" | run)"
+    user $A "select public.support_reply('$T', 'Still stuck.', '$(key 64)');" > /dev/null
+    expect "a second user reply fans out unread again" '"unread_admin":[2-9]' "$(rows $T)"
+    expect "close changes status" '"status":"closed"' "$(adm "select (public.admin_support_close('$T')).status;")"
+    expect "close marks every admin row read" '"unread_admin":0' "$(rows $T)"
+    expect "admin author: other admins get a row, the author none" '"missing":0,"extra":0,"dupes":0' "$(as $D admin "select public.support_create_ticket('security', 'My own ticket', 'Testing.', '$(key 65)');" > /dev/null; fan "$(tid 65)" support_new_ticket $D)"
+    T2=$(tid 65)
+    expect "admin author reply: other admins only" '"missing":0,"extra":0,"dupes":0' "$(as $D admin "select public.support_reply('$T2', 'More detail.', '$(key 66)');" > /dev/null; fan $T2 support_user_reply $D)"
+    expect "the admin author has no admin row" '"n":0' "$(echo "select count(*) n from public.notifications where user_id = '$D' and ticket_id = '$T2';" | run)";;
 cleanup) run <<SQL
-delete from public.admin_audit_log where admin_id in ('$A','$B','$C') or target_user_id in ('$A','$B','$C');
-delete from auth.users where id in ('$A','$B','$C');
-select (select count(*) from public.profiles where id in ('$A','$B','$C')) profiles,
-       (select count(*) from public.support_tickets where user_id in ('$A','$B','$C')) tickets,
+delete from public.admin_audit_log where admin_id in ('$A','$B','$C','$D') or target_user_id in ('$A','$B','$C','$D');
+delete from auth.users where id in ('$A','$B','$C','$D');
+select (select count(*) from public.profiles where id in ('$A','$B','$C','$D')) profiles,
+       (select count(*) from public.support_tickets where user_id in ('$A','$B','$C','$D')) tickets,
        (select count(*) from public.support_messages where client_request_id::text like '99999999-%') messages,
-       (select count(*) from public.notifications where user_id in ('$A','$B','$C')) notifications,
+       (select count(*) from public.notifications where user_id in ('$A','$B','$C','$D')) notifications,
+       (select count(*) from public.notifications n where not exists (select 1 from public.support_tickets t where t.id = n.ticket_id)) orphan_notifications,
        (select count(*) from public.admin_audit_log where action like 'support_%' and admin_id is null and target_user_id is null) orphan_audit;
 SQL
 ;;
@@ -144,7 +185,7 @@ trap 'restore; exit 130' INT
 trap 'restore; exit 143' TERM
 trap 'restore; exit 1' ERR
 
-steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5)
+steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6)
 step setup
 for s in "${steps[@]}"; do step "$s"; echo; done
 echo "== $FAILS check(s) failed"
