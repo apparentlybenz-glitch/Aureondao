@@ -54,6 +54,11 @@
       "spot": "Spot",
       "options": "Options",
       "assets": "Assets",
+      "legal": "Legal",
+      "terms": "Terms",
+      "privacy": "Privacy",
+      "risk": "Risk Disclosure",
+      "licenses": "Licenses and Disclosures",
       "disclosure": "AureonX runs on virtual balances. No real money is deposited, traded or withdrawn.",
       "copyright": "© 2026 AureonX"
     }
@@ -312,6 +317,26 @@
       "security": "Security",
       "legal": "Legal and disclosures"
     }
+  },
+  "LegalPages": {
+    "back": "Back to home",
+    "lastUpdated": "Last Updated",
+    "version": "Version",
+    "titles": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "risk": "Risk Disclosure",
+      "licenses": "Licenses and Disclosures"
+    }
+  },
+  "CookieConsent": {
+    "label": "Cookie preferences",
+    "heading": "Allow cookies?",
+    "bodyBefore": "Essential cookies keep you signed in and are always on. May we also use optional cookies to understand how AureonX is used? Read our ",
+    "privacyLink": "Privacy Policy",
+    "bodyAfter": ".",
+    "accept": "Accept",
+    "decline": "Decline"
   },
   "Legal": {
     "title": "Legal and disclosures",

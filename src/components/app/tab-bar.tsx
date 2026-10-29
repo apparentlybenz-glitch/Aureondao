@@ -22,7 +22,7 @@ export function TabBar() {
   const isActive = (href: string) => pathname.startsWith(href);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b)">
+    <nav data-tab-bar className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b)">
       <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-5">
         {TABS.map(({ href, key, Icon }) => {
           const active = isActive(href);
