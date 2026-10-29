@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 import { dismissToast, getServerToasts, getToasts, subscribeToasts } from "@/lib/notify";
 
 // Renders the notify() queue with Radix Toast, above the tab bar and the raised
-// Trade button. Each toast closes after 6 s, on swipe or on its close button.
+// Trade button on mobile. Each toast closes after 6 s, on swipe or on its close button.
 export function Toaster() {
   const t = useTranslations("Common");
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getServerToasts);
@@ -40,7 +40,7 @@ export function Toaster() {
           </Toast.Close>
         </Toast.Root>
       ))}
-      <Toast.Viewport className="fixed inset-x-0 bottom-[calc(var(--tab-bar-h)+var(--tab-bar-overhang)+var(--safe-b)+0.5rem)] z-[100] mx-auto flex w-full max-w-[420px] flex-col gap-2 px-4 outline-none" />
+      <Toast.Viewport className="fixed inset-x-0 bottom-[calc(var(--tab-bar-h)+var(--tab-bar-overhang)+var(--safe-b)+0.5rem)] md:bottom-4 z-[100] mx-auto flex w-full max-w-[420px] flex-col gap-2 px-4 outline-none" />
     </Toast.Provider>
   );
 }

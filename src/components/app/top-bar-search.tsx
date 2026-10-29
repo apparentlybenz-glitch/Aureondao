@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 // Submitting opens the Market tab filtered by the text: /market?q=.
-export function TopBarSearch() {
+export function TopBarSearch({ autoFocus }: { autoFocus?: boolean }) {
   const t = useTranslations("Shell");
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -29,6 +29,7 @@ export function TopBarSearch() {
         placeholder={t("search")}
         aria-label={t("search")}
         enterKeyHint="search"
+        autoFocus={autoFocus}
         className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
       />
     </form>

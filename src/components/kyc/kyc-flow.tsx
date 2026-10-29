@@ -33,7 +33,7 @@ type Photo = { file: File; type: PhotoType; url: string };
 
 const dobFormat = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" });
 const selectClass =
-  "h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // One step per screen: country and ID type, personal info, one photo, review.
 // The photo is uploaded on Submit to {user_id}/{client_request_id}.{ext}, and the
@@ -233,7 +233,7 @@ export function KycFlow() {
 
         {step === 2 ? (
           <div className="space-y-3">
-            <p role="note" className="flex gap-2 rounded-xl bg-amber-500/15 p-3 text-sm font-medium text-amber-500">
+            <p role="note" className="flex gap-2 rounded-xl bg-muted p-3 text-sm font-medium text-foreground">
               <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               {t("sampleOnly")}
             </p>

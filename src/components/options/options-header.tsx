@@ -118,7 +118,7 @@ export function OptionsHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
           {shell("virtualPill")}
         </span>
         <button

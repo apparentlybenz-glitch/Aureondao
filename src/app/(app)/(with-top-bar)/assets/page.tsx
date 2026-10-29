@@ -23,7 +23,7 @@ export default function AssetsPage() {
           {wallets ? formatCents(totalCents(wallets)) : c("loading")}
           <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
         </p>
-        <p className="text-xs font-medium text-amber-500">{h("virtualBalance")}</p>
+        <p className="text-xs font-medium text-primary">{h("virtualBalance")}</p>
       </section>
 
       <div className="grid grid-cols-3 gap-3">

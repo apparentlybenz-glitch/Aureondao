@@ -124,7 +124,7 @@ export default function AuditLogPage() {
             setResult(undefined);
             setAction(e.target.value as Action | "all");
           }}
-          className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:max-w-xs"
+          className="h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:max-w-xs"
         >
           <option value="all">{t("auditLog.all")}</option>
           {ACTIONS.map((a) => (

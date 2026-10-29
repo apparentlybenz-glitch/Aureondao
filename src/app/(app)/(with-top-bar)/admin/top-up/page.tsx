@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ACCOUNTS, type Account, type Wallet } from "@/lib/wallets";
 
 const selectClass =
-  "h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export default function TopUpPage() {
   const t = useTranslations("Admin");
@@ -172,7 +172,7 @@ function AdjustForm({ user }: { user: AdminUser }) {
         </div>
         <FormError message={error} />
         {done ? (
-          <p role="status" className="text-sm text-emerald-500">
+          <p role="status" className="text-sm text-up">
             {done}
           </p>
         ) : null}

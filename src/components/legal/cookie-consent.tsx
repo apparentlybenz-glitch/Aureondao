@@ -58,12 +58,11 @@ export function CookieConsent() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-50 px-4"
-      style={{
-        bottom: aboveTabBar
-          ? "calc(var(--tab-bar-h) + var(--tab-bar-overhang) + 0.5rem + var(--safe-b))"
-          : "calc(0.75rem + var(--safe-b))",
-      }}
+      className={`pointer-events-none fixed inset-x-0 z-50 px-4 ${
+        aboveTabBar
+          ? "bottom-[calc(var(--tab-bar-h)+var(--tab-bar-overhang)+0.5rem+var(--safe-b))] md:bottom-3"
+          : "bottom-[calc(0.75rem+var(--safe-b))]"
+      }`}
     >
       <div
         role="dialog"

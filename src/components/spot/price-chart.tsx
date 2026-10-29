@@ -79,14 +79,14 @@ export function PriceChart({
     void import("lightweight-charts").then(({ createChart, CandlestickSeries, ColorType, LineStyle }) => {
       if (disposed || !container.current) return;
       const css = getComputedStyle(document.documentElement);
-      const up = css.getPropertyValue("--up").trim() || "#3dd68c";
-      const down = css.getPropertyValue("--down").trim() || "#f0505a";
+      const up = css.getPropertyValue("--up").trim() || "#0fa644";
+      const down = css.getPropertyValue("--down").trim() || "#ee266a";
       colors.current = { up, down, dashed: LineStyle.Dashed };
       const c = createChart(container.current, {
         autoSize: true,
         layout: {
           background: { type: ColorType.Solid, color: "transparent" },
-          textColor: "#8a8f98",
+          textColor: css.getPropertyValue("--muted-foreground").trim() || "#9aa09d",
           attributionLogo: true,
         },
         grid: { vertLines: { color: "rgba(255,255,255,0.04)" }, horzLines: { color: "rgba(255,255,255,0.04)" } },
@@ -230,7 +230,7 @@ export function PriceChart({
             {klines.failing ? t("chartUnavailable") : t("chartLoading")}
           </p>
         ) : klines.failing ? (
-          <p className="absolute top-1 left-2 z-10 text-xs text-amber-500">{t("chartDelayed")}</p>
+          <p className="absolute top-1 left-2 z-10 text-xs text-muted-foreground">{t("chartDelayed")}</p>
         ) : null}
       </div>
     </section>

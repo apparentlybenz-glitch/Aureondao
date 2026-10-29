@@ -94,48 +94,59 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
+/* md and up: the desktop top bar is slimmer and there is no tab bar. */
+@media (min-width: 48rem) {
+  :root {
+    --top-bar-h: 3rem;
+  }
+}
+
 /* Clears the tab bar, the raised Trade button and the home indicator. Any layout
-   that renders the tab bar applies this class to its content. */
+   that renders the tab bar applies this class to its content; the tab bar is
+   hidden from md, so those layouts add md:pb-* as well. */
 @utility pb-tabbar {
   padding-bottom: calc(var(--tab-bar-h) + var(--tab-bar-overhang) + 0.5rem + var(--safe-b));
 }
 
 .dark {
-  --background: #050505;
-  --foreground: #f5f5f5;
-  --card: #121212;
-  --card-foreground: oklch(0.985 0 0);
-  --popover: #121212;
-  --popover-foreground: oklch(0.985 0 0);
+  /* Palette sampled from the design references: header #03070a, page #151a18,
+     inputs, popovers and secondary pills #2e3331, chips #212624, green #0fa644,
+     crimson #ee266a. Sell buttons are crimson at 60% (bg-down/60, about #92264b). */
+  --background: #151a18;
+  --foreground: #f5f7f6;
+  --card: #1a1f1d;
+  --card-foreground: #f5f7f6;
+  --popover: #2e3331;
+  --popover-foreground: #f5f7f6;
   /* Brand green. Primary text is black: white fails AA here, and black fails on
      darker greens, so hover and pressed states lighten, never darken. */
-  --primary: #1ba04a;
-  --primary-foreground: #050505;
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: #a3a3a3;
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: #262626;
-  --input: #262626;
-  --ring: #1ba04a;
-  --up: #3dd68c; /* price up, Rise */
-  --down: #f0505a; /* price down, Fall */
+  --primary: #0fa644;
+  --primary-foreground: #03070a;
+  --secondary: #2e3331;
+  --secondary-foreground: #ffffff;
+  --muted: #212624;
+  --muted-foreground: #9aa09d;
+  --accent: #212624;
+  --accent-foreground: #ffffff;
+  --destructive: #ee266a;
+  --border: #353a38;
+  --input: #2e3331;
+  --ring: #0fa644;
+  --up: #0fa644; /* price up, Rise */
+  --down: #ee266a; /* price down, Fall, sell */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: #03070a; /* header: the desktop nav bar */
+  --sidebar-foreground: #f5f7f6;
+  --sidebar-primary: #0fa644;
+  --sidebar-primary-foreground: #03070a;
+  --sidebar-accent: #212624;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #353a38;
+  --sidebar-ring: #0fa644;
 }
 
 @layer base {

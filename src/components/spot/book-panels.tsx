@@ -60,7 +60,7 @@ export function OrderBookPanel({ market }: { market: Market }) {
     <li key={`${side}${l.price}`} className="relative grid grid-cols-2 py-0.5 text-[13px] tabular-nums">
       <span
         aria-hidden="true"
-        className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-up/15" : "bg-down/15")}
+        className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-up/35" : "bg-down/35")}
         style={{ width: `${width(cum)}%` }}
       />
       <span className={cn("relative", side === "bid" ? "text-up" : "text-down")}>

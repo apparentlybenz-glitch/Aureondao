@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = { themeColor: "#050505", viewportFit: "cover" };
+export const viewport: Viewport = { themeColor: "#151a18", viewportFit: "cover" };
 
 export default async function RootLayout({
   children,
