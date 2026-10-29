@@ -77,7 +77,6 @@
       "deposit": "Deposit",
       "options": "Options",
       "forex": "Forex",
-      "perpetual": "Perpetual",
       "spot": "Spot",
       "transfer": "Transfer",
       "support": "Support",
@@ -610,8 +609,7 @@
       "label": "Market type",
       "spot": "Spot",
       "options": "Options",
-      "forex": "Forex",
-      "perpetual": "Perpetual"
+      "forex": "Forex"
     },
     "columns": {
       "symbol": "Symbol",

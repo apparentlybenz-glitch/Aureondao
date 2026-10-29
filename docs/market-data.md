@@ -275,7 +275,7 @@ The owner supplied no Binance main or Bybit lines, so those checks stay open.
 | 3 Vision | **Partial:** Lagos closed; US and EU residential browsers and the negative preflight check are not recorded. Vision answers from the sandbox and from Supabase eu-west-1 (all 20 markets `source = vision`, a few seconds old) |
 | 4 OKX | **Done, negative result:** no OKX code in `src` or the Edge Function |
 | 5 KuCoin from Cloudflare and Supabase egress | **Still pending:** there is no history to show KuCoin ever produced a snapshot (`price_snapshots` keeps one row per market). Sandbox only: `allTickers` answered 200 with all 20 symbols. A source counter would settle it |
-| 6 Frankfurter, 7 FX and metals hosts | **Deferred:** no FX code (Forex and Perpetual are deferred) |
+| 6 Frankfurter, 7 FX and metals hosts | **Deferred:** no FX code (Forex is deferred) |
 | 8 Workers Cache and Placement | **Obsolete:** O13 chose route handlers in the app Worker with in-memory caches; the Cache API does nothing on workers.dev (status: the custom domain `aureonx.app` now exists; the code still uses in-memory caches) |
 | 9 `price-ingest` egress | **Partial:** the Vision side is done (8,219 succeeded cron runs, 0 failed; every `net._http_response` row 200). The ">= 2 sources" part is obsolete (no median) |
 | 10 Proxy header integrity | **Done for Vision** (Lagos browser) |
