@@ -59,6 +59,10 @@
       "privacy": "Privacy",
       "risk": "Risk Disclosure",
       "licenses": "Licenses and Disclosures",
+      "company": "Company",
+      "support": "Support",
+      "signIn": "Log in",
+      "signUp": "Create account",
       "disclosure": "AureonX runs on virtual balances. No real money is deposited, traded or withdrawn.",
       "copyright": "© 2026 AureonX"
     }
