@@ -531,7 +531,9 @@
         "profitRate": "Enter a profit rate from 0 to 1000 with up to 2 decimals.",
         "fee": "Enter a fee from 0 to 10 with up to 2 decimals.",
         "minPremium": "Enter a minimum premium above 0.",
-        "enabledNeedsRate": "A period needs a profit rate above 0 to be enabled."
+        "enabledNeedsRate": "A period needs a profit rate above 0 to be enabled.",
+        "rateBelowFee": "The profit rate must be above the fee for a period to be enabled.",
+        "minPremiumFloor": "The minimum premium must be at least {min} for this rate and fee, so a win still pays after the fee."
       }
     },
     "auditLog": {

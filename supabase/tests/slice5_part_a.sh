@@ -102,7 +102,7 @@ SQL
     user $A "select public.open_option('BTC-USDT','rise',30,4899,gen_random_uuid());" | sed 's/^/[premium 48.99] /'
     user $A "select public.open_option('BTC-USDT','rise',60,4900,gen_random_uuid());" | sed 's/^/[60 s disabled] /'
     user $A "select public.open_option('BTC-USDT','rise',45,4900,gen_random_uuid());" | sed 's/^/[45 s] /'
-    user $A "select public.open_option('XRP-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[XRP] /'
+    user $A "select public.open_option('SHIB-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[SHIB no Options] /'
     user $A "select public.open_option('NOPE-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[NOPE] /'
     user $A "select public.open_option('BTC-USDT','rise',30,4900,null);" | sed 's/^/[no key] /';;
 t3) echo "T3 entry age: 16 s refused, 14 s accepted, a future snapshot refused"

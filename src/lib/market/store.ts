@@ -3,7 +3,7 @@ import { getJson } from "./http";
 import type { FetchLike } from "./http";
 import { ProviderError } from "./types";
 import type { Market, Ticker } from "./types";
-import { normalizeVision, visionUrl } from "./vision";
+import { normalizeVision, visionUrls } from "./vision";
 
 export const POLL_MS = 5_000;
 // Delay after n consecutive failed cycles (index n - 1); a success goes back to POLL_MS.
@@ -56,7 +56,11 @@ export function createMarketStore(deps: StoreDeps) {
   async function fetchTickers(markets: Market[]): Promise<{ tickers: Ticker[]; source: "vision" | "md" }> {
     if (Date.now() >= visionSkipUntil) {
       try {
-        const tickers = normalizeVision(await getJson(deps.fetch, visionUrl(markets), VISION_TIMEOUT_MS), markets);
+        // One call per batch of 20 symbols; any failed batch fails the poll and the fallback quotes every market.
+        const payloads = await Promise.all(
+          visionUrls(markets).map((url) => getJson(deps.fetch, url, VISION_TIMEOUT_MS)),
+        );
+        const tickers = payloads.flatMap((payload) => normalizeVision(payload, markets));
         if (tickers.length === 0) throw new ProviderError("No usable tickers");
         return { tickers, source: "vision" };
       } catch (e) {

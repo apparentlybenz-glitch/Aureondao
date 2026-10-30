@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatChange, formatPrice, fractionToPercent, isPositiveDecimal, roundDecimal } from "./decimal.ts";
+import { formatChange, formatMid, formatPrice, fractionToPercent, isPositiveDecimal, roundDecimal } from "./decimal.ts";
 
 test("roundDecimal rounds half up on the string", () => {
   assert.equal(roundDecimal("80163.80000000", 2), "80163.80");
@@ -46,4 +46,13 @@ test("isPositiveDecimal rejects zero, blanks and exponents", () => {
   assert.equal(isPositiveDecimal(""), false);
   assert.equal(isPositiveDecimal(null), false);
   assert.equal(isPositiveDecimal("1E-7"), false);
+});
+
+test("formatMid keeps the half-tick digit of a mid price and drops a trailing zero", () => {
+  assert.equal(formatMid("0.000004515", 8), "0.000004515");
+  assert.equal(formatMid("0.000004520", 8), "0.00000452");
+  assert.equal(formatMid("84242.95", 2), "84,242.95");
+  assert.equal(formatMid("84242.9", 2), "84,242.90");
+  assert.equal(formatMid("84242.905", 2), "84,242.905");
+  assert.equal(formatMid("1e-7", 8), "--");
 });

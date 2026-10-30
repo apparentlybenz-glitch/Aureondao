@@ -41,6 +41,13 @@ export function formatPrice(value: string, decimals: number): string {
   return `${negative ? "-" : ""}${grouped}${fraction === undefined ? "" : `.${fraction}`}`;
 }
 
+// A mid price (bid + ask) / 2 has one more decimal than the tick: shown at
+// decimals + 1 unless that extra digit is 0, so BTC reads 84,242.95 or 84,242.90.
+export function formatMid(value: string, decimals: number): string {
+  const extra = roundDecimal(value, decimals + 1);
+  return formatPrice(value, extra !== null && extra.endsWith("0") ? decimals : decimals + 1);
+}
+
 // "7.7886" -> "+7.79%", "-0.312" -> "-0.31%", "0" -> "0.00%".
 export function formatChange(pct: string): string {
   const rounded = roundDecimal(pct, 2);

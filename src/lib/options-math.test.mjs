@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bpsToPercent, bpsToPercentText, estReturnCents, formatCountdown, percentToBps } from "./options-math.ts";
+import { bpsToPercent, bpsToPercentText, estReturnCents, formatCountdown, minPremiumFloorCents, percentToBps } from "./options-math.ts";
 import { feeCents } from "./spot-math.ts";
 
 test("estReturnCents floors premium x rate / 10000 like the server", () => {
@@ -43,4 +43,21 @@ test("formatCountdown rounds up and stops at 0:00", () => {
   assert.equal(formatCountdown(1), "0:01");
   assert.equal(formatCountdown(0), "0:00");
   assert.equal(formatCountdown(-5000), "0:00");
+});
+
+// The net of a win after the opening fee, exactly as the server computes it.
+const net = (p, rate, fee) => (p * BigInt(rate)) / 10000n - (p * BigInt(fee) + 9999n) / 10000n;
+
+test("minPremiumFloorCents is the smallest premium whose wins always net at least 1 cent", () => {
+  assert.equal(minPremiumFloorCents(600, 10), 34n);
+  assert.equal(net(34n, 600, 10), 1n);
+  assert.equal(net(33n, 600, 10), 0n);
+  assert.equal(minPremiumFloorCents(100, 10), 223n);
+  assert.equal(minPremiumFloorCents(50000, 1000), 1n);
+  assert.equal(minPremiumFloorCents(10, 10), null);
+  assert.equal(minPremiumFloorCents(5, 10), null);
+  for (const [rate, fee] of [[600, 10], [100, 10], [15, 10], [300, 250], [1000, 100]]) {
+    const floor = minPremiumFloorCents(rate, fee);
+    for (let p = floor; p < floor + 3000n; p++) assert.ok(net(p, rate, fee) >= 1n, `${rate}/${fee} at ${p}`);
+  }
 });

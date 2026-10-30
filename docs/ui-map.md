@@ -340,7 +340,7 @@ The top bar is `--top-bar-h` plus `--safe-t` tall with `--safe-t` as top padding
 
 Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured layout, these are the assumptions):
 - **Put:** the Fall side was never captured. One plain full-width button on every layout: **Call** (up colour) for Rise, **Put** (dark red, `down` at 80%) for Fall. The enum stays `rise`/`fall`.
-- **Symbol list:** the `options_enabled` markets (BTC, ETH, SOL) by `display_symbol`, in a bottom sheet; no prices or search. The choice is not remembered.
+- **Symbol list:** the `options_enabled` markets (38 of the 40 pairs, not SHIB or PEPE) by `display_symbol`, in a bottom sheet; no prices or search. The choice is not remembered.
 - **Info sheet:** each enabled period with its profit rate, the fee rate (first enabled period's `fee_bps`) and one line on settlement and the 90 s refund.
 - **Statistics icon:** captured next to the Positions/Fill tabs, not built (hidden).
 - **Floating support:** a brand-green headset button (→ `/support`, like the top bar) bottom right, 12 px above the tab bar, on Options and Spot. It fades out while an element marked `data-fab-avoid` (the Call/Put and Spot confirm buttons, the fee/return row) passes under it. These pages pad the bottom by tab bar + 5rem + safe area so the last row clears it.
