@@ -11,6 +11,9 @@ const TABS = ["transactions", "actions"] as const;
 export default function AuditLogPage() {
   const t = useTranslations("Admin");
   const [tab, setTab] = useState<(typeof TABS)[number]>("transactions");
+  // A tab mounts on first visit and then stays mounted, hidden while inactive,
+  // so its filters, loaded rows and scroll position survive a switch.
+  const [visited, setVisited] = useState<ReadonlySet<(typeof TABS)[number]>>(() => new Set(["transactions"]));
 
   return (
     <>
@@ -20,7 +23,10 @@ export default function AuditLogPage() {
             key={id}
             type="button"
             aria-pressed={tab === id}
-            onClick={() => setTab(id)}
+            onClick={() => {
+              setTab(id);
+              setVisited((prev) => new Set(prev).add(id));
+            }}
             className={cn(
               "h-8 rounded-md px-3 text-sm font-medium transition-colors",
               tab === id ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground",
@@ -30,7 +36,14 @@ export default function AuditLogPage() {
           </button>
         ))}
       </div>
-      {tab === "transactions" ? <TransactionsLog /> : <ActionsLog />}
+      <div hidden={tab !== "transactions"}>
+        <TransactionsLog />
+      </div>
+      {visited.has("actions") ? (
+        <div hidden={tab !== "actions"}>
+          <ActionsLog />
+        </div>
+      ) : null}
     </>
   );
 }
