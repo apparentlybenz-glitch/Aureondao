@@ -26,11 +26,12 @@ const SECTIONS = [
 
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
-// Gate, then a bar under the top bar whose hamburger opens the section list in a
-// drawer from the left, at every width. This gate is for nav visibility: the admin
-// layout already redirects a non-admin on the server. The data boundary is in SQL:
-// RLS admin reads and every admin RPC require the live admin row (no second
-// factor, docs/decisions.md C21).
+// Gate, then the section nav: below `md:` a bar under the top bar whose hamburger
+// opens the section list in a drawer from the left; from `md:` a tab row like the
+// account tabs. This gate is for nav visibility: the admin layout already
+// redirects a non-admin on the server. The data boundary is in SQL: RLS admin
+// reads and every admin RPC require the live admin row (no second factor,
+// docs/decisions.md C21).
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");
@@ -45,11 +46,38 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (!ready) return <p className="text-sm">{c("loading")}</p>;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
+  const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || isHead === true);
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 
   return (
     <SelectedUserProvider>
-      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+      <nav aria-label={t("navLabel")} className="-mx-4 mb-5 hidden border-b px-4 md:block">
+        <ul className="flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {sections.map(({ key, href }) => {
+            const active = pathname === href;
+            return (
+              <li key={key} className="shrink-0">
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
+                    active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
+                  )}
+                >
+                  {t(`sections.${key}`)}
+                </Link>
+              </li>
+            );
+          })}
+          <li className="ml-auto shrink-0">
+            <Link href="/home" className="flex h-11 items-center text-sm text-muted-foreground">
+              {t("backToApp")}
+            </Link>
+          </li>
+        </ul>
+      </nav>
+      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center md:hidden gap-2 border-b bg-background/95 px-4 backdrop-blur">
         <Dialog.Root open={openedOn === pathname} onOpenChange={(next) => setOpenedOn(next ? pathname : null)}>
           <Dialog.Trigger
             aria-label={t("openMenu")}
@@ -71,7 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <nav aria-label={t("navLabel")} className="flex flex-1 flex-col justify-between gap-3">
                 <ul className="space-y-1">
-                  {SECTIONS.filter((s) => s.key !== "adminAccess" || isHead === true).map(({ key, href, Icon }) => {
+                  {sections.map(({ key, href, Icon }) => {
                     const active = pathname === href;
                     return (
                       <li key={key}>
