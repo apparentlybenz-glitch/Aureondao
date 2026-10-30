@@ -28,7 +28,8 @@ export function DesktopNav() {
         <Wordmark className="h-3.5 w-auto" />
       </Link>
       <nav aria-label={t("mainNav")} className="flex items-center gap-1">
-        {NAV_ITEMS.map(({ href, key }) => {
+        {NAV_ITEMS.map((item) => {
+          const { href, key } = item;
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -40,7 +41,7 @@ export function DesktopNav() {
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {t(key)}
+              {t("desktopKey" in item ? item.desktopKey : key)}
             </Link>
           );
         })}
