@@ -27,9 +27,10 @@ const SECTIONS = [
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
 // Gate, then a bar under the top bar whose hamburger opens the section list in a
-// drawer from the left, at every width. The gate is UX only. The real boundary is
-// in SQL: RLS admin reads and every admin RPC require the live admin row (no
-// second factor, docs/decisions.md C21).
+// drawer from the left, at every width. This gate is for nav visibility: the admin
+// layout already redirects a non-admin on the server. The data boundary is in SQL:
+// RLS admin reads and every admin RPC require the live admin row (no second
+// factor, docs/decisions.md C21).
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");

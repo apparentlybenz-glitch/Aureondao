@@ -1,5 +1,6 @@
 "use server";
 
+import { isAdmin } from "@/lib/admin-server";
 import type { LedgerKind } from "@/lib/bills";
 import { escapeLike } from "@/lib/escape-like";
 import { isGroup, LEDGER_GROUPS } from "@/lib/ledger-groups";
@@ -37,20 +38,6 @@ type LedgerRow = {
 
 const SELECT =
   "id::text, account, counter_account, kind, delta_cents::text, memo, asset, ref_type, ref_id, created_at, profiles!inner(email)";
-
-// The live admin row, read as the signed-in user (no aal2, as for every admin read).
-async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
-  const { data: auth } = await supabase.auth.getClaims();
-  const userId = auth?.claims.sub;
-  if (!userId) return false;
-  const { data: role } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  return role !== null;
-}
 
 // One page of the platform ledger, newest first. Runs as the signed-in user:
 // RLS lets only a live admin row read other users' rows, and the explicit role
