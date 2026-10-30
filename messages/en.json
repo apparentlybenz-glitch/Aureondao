@@ -765,7 +765,11 @@
     "columns": {
       "price": "Price ({quote})",
       "amount": "Amount ({base})",
+      "total": "Total ({base})",
       "time": "Time"
+    },
+    "group": {
+      "label": "Group prices by"
     },
     "buy": "Buy",
     "sell": "Sell",

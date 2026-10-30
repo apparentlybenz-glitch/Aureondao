@@ -134,7 +134,7 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 - (c) Leveraged margin with SL/TP. *Good:* realistic. *Bad:* liquidation engine; out of v1.
 
 **O3. Forex order book, trades and volume panels** (MD D2). These don't exist publicly for OTC FX.
-- ★ (a) Hide the depth and trade panels for FX; show bid/ask/spread. *Good:* nothing fabricated. *Bad:* differs from the spec's layout.
+- ★ (a) Hide the depth and trade panels for FX; show bid/ask/spread. *Good:* nothing fabricated. *Bad:* differs from the spec's layout. **Superseded (owner decision, 2026-10-30): Forex shows a deterministic generated ladder around the mid price (no label), with no Trades tab; this replaces the starred option. Spot and Options keep real Vision depth.**
 - (b) Synthetic book labelled "Indicative", never used in money paths. *Good:* matches the spec visually. *Bad:* invented data that users may read as real liquidity.
 - (c) Price ladder of recent mid ticks. *Good:* real data. *Bad:* sparse with slow sources.
 
