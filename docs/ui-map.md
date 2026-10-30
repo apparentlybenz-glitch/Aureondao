@@ -94,8 +94,8 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
   1. Create `createServerClient` (`@supabase/ssr`).
   2. Call `supabase.auth.getClaims()`.
   3. Protected page: with an error or no claims, redirect to `/sign-in?next=<path>`. Entry page: a request with no `sb-*-auth-token` cookie passes through; valid claims redirect to `/home` (the `next` parameter is dropped); an error or no claims falls through to the page.
-  4. **The proxy does not check the admin role or aal2.** The admin gate is the client `AdminShell` (UX only); RLS (`private.is_admin()`) and the admin RPCs enforce the live `user_roles` row only; since 2026-10-28 (decisions C21) no `aal2` is required.
-  5. Regular users who have enrolled factors are stepped up client-side: the `(app)` layout's `SessionGuard` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects to `/sign-in/mfa` when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The `user_role` claim is read only by that client gate.
+  4. **The proxy does not check the admin role or aal2.** Admin pages are gated server side by the redirect in `admin/layout.tsx` (live `user_roles` row, `isAdmin` in `src/lib/admin-server.ts`) and the client `AdminShell` only hides nav; RLS (`private.is_admin()`, live row) and the admin RPCs (the `user_role` claim and the live row) are the data boundary; since 2026-10-28 (decisions C21) no `aal2` is required.
+  5. Regular users who have enrolled factors are stepped up client-side: the `(app)` layout's `SessionGuard` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`, which works from the local session, and redirects to `/sign-in/mfa` when `nextLevel === 'aal2' && currentLevel === 'aal1'`. The `user_role` claim is read only in `src/lib/use-account.ts` (client UX) and by the admin RPCs.
   6. Return the response that carries the refreshed cookies.
 - **Is it a network call?** In the common case, no. In `@supabase/auth-js@2.118.0`, `getClaims()` decodes the JWT, then calls `fetchJwk(kid)`. That function reads an in-memory `GLOBAL_JWKS` (TTL `JWKS_TTL = 10 min`) and fetches `/.well-known/jwks.json` only when the key is missing or stale. It then verifies with `crypto.subtle.verify`. It falls back to `getUser()` (a network call) only if `alg` is HS* (a legacy symmetric secret) or WebCrypto is missing. Separately, it refreshes the session first (a network call) if the access token is expired or about to expire, which happens once per token lifetime. To remove the cold-isolate JWKS fetch entirely, pass the project JWKS from an env var: `getClaims(undefined, { jwks: JSON.parse(env.SUPABASE_JWKS) })` ("this JSON Web Key Set is going to have precedence over the cached value"). The cost is redeploying when keys rotate; Supabase warns that long caching makes revocation harder.
   - Sources:
@@ -111,7 +111,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 Legend:
 - **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. RH = route handler, run per request.
-- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (proxy plus RPC check). MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
+- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (admin layout redirect plus RPC check; the proxy checks no role). MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
@@ -458,7 +458,8 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 ### 5.4 Server-side code inventory (complete)
 1. `proxy.ts` (or `middleware.ts`): JWT verification and cookie refresh on protected paths only. No secret; uses the publishable key.
 2. `/auth/callback` and `/auth/confirm` route handlers. No secret.
-3. Server actions in `src/app/admin/_actions.ts`: `banUser`, `unbanUser`, `resetUserMfa`, `signOutUser`. Secret: `SUPABASE_SECRET_KEY`. Each action re-verifies `getClaims()` admin role and AAL2 before acting.
+3. *(Planned, not built; no runtime code uses the secret key)* Server actions in `src/app/admin/_actions.ts`: `banUser`, `unbanUser`, `resetUserMfa`, `signOutUser`. Secret: `SUPABASE_SECRET_KEY`. Each action would re-verify the live admin row before acting.
+3a. *(Built)* `admin/layout.tsx` redirects a non-admin to `/home` (live `user_roles` row, no secret) and `admin/audit-log/actions.ts` reads the ledger and audit log as the signed-in user; both use `isAdmin` in `src/lib/admin-server.ts`.
 4. *(Only if D4 = self-hosted WebAuthn)* `src/app/account/security/_passkey-actions.ts`.
 5. The shared market-data Worker route `/md/v1/*` belongs to the market-data agent. The UI consumes it only through the store.
 
@@ -611,7 +612,7 @@ Realtime: the UI subscribes to `postgres_changes` filtered by `user_id=eq.<uid>`
 2. **Forex order book, trades and volume do not exist publicly.** Spot FX/metals have no consolidated public order book, tape or volume. The Forex terminal spec (order book, latest trades, volume MA5/10/20, depth chart) therefore needs **synthetic** data generated around the mid price, or tick-count volume, from the market-data agent. Otherwise the UI must hide those panels for forex. Probes in this session showed several free FX/metal APIs blocked from the sandbox, so availability is unconfirmed.
 3. **Options terminal symbols.** "Options" here means binary up/down on an underlying. `instruments.category = 'options'` needs an underlying price feed, which is likely the same crypto/forex feeds. Agree whether options symbols reuse spot/forex symbols (`BTC-USDT`, `XAU-USD`) or are separate rows.
 4. **USD valuation of balances.** The Assets total needs a price for every held asset, including assets not on screen. The market store must support a cheap bulk ticker (`useTickers`) or the Worker route `/md/v1/tickers?symbols=`. Otherwise the data-model agent must expose a server-valued `wallet_totals_v`.
-5. **Admin role claim.** Resolved: the proxy reads the top-level `user_role` claim, set by the custom access token hook from `user_roles`.
+5. **Admin role claim.** Resolved: `proxy.ts` reads no role. The top-level `user_role` claim, set by the custom access token hook from `user_roles`, is read only in `src/lib/use-account.ts` (client UX) and checked by the admin RPCs. Server code and RLS use the live `user_roles` row.
 6. **Asymmetric JWT keys** must be enabled on the Supabase project, or R4 degrades into a network call per request.
 7. **Realtime channel naming.** The UI uses `crypto.randomUUID()` suffixes. If the data-model agent chooses private broadcast channels with RLS on `realtime.messages`, policies must match by topic **prefix** (e.g. `split_part(topic, ':', 2) = auth.uid()::text`) and not by exact name.
 8. **Decimal handling.** The UI sends amounts as strings and expects `numeric` columns returned as strings. Resolved: PostgREST returns `numeric` as JSON numbers, so every select of a numeric or money column casts with `::text`. RPC args should be `numeric` and not `float8`.

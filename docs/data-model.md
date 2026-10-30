@@ -556,7 +556,7 @@ Upgrade path: broadcast-from-trigger to private `user:<uid>` channels (D8) when 
 | `deposit_requests` / `withdrawal_requests`, `create_*_request`, `cancel_withdrawal_request` | `deposits` / `withdrawals`, `request_deposit`, `request_withdrawal`, `cancel_withdrawal` | Names only |
 | `portfolio_snapshots` (hourly cron) | `get_pnl_series()` over `ledger.pnl_cents` | **Conflict, D4** |
 | D6-A: forex = same as spot | Forex = margin positions (no leverage) | **Conflict, D3.** The order form can stay; "Amount" becomes USDT margin, and Buy/Sell become Long/Short |
-| `is_admin()` reading JWT `app_metadata.role` | `private.is_admin()` reads `user_roles`; the JWT gets the top-level `user_role` claim via the auth hook | The proxy should read `user_role`, not `app_metadata.role` |
+| `is_admin()` reading JWT `app_metadata.role` | `private.is_admin()` reads `user_roles`; the JWT gets the top-level `user_role` claim via the auth hook | The claim is `user_role`, not `app_metadata.role`. `proxy.ts` reads no role; the claim is read only in `src/lib/use-account.ts` and by the admin RPCs |
 | "PostgREST returns numeric as strings" | **It returns JSON numbers** | The UI must cast `::text` in selects (§1.1) |
 | `admin_upsert_option_cycle`, `get_option_stats(range)` | `admin_set_cycle_config`, `get_options_stats(p_since)` | Names only |
 | `favorites` + `toggle_favorite`, `update_profile`, `server_time`, `admin_audit_log`, MFA-gated withdrawals, KYC for withdrawals (D7-A) | Included as requested | |
