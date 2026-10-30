@@ -537,36 +537,31 @@
       }
     },
     "auditLog": {
-      "description": "Admin actions, newest first.",
-      "filter": "Action",
-      "all": "All actions",
-      "empty": "No audit entries.",
-      "limit": "Showing the latest {count} entries.",
-      "admin": "Admin",
-      "target": "User",
+      "description": "Every transaction across the platform. {count, plural, one {# record} other {# records}}.",
+      "searchLabel": "Filter by email",
+      "searchPlaceholder": "Filter by email",
+      "typeLabel": "Transaction type",
+      "all": "All",
+      "refresh": "Refresh",
+      "empty": "No transactions found.",
+      "loadMore": "Load more",
       "deletedUser": "Deleted user",
-      "actions": {
-        "adjust_balance": "Balance adjustment",
-        "suspend": "Suspension",
-        "unsuspend": "Unsuspension",
-        "set_option_period": "Option period change",
-        "kyc_approve": "KYC approval",
-        "kyc_reject": "KYC rejection",
-        "kyc_photo_view": "KYC photo view",
-        "support_reply": "Support reply",
-        "support_close": "Support ticket closed"
+      "noNote": "-",
+      "route": "{from} to {to}",
+      "columns": {
+        "date": "Date",
+        "user": "User",
+        "type": "Type",
+        "wallets": "Wallets",
+        "amount": "Amount",
+        "note": "Note"
       },
-      "summary": {
-        "credit": "Credited {amount} USD to {wallet}. Reason: {reason}",
-        "debit": "Debited {amount} USD from {wallet}. Reason: {reason}",
-        "reason": "Reason: {reason}",
-        "noReason": "No reason given.",
-        "period": "{seconds} s, profit {rate}, fee {fee}, minimum {min} USD, {state}",
-        "enabled": "enabled",
-        "disabled": "disabled",
-        "kycApproved": "Identity submission approved.",
-        "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}.",
-        "ticket": "Ticket: {subject}"
+      "types": {
+        "adjustment": "Adjustment",
+        "transfer": "Transfer",
+        "spot": "Spot",
+        "options": "Options",
+        "fee": "Fee"
       }
     },
     "kyc": {
