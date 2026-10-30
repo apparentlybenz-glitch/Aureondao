@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, Timer, Users, Wallet, X } from "lucide-react";
+import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, Timer, Users, Wallet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
 import { useAccount } from "@/lib/use-account";
+import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
-// route and its `Admin.sections` string.
+// route and its `Admin.sections` string. Admin access is listed for head admins only.
 const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
   { key: "topUp", href: "/admin/top-up", Icon: Wallet },
@@ -20,6 +21,7 @@ const SECTIONS = [
   { key: "optionPeriods", href: "/admin/option-periods", Icon: Timer },
   { key: "support", href: "/admin/support", Icon: LifeBuoy },
   { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText },
+  { key: "adminAccess", href: "/admin/admin-access", Icon: ShieldCheck },
 ] as const;
 
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
@@ -33,6 +35,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const c = useTranslations("Common");
   const pathname = usePathname();
   const { ready, isAdmin } = useAccount();
+  const isHead = useHeadAdmin();
   // The page the drawer was opened on: it is open only while still there, so a
   // route change closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
@@ -67,7 +70,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <nav aria-label={t("navLabel")} className="flex flex-1 flex-col justify-between gap-3">
                 <ul className="space-y-1">
-                  {SECTIONS.map(({ key, href, Icon }) => {
+                  {SECTIONS.filter((s) => s.key !== "adminAccess" || isHead === true).map(({ key, href, Icon }) => {
                     const active = pathname === href;
                     return (
                       <li key={key}>

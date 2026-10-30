@@ -211,6 +211,7 @@
     "SUPPORT_INVALID_BODY": "Enter a message of 1 to 2,000 characters.",
     "SUPPORT_NOT_FOUND": "This ticket was not found.",
     "SUPPORT_CLOSED": "This ticket is closed.",
+    "HEAD_ADMIN_PROTECTED": "A head admin cannot be changed here.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -466,7 +467,8 @@
       "optionPeriods": "Option periods",
       "auditLog": "Audit Log",
       "kyc": "KYC Review",
-      "support": "Support tickets"
+      "support": "Support tickets",
+      "adminAccess": "Admin access"
     },
     "active": "Active",
     "suspended": "Suspended",
@@ -516,6 +518,23 @@
       "sending": "Saving…",
       "doneSuspended": "{email} is now suspended.",
       "doneActive": "{email} is now active."
+    },
+    "access": {
+      "description": "Grant or revoke admin access for other users. Only a head admin can do this. Every change is written to the audit log.",
+      "notAllowed": "Only a head admin can manage admin access.",
+      "pickUser": "Search for a user to continue.",
+      "change": "Change user",
+      "status": "Access",
+      "notAdmin": "Not an admin",
+      "admin": "Admin",
+      "head": "Head admin",
+      "headNote": "A head admin cannot be changed here.",
+      "reasonField": "Reason (3 to 200 characters, kept in the audit log)",
+      "grant": "Grant admin access",
+      "revoke": "Revoke admin access",
+      "sending": "Saving…",
+      "doneGranted": "{email} is now an admin. They need to sign in again before admin tools work.",
+      "doneRevoked": "{email} is no longer an admin. Their admin tools stop working at once, and the admin menu clears on their next token refresh."
     },
     "optionPeriods": {
       "description": "Profit rate, fee and minimum premium for each option period. Open positions keep the rate they opened with.",
