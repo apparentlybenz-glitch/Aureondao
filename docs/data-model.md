@@ -110,7 +110,7 @@ All tables live in `public` and have RLS enabled. "own" means `user_id = auth.ui
 Index: `lower(email)` (for admin search).
 
 ### 3.2 `user_roles`
-`(user_id → auth.users, role app_role('admin'), granted_at, granted_by)`, PK `(user_id, role)`. This table is managed only by SQL or the dashboard. To bootstrap the first admin, insert a row by hand in the SQL editor.
+`(user_id → auth.users, role app_role('admin'), granted_at, granted_by, is_head boolean not null default false)`, PK `(user_id, role)`. Clients have SELECT only. Admins are granted and revoked by a head admin through `admin_set_admin` (a grant inserts `is_head = false`; a revoke of a row with `is_head = true` raises `HEAD_ADMIN_PROTECTED`). `is_head` is written by nothing in the app or the database: a head admin is set by hand in SQL, `update public.user_roles set is_head = true where user_id = '<uuid>' and role = 'admin';`. Only a head admin passes `private.is_head_admin()`, which `admin_set_admin` requires on top of the admin checks.
 
 ### 3.3 `wallets` (cash)
 | Column | Type | Notes |
@@ -444,7 +444,7 @@ There is **never** a fallback to a random, synthetic, last-known-good or client 
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | profiles | own (`id`) or admin | -- (trigger) | -- (`update_profile` RPC) | -- (cascade from auth.users) |
-| user_roles | own or admin; `supabase_auth_admin` (hook) | -- | -- | -- |
+| user_roles | own or admin; `supabase_auth_admin` (hook) | -- (`admin_set_admin`, head admin) | -- (nothing writes `is_head`) | -- (`admin_set_admin`, never a head admin) |
 | wallets, spot_holdings | own or admin | -- | -- (RPC + guard trigger) | -- |
 | transfers, orders, forex_positions, options_positions, deposits, withdrawals, kyc_submissions, ledger | own or admin | -- | -- | -- |
 | favorites | own | -- (RPC) | -- | -- (RPC) |
@@ -632,7 +632,7 @@ Counter-example showing why `price_snapshots` is **not** published: 12 markets �
 
 ## 15. Deployment checklist (Phase 2; not done here)
 1. Review and apply the migration (`supabase db push`), then run `get_advisors`.
-2. Insert the first admin: `insert into public.user_roles (user_id, role) values ('<uuid>', 'admin');`.
+2. Insert the first admin: `insert into public.user_roles (user_id, role, is_head) values ('<uuid>', 'admin', true);` (a head admin; later admins are granted in the app by a head admin).
 3. Enable the Custom Access Token hook → `public.custom_access_token_hook`.
 4. Vault: `project_url`, `price_ingest_secret`. Edge secret: `PRICE_INGEST_SECRET`. Deploy `price-ingest --no-verify-jwt`.
 5. Uncomment and run the three `cron.schedule` calls at the bottom of the migration (price tick, settle/match, history cleanup).

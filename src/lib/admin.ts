@@ -43,6 +43,21 @@ export async function fetchUser(id: string): Promise<AdminUser | null> {
   return data;
 }
 
+// The user_roles admin row. RLS lets an admin read any row, and a user read their
+// own. Null when the read failed; no row is a plain user.
+export type AdminRole = { isAdmin: boolean; isHead: boolean };
+
+export async function fetchAdminRole(userId: string): Promise<AdminRole | null> {
+  const { data, error } = await createClient()
+    .from("user_roles")
+    .select("is_head")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle()
+    .overrideTypes<{ is_head: boolean }, { merge: false }>();
+  return error ? null : { isAdmin: data !== null, isHead: data?.is_head === true };
+}
+
 export async function fetchWallets(userId: string): Promise<Wallet[] | null> {
   const { data, error } = await createClient()
     .from("wallets")

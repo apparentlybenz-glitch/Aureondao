@@ -26,6 +26,7 @@ export const RPC_ERROR_CODES = [
   "SUPPORT_INVALID_BODY",
   "SUPPORT_NOT_FOUND",
   "SUPPORT_CLOSED",
+  "HEAD_ADMIN_PROTECTED",
 ] as const;
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number];
 
