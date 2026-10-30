@@ -149,6 +149,66 @@
   --sidebar-ring: #0fa644;
 }
 
+/* Trade menu (tab-bar.tsx). Transform, opacity and colors only; the menu stays
+   mounted until its close animation ends (Radix Presence reads the animation
+   on .trade-menu). --dy is each pill's distance down to the button center and
+   --i its order from the button (0 is nearest). */
+@keyframes trade-twist-open {
+  0% { transform: rotate(0deg) scale(1); background-color: var(--primary); color: var(--primary-foreground); }
+  25% { transform: rotate(45deg) scale(0.92); }
+  49.9% { transform: rotate(89deg) scale(0.96); background-color: var(--primary); color: var(--primary-foreground); }
+  50% { transform: rotate(90deg) scale(0.97); background-color: var(--foreground); color: var(--primary); }
+  75% { transform: rotate(135deg) scale(1.06); }
+  100% { transform: rotate(180deg) scale(1); background-color: var(--foreground); color: var(--primary); }
+}
+@keyframes trade-twist-close {
+  0% { transform: rotate(180deg); background-color: var(--foreground); color: var(--primary); }
+  49.9% { background-color: var(--foreground); color: var(--primary); }
+  50% { background-color: var(--primary); color: var(--primary-foreground); }
+  100% { transform: rotate(0deg); background-color: var(--primary); color: var(--primary-foreground); }
+}
+@keyframes trade-item-in {
+  from { opacity: 0; transform: translateY(var(--dy)) scale(0.3) rotate(-15deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes trade-item-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(var(--dy)) scale(0.3) rotate(-15deg); }
+}
+@keyframes trade-item-picked {
+  0% { opacity: 1; transform: scale(1); }
+  40% { opacity: 1; transform: scale(0.94); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes trade-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes trade-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+.trade-twist-open { animation: trade-twist-open 450ms ease-in-out forwards; will-change: transform; }
+.trade-twist-close { animation: trade-twist-close 200ms ease-in forwards; will-change: transform; }
+.trade-menu[data-state="closed"] { animation: trade-fade-out 200ms linear both; }
+.trade-menu[data-state="open"] .trade-item {
+  animation: trade-item-in 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i) * 60ms);
+  will-change: transform, opacity;
+}
+.trade-menu[data-state="closed"] .trade-item {
+  animation: trade-item-out 120ms ease-in both;
+  animation-delay: calc((2 - var(--i)) * 40ms);
+  will-change: transform, opacity;
+}
+.trade-menu[data-state="closed"] .trade-item[data-picked] { animation: trade-item-picked 200ms ease-out both; }
+.trade-menu[data-state="closed"] .trade-item[data-other] { animation: trade-fade-out 120ms linear both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .trade-twist-open, .trade-twist-close { animation: none; }
+  .trade-menu[data-state="open"] .trade-item { animation: trade-fade-in 120ms linear both; animation-delay: 0ms; }
+  .trade-menu[data-state="closed"] .trade-item,
+  .trade-menu[data-state="closed"] .trade-item[data-picked],
+  .trade-menu[data-state="closed"] .trade-item[data-other] { animation: trade-fade-out 120ms linear both; animation-delay: 0ms; }
+  .trade-menu[data-state="closed"] { animation-duration: 120ms; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
