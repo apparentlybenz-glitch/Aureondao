@@ -537,14 +537,21 @@
       }
     },
     "auditLog": {
-      "description": "Admin actions, newest first.",
-      "filter": "Action",
-      "all": "All actions",
-      "empty": "No audit entries.",
-      "limit": "Showing the latest {count} entries.",
-      "admin": "Admin",
-      "target": "User",
+      "description": "Every transaction across the platform. {count, plural, one {# record} other {# records}}.",
+      "searchLabel": "Filter by email",
+      "searchPlaceholder": "Filter by email",
+      "typeLabel": "Transaction type",
+      "all": "All",
+      "refresh": "Refresh",
+      "empty": "No transactions found.",
+      "loadMore": "Load more",
       "deletedUser": "Deleted user",
+      "noNote": "-",
+      "tabs": { "label": "Audit view", "transactions": "Transactions", "actions": "Admin actions" },
+      "actionsDescription": "Every admin action on the platform. {count, plural, one {# record} other {# records}}.",
+      "actionsEmpty": "No admin actions found.",
+      "noTarget": "-",
+      "actionColumns": { "date": "Date", "admin": "Admin", "action": "Action", "target": "Target user", "detail": "Detail" },
       "actions": {
         "adjust_balance": "Balance adjustment",
         "suspend": "Suspension",
@@ -567,6 +574,22 @@
         "kycApproved": "Identity submission approved.",
         "kycPhotoView": "Viewed {count, plural, one {# identity photo} other {# identity photos}}.",
         "ticket": "Ticket: {subject}"
+      },
+      "route": "{from} to {to}",
+      "columns": {
+        "date": "Date",
+        "user": "User",
+        "type": "Type",
+        "wallets": "Wallets",
+        "amount": "Amount",
+        "note": "Note"
+      },
+      "types": {
+        "adjustment": "Adjustment",
+        "transfer": "Transfer",
+        "spot": "Spot",
+        "options": "Options",
+        "fee": "Fee"
       }
     },
     "kyc": {
