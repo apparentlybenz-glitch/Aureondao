@@ -38,23 +38,28 @@ type LedgerRow = {
 const SELECT =
   "id::text, account, counter_account, kind, delta_cents::text, memo, asset, ref_type, ref_id, created_at, profiles!inner(email)";
 
-// One page of the platform ledger, newest first. Runs as the signed-in user:
-// RLS lets only a live admin row read other users' rows, and the explicit role
-// check below makes a non-admin fail instead of seeing an empty list.
-export async function loadLedger(input: { q: string; group: string; offset: number }): Promise<LedgerPage> {
-  const offset = Number.isInteger(input.offset) && input.offset >= 0 ? input.offset : 0;
-  const supabase = await createClient();
-
+// The live admin row, read as the signed-in user (no aal2, as for every admin read).
+async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: auth } = await supabase.auth.getClaims();
   const userId = auth?.claims.sub;
-  if (!userId) return { ok: false };
+  if (!userId) return false;
   const { data: role } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
-  if (!role) return { ok: false };
+  return role !== null;
+}
+
+// One page of the platform ledger, newest first. Runs as the signed-in user:
+// RLS lets only a live admin row read other users' rows, and the explicit role
+// check makes a non-admin fail instead of seeing an empty list.
+export async function loadLedger(input: { q: string; group: string; offset: number }): Promise<LedgerPage> {
+  const offset = Number.isInteger(input.offset) && input.offset >= 0 ? input.offset : 0;
+  const supabase = await createClient();
+
+  if (!(await isAdmin(supabase))) return { ok: false };
 
   let req = supabase
     .from("ledger")
@@ -99,5 +104,67 @@ export async function loadLedger(input: { q: string; group: string; offset: numb
       createdAt: r.created_at,
     };
   });
+  return { ok: true, rows, total: count ?? rows.length };
+}
+
+export type ActionEntry = {
+  id: string;
+  action: string;
+  admin: string | null;
+  target: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type ActionsPage = { ok: true; rows: ActionEntry[]; total: number } | { ok: false };
+
+type AuditRow = {
+  id: string;
+  admin_id: string | null;
+  action: string;
+  target_user_id: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+// One page of admin_audit_log, newest first, with the admin and target emails
+// resolved in one batched profiles query.
+export async function loadAdminActions(input: { offset: number }): Promise<ActionsPage> {
+  const offset = Number.isInteger(input.offset) && input.offset >= 0 ? input.offset : 0;
+  const supabase = await createClient();
+  if (!(await isAdmin(supabase))) return { ok: false };
+
+  const { data, count, error } = await supabase
+    .from("admin_audit_log")
+    .select("id, admin_id, action, target_user_id, payload, created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1)
+    .overrideTypes<AuditRow[], { merge: false }>();
+  if (error) return { ok: false };
+
+  const ids = [...new Set(data.flatMap((r) => [r.admin_id, r.target_user_id]).filter((id): id is string => id !== null))];
+  const emails = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data: people, error: peopleError } = await supabase
+      .from("profiles")
+      .select("id, email, nickname")
+      .in("id", ids)
+      .overrideTypes<{ id: string; email: string | null; nickname: string }[], { merge: false }>();
+    if (peopleError) return { ok: false };
+    for (const p of people) emails.set(p.id, p.email ?? p.nickname);
+  }
+
+  const who = (id: string | null) => (id ? (emails.get(id) ?? null) : null);
+  const rows = data.map(
+    (r): ActionEntry => ({
+      id: r.id,
+      action: r.action,
+      admin: who(r.admin_id),
+      target: who(r.target_user_id),
+      payload: r.payload,
+      createdAt: r.created_at,
+    }),
+  );
   return { ok: true, rows, total: count ?? rows.length };
 }
