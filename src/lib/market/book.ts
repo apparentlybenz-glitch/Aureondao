@@ -13,7 +13,7 @@ export type BookLevel = { price: string; qty: string };
 export type Book = { bids: BookLevel[]; asks: BookLevel[] };
 export type Trade = { id: number; price: string; qty: string; time: number; side: "buy" | "sell" };
 
-export function visionDepthUrl(market: Market): string {
+export function visionDepthUrl(market: Pick<Market, "visionSymbol">): string {
   return `https://data-api.binance.vision/api/v3/depth?symbol=${market.visionSymbol}&limit=${BOOK_LEVELS}`;
 }
 
