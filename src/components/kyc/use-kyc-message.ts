@@ -4,8 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 
 // Codes raised by submit_kyc and admin_review_kyc (Kyc.errors). Everything else
-// (INVALID_ARGUMENT, FORBIDDEN, AAL2_REQUIRED, NOTE_REQUIRED, ...) falls through
-// to the shared Errors copy.
+// (INVALID_ARGUMENT, FORBIDDEN, AAL2_REQUIRED, ...) falls through to the shared Errors copy.
 const KYC_ERROR_CODES = [
   "KYC_PENDING",
   "KYC_INVALID_COUNTRY",

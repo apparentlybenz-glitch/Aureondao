@@ -9,7 +9,7 @@ import { formatCents } from "@/lib/money";
 import { ACCOUNTS } from "@/lib/wallets";
 import { loadAdminActions, type ActionEntry } from "./actions";
 
-const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close"] as const;
+const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const dayFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
@@ -70,7 +70,6 @@ export function ActionsLog() {
         const values = {
           amount: formatCents(delta < BigInt(0) ? -delta : delta),
           wallet: account ? w(account) : str(p.account),
-          reason: str(p.reason),
         };
         return delta < BigInt(0) ? t("auditLog.summary.debit", values) : t("auditLog.summary.credit", values);
       }
@@ -84,7 +83,11 @@ export function ActionsLog() {
       case "suspend":
       case "unsuspend":
       case "kyc_reject":
-        return str(p.reason) ? t("auditLog.summary.reason", { reason: str(p.reason) }) : t("auditLog.summary.noReason");
+      case "admin_grant":
+      case "admin_revoke":
+      case "head_demote":
+      case "head_remove":
+        return t("auditLog.noNote");
       case "set_option_period":
         return t("auditLog.summary.period", {
           seconds: num(p.duration_s),

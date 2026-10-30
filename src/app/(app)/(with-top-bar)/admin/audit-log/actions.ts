@@ -30,14 +30,12 @@ type LedgerRow = {
   delta_cents: string;
   memo: string | null;
   asset: string | null;
-  ref_type: string;
-  ref_id: string;
   created_at: string;
   profiles: { email: string | null } | null;
 };
 
 const SELECT =
-  "id::text, account, counter_account, kind, delta_cents::text, memo, asset, ref_type, ref_id, created_at, profiles!inner(email)";
+  "id::text, account, counter_account, kind, delta_cents::text, memo, asset, created_at, profiles!inner(email)";
 
 // One page of the platform ledger, newest first. Runs as the signed-in user:
 // RLS lets only a live admin row read other users' rows, and the explicit role
@@ -60,26 +58,8 @@ export async function loadLedger(input: { q: string; group: string; offset: numb
   const { data, count, error } = await req.overrideTypes<LedgerRow[], { merge: false }>();
   if (error) return { ok: false };
 
-  // An adjustment's reason lives only in the audit row its ledger row points to.
-  const adjustIds = data.filter((r) => r.ref_type === "admin_adjustment").map((r) => r.ref_id);
-  const reasons = new Map<string, string | null>();
-  if (adjustIds.length > 0) {
-    const { data: audits, error: auditError } = await supabase
-      .from("admin_audit_log")
-      .select("id, reason:payload->>reason")
-      .in("id", adjustIds)
-      .overrideTypes<{ id: string; reason: string | null }[], { merge: false }>();
-    if (auditError) return { ok: false };
-    for (const a of audits) reasons.set(a.id, a.reason);
-  }
-
   const rows = data.map((r): LedgerEntry => {
-    const note =
-      r.ref_type === "admin_adjustment"
-        ? (reasons.get(r.ref_id) ?? r.memo)
-        : r.asset && (r.kind === "spot_buy" || r.kind === "spot_sell")
-          ? `${r.asset}/USDT`
-          : r.memo;
+    const note = r.asset && (r.kind === "spot_buy" || r.kind === "spot_sell") ? `${r.asset}/USDT` : r.memo;
     return {
       id: r.id,
       email: r.profiles?.email ?? null,

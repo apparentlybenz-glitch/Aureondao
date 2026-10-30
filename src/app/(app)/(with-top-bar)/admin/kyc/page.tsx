@@ -9,8 +9,6 @@ import { FormError } from "@/components/auth/field";
 import { KycBadge } from "@/components/kyc/kyc-badge";
 import { useKycMessage } from "@/components/kyc/use-kyc-message";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { countryName } from "@/lib/countries";
 import { KYC_BUCKET, KYC_SELECT, KYC_STATUSES, type KycStatus, type KycSubmission } from "@/lib/kyc";
@@ -163,7 +161,6 @@ function ReviewDetail({
   const attempt = useAttemptKey();
   const [row, setRow] = useState(submission);
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
-  const [reason, setReason] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -188,20 +185,17 @@ function ReviewDetail({
     };
   }, [submission.id, submission.photo_path]);
 
-  const trimmed = reason.trim();
-  const canReject = !sending && trimmed.length >= 3 && trimmed.length <= 200;
   const who = person?.email ?? row.full_name;
 
   async function decide(approve: boolean) {
-    if (sending || (!approve && !canReject)) return;
+    if (sending) return;
     setSending(true);
     setError(null);
-    const key = attempt.keyFor(`${row.id}|${approve}|${approve ? "" : trimmed}`);
+    const key = attempt.keyFor(`${row.id}|${approve}`);
     const { data, error } = await createClient()
       .rpc("admin_review_kyc", {
         p_submission_id: row.id,
         p_approve: approve,
-        p_reason: approve ? undefined : trimmed,
         p_client_request_id: key,
       })
       .single<KycSubmission>();
@@ -244,7 +238,6 @@ function ReviewDetail({
             <Field label={k("city")} value={row.city} />
             <Field label={t("kyc.submittedLabel")} value={dateFormat.format(new Date(row.submitted_at))} />
             {row.decided_at ? <Field label={t("kyc.decidedLabel")} value={dateFormat.format(new Date(row.decided_at))} /> : null}
-            {row.rejection_reason ? <Field label={k("reasonLabel")} value={row.rejection_reason} /> : null}
           </dl>
 
           <div className="mt-4 space-y-1.5 md:mt-0">
@@ -270,19 +263,9 @@ function ReviewDetail({
 
         {row.status === "pending" ? (
           <div className="space-y-3 border-t pt-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="kyc-reason">{t("kyc.reasonField")}</Label>
-              <Input
-                id="kyc-reason"
-                maxLength={200}
-                className="h-11 text-base"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </div>
             <FormError message={error} />
             <div className="flex gap-2">
-              <Button type="button" variant="destructive" className="h-11 flex-1" disabled={!canReject} onClick={() => decide(false)}>
+              <Button type="button" variant="destructive" className="h-11 flex-1" disabled={sending} onClick={() => decide(false)}>
                 {sending ? t("kyc.sending") : t("kyc.reject")}
               </Button>
               <Button type="button" className="h-11 flex-1" disabled={sending} onClick={() => decide(true)}>
