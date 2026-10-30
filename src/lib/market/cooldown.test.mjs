@@ -19,7 +19,7 @@ test("parseRetryAfter reads seconds and dates, caps them, and ignores junk", () 
 
 test("hostOf gives one host per upstream and one for our own routes", () => {
   assert.equal(hostOf("https://data-api.binance.vision/api/v3/depth?symbol=BTCUSDT"), "data-api.binance.vision");
-  assert.equal(hostOf("/md/v1/tickers"), hostOf("/md/v1/klines?symbol=BTC-USDT"));
+  assert.equal(hostOf("/md/v1/tickers"), hostOf("/md/v1/tickers?x=1"));
 });
 
 test("a cool-down lasts Retry-After, or 60 s without it", () => {
@@ -55,8 +55,8 @@ test("getJson: a 429 starts the host cool-down, and every call to that host then
   };
   await assert.rejects(getJson(fetchImpl, "https://data-api.binance.vision/api/v3/depth", 1000), (e) => e instanceof ProviderError && e.status === 429 && e.retryAfterMs === 20 * SEC);
   assert.equal(requests, 1);
-  // Book, Trades, klines and tickers all share the host.
-  for (const path of ["/api/v3/depth", "/api/v3/aggTrades", "/api/v3/klines", "/api/v3/ticker/24hr"]) {
+  // Book, Trades and tickers all share the host.
+  for (const path of ["/api/v3/depth", "/api/v3/aggTrades", "/api/v3/ticker/24hr"]) {
     await assert.rejects(getJson(fetchImpl, `https://data-api.binance.vision${path}`, 1000), (e) => e instanceof ProviderError && e.status === 429);
   }
   assert.equal(requests, 1, "no request while cooling down");

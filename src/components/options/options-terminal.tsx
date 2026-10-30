@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
 import { OrderBook } from "@/components/market/order-book";
-import { PriceChart } from "@/components/spot/price-chart";
+import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { TradesPanel } from "@/components/spot/book-panels";
 import { isPositiveDecimal } from "@/lib/market/decimal";
 import { isDelayed } from "@/lib/market/types";
@@ -53,10 +53,6 @@ export function OptionsTerminal() {
       ? midPrice(ticker.bid, ticker.ask)
       : null;
   const options = wallets?.find((w) => w.account === "options") ?? null;
-  const priceLines = (positions.open ?? [])
-    .filter((p) => p.marketId === market.id)
-    .map((p) => ({ price: p.entryPrice, tone: p.direction === "rise" ? ("up" as const) : ("down" as const) }));
-
   const sideBook = chartShown && wide;
   const depth = (
     <DepthTabs
@@ -98,7 +94,7 @@ export function OptionsTerminal() {
       >
         {chartShown ? (
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-            <PriceChart key={market.id} market={market} ticker={ticker} priceLines={priceLines} />
+            <TradingViewChart key={market.id} symbol={market.tvSymbol} />
           </div>
         ) : null}
         <div className="lg:col-start-1 lg:row-start-2">

@@ -14,6 +14,7 @@ export function seededMarkets() {
       displaySymbol: `${base}USD`,
       visionSymbol: row.symbol,
       kucoinSymbol: `${base}-USDT`,
+      tvSymbol: `BINANCE:${row.symbol}`,
       priceDecimals: 2,
       sortOrder: i + 1,
       qtyDecimals: 5,

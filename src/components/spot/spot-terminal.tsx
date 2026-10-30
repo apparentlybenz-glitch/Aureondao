@@ -16,10 +16,10 @@ import { useWallets } from "@/lib/wallets";
 import { AccountPanel } from "./account-panel";
 import { DepthTabs } from "@/components/market/depth-tabs";
 import { OrderBook } from "@/components/market/order-book";
+import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { TradesPanel } from "./book-panels";
 import { MarketPicker } from "./market-picker";
 import { OrderForm } from "./order-form";
-import { PriceChart } from "./price-chart";
 
 type Tab = "book" | "trades" | "orders";
 
@@ -108,7 +108,7 @@ export function SpotTerminal() {
       {/* md: chart and form side by side. lg: the book is a right-hand column and the form sits under the chart. */}
       <div className="space-y-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <PriceChart key={market.id} market={market} ticker={ticker} />
+          <TradingViewChart key={market.id} symbol={market.tvSymbol} />
         </div>
         <div className="lg:col-start-1 lg:row-start-2">
           <OrderForm

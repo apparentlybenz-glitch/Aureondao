@@ -4,8 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 import { getJson } from "./http";
 import { KUCOIN_URL, normalizeKucoin } from "./kucoin";
-import { kucoinKlinesUrl, normalizeKucoinKlines } from "./klines";
-import type { Candle, Interval } from "./klines";
 import { createNegativeWindow } from "./cooldown";
 import { withRetries } from "./retry";
 import { createStaleCache } from "./stale-cache";
@@ -62,7 +60,7 @@ function reportUpstreamFailure(route: string, error: unknown, info: { servedStal
     servedStale: info.servedStale,
     message: failure.message,
   };
-  console.error(JSON.stringify({ event: route === "/md/v1/tickers" ? "md_tickers_refresh_failed" : "md_klines_refresh_failed", ...context }));
+  console.error(JSON.stringify({ event: "md_tickers_refresh_failed", ...context }));
   captureException(failure, {
     tags: { route: context.route, upstream_status: String(context.upstreamStatus) },
     extra: context,
@@ -120,53 +118,3 @@ export const getKucoinTickers = createStaleCache({
   maxStaleMs: TICKERS_MAX_STALE_MS,
   onError: (error, info) => reportUpstreamFailure("/md/v1/tickers", error, info),
 });
-
-// Enabled market by id, from the same cached list; null when unknown or disabled.
-export async function findEnabledMarket(id: string): Promise<Market | null> {
-  const { value: list } = await markets();
-  return list.find((m) => m.id === id) ?? null;
-}
-
-async function readKucoinKlines(market: Market, interval: Interval): Promise<Candle[]> {
-  let payload: unknown;
-  try {
-    payload = await throughKucoinWindow(() =>
-      withRetries(() =>
-        getJson(
-          (url, init) => fetch(url, { ...init, cache: "no-store" }),
-          kucoinKlinesUrl(market, interval, Date.now()),
-          ATTEMPT_TIMEOUT_MS,
-        ),
-      ),
-    );
-  } catch (e) {
-    throw labelled("KuCoin", e);
-  }
-  try {
-    const candles = normalizeKucoinKlines(payload);
-    if (candles.length === 0) throw new ProviderError("No usable candles");
-    return candles;
-  } catch (e) {
-    throw labelled("KuCoin", e);
-  }
-}
-
-// One cache per (market, interval), with the ticker route's rules. The keys are
-// bounded: only enabled markets and the 8 intervals reach this.
-const klineCaches = new Map<string, () => Promise<{ value: Candle[]; stale: boolean }>>();
-
-export function getKucoinKlines(market: Market, interval: Interval) {
-  const key = `${market.id}|${interval}`;
-  let get = klineCaches.get(key);
-  if (!get) {
-    get = createStaleCache({
-      load: () => readKucoinKlines(market, interval),
-      ttlMs: TICKERS_TTL_MS,
-      negativeTtlMs: TICKERS_NEGATIVE_TTL_MS,
-      maxStaleMs: TICKERS_MAX_STALE_MS,
-      onError: (error, info) => reportUpstreamFailure("/md/v1/klines", error, info),
-    });
-    klineCaches.set(key, get);
-  }
-  return get();
-}
