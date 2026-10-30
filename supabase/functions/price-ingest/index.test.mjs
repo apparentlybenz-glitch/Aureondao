@@ -3,7 +3,7 @@ import { beforeEach, test } from "node:test";
 
 // index.ts calls Deno.serve when imported; give it a stand-in first.
 globalThis.Deno = { serve: () => {}, env: { get: () => undefined } };
-const { createIngest, parseKucoin, parseVision, validQuote, FAILURE_SKIP_MS, RATE_LIMIT_SKIP_MS, MAX_ATTEMPTS, retryAfterMs, VISION_URL, KUCOIN_URL } =
+const { createIngest, parseKucoin, parseVision, validQuote, FAILURE_SKIP_MS, RATE_LIMIT_SKIP_MS, MAX_ATTEMPTS, retryAfterMs, VISION_URL, VISION_BATCH, KUCOIN_URL } =
   await import("./index.ts");
 
 const NOW = Date.UTC(2026, 9, 26, 13, 0, 0);
@@ -188,4 +188,52 @@ test("parsers reject a body of the wrong shape", () => {
   assert.throws(() => parseVision({ code: 0 }, markets, NOW));
   assert.throws(() => parseKucoin({ data: null }, markets, NOW));
   assert.deepEqual(parseKucoin({ data: { time: NOW, ticker: [{ symbol: "BTC-USDT", buy: null, sell: "1" }] } }, markets, NOW), []);
+});
+
+// 40 markets: Vision is asked in two sequential calls of 20 symbols.
+const many = Array.from({ length: 40 }, (_, i) => ({ id: `M${i}-USDT`, vision_symbol: `M${i}USDT`, kucoin_symbol: `M${i}-USDT` }));
+const visionRows = (url) =>
+  JSON.parse(new URL(url).searchParams.get("symbols")).map((symbol) => ({
+    symbol, bidPrice: "1.00000000", askPrice: "1.00100000", closeTime: now - 500,
+  }));
+const kucoinAll = () => ({ data: { time: now - 200, ticker: many.map((m) => ({ symbol: m.kucoin_symbol, buy: "1.0", sell: "1.1" })) } });
+
+test("40 markets: two Vision calls of 20 symbols each, one ingest with all 40 quotes", async () => {
+  assert.equal(VISION_BATCH, 20);
+  routes[0][1] = () => res(many);
+  routes[2][1] = (url) => res(visionRows(url));
+  const r = await make()(post());
+  assert.equal(r.status, 200);
+  const visionCalls = calls.filter((c) => c.url.startsWith(VISION_URL));
+  assert.equal(visionCalls.length, 2);
+  for (const c of visionCalls) assert.equal(JSON.parse(new URL(c.url).searchParams.get("symbols")).length, 20);
+  assert.equal(calls.filter((c) => c.url.startsWith(KUCOIN_URL)).length, 0);
+  assert.equal(ingested().length, 40);
+  assert.ok(ingested().every((q) => q.source === "vision"));
+});
+
+test("a failing second batch keeps the first 20 Vision quotes, KuCoin fills the rest and Vision is skipped", async () => {
+  routes[0][1] = () => res(many);
+  let visionCount = 0;
+  routes[2][1] = (url) => (++visionCount === 1 ? res(visionRows(url)) : res({}, 400));
+  routes[3][1] = () => res(kucoinAll());
+  const handle = make();
+  await handle(post());
+  const quotes = ingested();
+  assert.equal(quotes.length, 40);
+  assert.equal(quotes.filter((q) => q.source === "vision").length, 20);
+  assert.equal(quotes.filter((q) => q.source === "kucoin").length, 20);
+
+  calls = [];
+  await handle(post());
+  assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 0);
+});
+
+test("a 429 on the first batch sends no second Vision call", async () => {
+  routes[0][1] = () => res(many);
+  routes[2][1] = () => res({}, 429);
+  routes[3][1] = () => res(kucoinAll());
+  await make()(post());
+  assert.equal(calls.filter((c) => c.url.startsWith(VISION_URL)).length, 1);
+  assert.equal(ingested().length, 40);
 });

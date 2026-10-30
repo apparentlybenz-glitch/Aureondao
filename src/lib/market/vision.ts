@@ -4,11 +4,21 @@ import type { Market, Ticker } from "./types";
 
 const VISION_URL = "https://data-api.binance.vision/api/v3/ticker/24hr";
 
-// One request for every market. Twenty symbols or fewer cost weight 2 (21-100
-// cost 40), so keep at most 20 enabled markets. The symbols value is JSON.
+// Vision ticker/24hr costs weight 2 for 1 to 20 symbols and 40 above that, so
+// every call carries at most VISION_BATCH symbols and any number of enabled
+// markets is split across calls. The symbols value is JSON.
+export const VISION_BATCH = 20;
+
 export function visionUrl(markets: Market[]): string {
   const symbols = JSON.stringify(markets.map((m) => m.visionSymbol));
   return `${VISION_URL}?symbols=${encodeURIComponent(symbols)}`;
+}
+
+// One URL per batch of at most VISION_BATCH markets, in market order.
+export function visionUrls(markets: Market[]): string[] {
+  const urls: string[] = [];
+  for (let i = 0; i < markets.length; i += VISION_BATCH) urls.push(visionUrl(markets.slice(i, i + VISION_BATCH)));
+  return urls;
 }
 
 type VisionRow = {

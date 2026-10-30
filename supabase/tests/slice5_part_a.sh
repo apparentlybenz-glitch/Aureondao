@@ -102,7 +102,9 @@ SQL
     user $A "select public.open_option('BTC-USDT','rise',30,4899,gen_random_uuid());" | sed 's/^/[premium 48.99] /'
     user $A "select public.open_option('BTC-USDT','rise',60,4900,gen_random_uuid());" | sed 's/^/[60 s disabled] /'
     user $A "select public.open_option('BTC-USDT','rise',45,4900,gen_random_uuid());" | sed 's/^/[45 s] /'
-    user $A "select public.open_option('XRP-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[XRP] /'
+    echo "update public.markets set enabled = false where id = 'XRP-USDT'; select 1 ok;" | run > /dev/null
+    user $A "select public.open_option('XRP-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[XRP disabled] /'
+    echo "update public.markets set enabled = true where id = 'XRP-USDT'; select 1 ok;" | run > /dev/null
     user $A "select public.open_option('NOPE-USDT','rise',30,4900,gen_random_uuid());" | sed 's/^/[NOPE] /'
     user $A "select public.open_option('BTC-USDT','rise',30,4900,null);" | sed 's/^/[no key] /';;
 t3) echo "T3 entry age: 16 s refused, 14 s accepted, a future snapshot refused"
@@ -250,6 +252,7 @@ cleanup) job aureonx-price-tick true; job aureonx-options-void true; run <<SQL
 delete from public.admin_audit_log where admin_id in ('$A','$B','$C');
 delete from auth.users where id in ('$A','$B','$C');
 delete from public.price_snapshots where market_id in ('BTC-USDT','ETH-USDT','SOL-USDT');
+update public.markets set enabled = true where id = 'XRP-USDT';
 update public.system_state set price_demand_until = '-infinity' where id;
 select (select count(*) from public.profiles where id in ('$A','$B','$C')) profiles,
        (select count(*) from public.options_positions) positions,

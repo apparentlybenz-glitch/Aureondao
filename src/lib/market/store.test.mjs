@@ -253,3 +253,70 @@ test("when /md/v1 errors the last good tickers stay on screen and turn delayed o
   assert.ok(Object.values(snap.tickers).every((t) => !isDelayed(t.ts, snap.now)), "recovered");
   off();
 });
+
+// 40 markets: the store asks Vision in two calls of 20 symbols and merges the answers.
+function fortyMarkets() {
+  const second = markets.map((m, i) => ({
+    ...m,
+    id: `X${i}-USDT`,
+    base: `X${i}`,
+    visionSymbol: `X${i}USDT`,
+    kucoinSymbol: `X${i}-USDT`,
+    sortOrder: 21 + i,
+  }));
+  return [...markets, ...second];
+}
+
+function visionAnswer(url, all) {
+  const wanted = new Set(JSON.parse(new URL(url).searchParams.get("symbols")));
+  assert.ok(wanted.size <= 20, "a Vision call carries at most 20 symbols");
+  const rows = fixture("vision-24hr.json");
+  return all.filter((m) => wanted.has(m.visionSymbol)).map((m) => ({ ...rows[0], ...rows.find((r) => r.symbol === m.visionSymbol), symbol: m.visionSymbol }));
+}
+
+test("40 markets are fetched in two Vision calls of 20 and merged", async () => {
+  const all = fortyMarkets();
+  const urls = [];
+  const batched = createMarketStore({
+    loadMarkets: async () => all,
+    fetch: (url) => {
+      urls.push(url);
+      return Promise.resolve(json(visionAnswer(url, all)));
+    },
+    report: () => {},
+    isHidden: () => false,
+    watchVisibility: () => () => {},
+    random: () => 0.5,
+  });
+  const off = batched.subscribe(() => {});
+  await settle();
+  assert.equal(urls.length, 2);
+  assert.equal(batched.getSnapshot().source, "vision");
+  assert.equal(Object.keys(batched.getSnapshot().tickers).length, 40);
+  off();
+});
+
+test("a failed batch fails the Vision poll and the fallback covers every market", async () => {
+  const all = fortyMarkets();
+  const seen = [];
+  const batched = createMarketStore({
+    loadMarkets: async () => all,
+    fetch: (url) => {
+      if (url.startsWith("https://data-api.binance.vision/")) {
+        seen.push("vision");
+        return Promise.resolve(seen.length === 1 ? json(visionAnswer(url, all)) : json(fixture("vision-400.json"), 400));
+      }
+      seen.push("md");
+      return Promise.resolve(json({ source: "kucoin", tickers: normalizeKucoin(fixture("kucoin-allTickers.json"), markets) }));
+    },
+    report: () => {},
+    isHidden: () => false,
+    watchVisibility: () => () => {},
+    random: () => 0.5,
+  });
+  const off = batched.subscribe(() => {});
+  await settle();
+  assert.deepEqual(seen, ["vision", "vision", "md"]);
+  assert.equal(batched.getSnapshot().source, "md");
+  off();
+});

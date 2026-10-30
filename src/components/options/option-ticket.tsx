@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { useAttemptKey } from "@/lib/attempt-key";
-import { formatPrice } from "@/lib/market/decimal";
+import { formatMid } from "@/lib/market/decimal";
 import type { Market } from "@/lib/market/types";
 import { formatCents, parseAmount } from "@/lib/money";
 import { bpsToPercent, estReturnCents } from "@/lib/options-math";
@@ -130,7 +130,7 @@ export function OptionTicket({
       <p className="text-xs text-muted-foreground">
         {t.rich("currentPrice", {
           symbol: market.displaySymbol,
-          price: mid ? formatPrice(mid, market.priceDecimals) : "--",
+          price: mid ? formatMid(mid, market.priceDecimals) : "--",
           value: (chunks) => <span className={cn("tabular-nums", rise ? "text-up" : "text-down")}>{chunks}</span>,
         })}
       </p>

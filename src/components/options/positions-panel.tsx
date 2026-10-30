@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { formatPrice } from "@/lib/market/decimal";
+import { formatMid } from "@/lib/market/decimal";
 import type { Market } from "@/lib/market/types";
 import { formatCents } from "@/lib/money";
 import { formatCountdown } from "@/lib/options-math";
@@ -29,7 +29,7 @@ function Countdown({ expiresAt }: { expiresAt: number }) {
 function PositionCard({ p, market }: { p: OptionPosition; market: Market | undefined }) {
   const t = useTranslations("Options");
   const rise = p.direction === "rise";
-  const price = (v: string) => (market ? formatPrice(v, market.priceDecimals) : v);
+  const price = (v: string) => (market ? formatMid(v, market.priceDecimals) : v);
   const usd = (v: bigint) => t("usd", { amount: formatCents(v) });
   const result =
     p.status === "void" ? t("result.refunded") : p.result ? t(`result.${p.result}`) : null;

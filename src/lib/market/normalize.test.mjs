@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { normalizeKucoin, parseMdResponse } from "./kucoin.ts";
-import { normalizeVision, visionUrl } from "./vision.ts";
+import { VISION_BATCH, normalizeVision, visionUrl, visionUrls } from "./vision.ts";
 import { fixture, seededMarkets } from "./test/helpers.mjs";
 
 const markets = seededMarkets();
@@ -49,6 +49,19 @@ test("visionUrl sends one request with a JSON symbols list", () => {
   const symbols = JSON.parse(url.searchParams.get("symbols"));
   assert.equal(symbols.length, 20);
   assert.equal(symbols[0], "BTCUSDT");
+});
+
+test("visionUrls splits markets into calls of at most 20 symbols, in order", () => {
+  const many = (n) => Array.from({ length: n }, (_, i) => ({ ...markets[0], id: `M${i}-USDT`, visionSymbol: `M${i}USDT` }));
+  const symbolsOf = (url) => JSON.parse(new URL(url).searchParams.get("symbols"));
+  assert.equal(VISION_BATCH, 20);
+  assert.deepEqual(visionUrls([]), []);
+  assert.deepEqual(visionUrls(many(1)).map((u) => symbolsOf(u).length), [1]);
+  assert.deepEqual(visionUrls(many(20)).map((u) => symbolsOf(u).length), [20]);
+  assert.deepEqual(visionUrls(many(21)).map((u) => symbolsOf(u).length), [20, 1]);
+  const forty = visionUrls(many(40));
+  assert.deepEqual(forty.map((u) => symbolsOf(u).length), [20, 20]);
+  assert.deepEqual(forty.flatMap(symbolsOf), many(40).map((m) => m.visionSymbol));
 });
 
 test("normalizeKucoin maps buy to bid, sell to ask and converts the change rate", () => {

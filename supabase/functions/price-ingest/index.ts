@@ -2,14 +2,16 @@
 // through the service-role RPC ingest_prices. pg_cron (private.price_tick) fires it
 // every 10 s, and only while a trading screen has asked for prices.
 //
-// Sources: Vision ticker/24hr for all markets in one request, then KuCoin allTickers
-// for any market Vision did not quote validly. Exchange calls are plain GETs with a
+// Sources: Vision ticker/24hr in batches of at most 20 symbols (weight 2 per call; above
+// 20 symbols one call costs 40), then KuCoin allTickers for any market Vision did not
+// quote validly, including the markets of a batch that failed. Exchange calls are plain GETs with a
 // signal only. Each provider gets bounded retries with jittered backoff, and a failed
 // provider is skipped for 30 s (per isolate). Keys are read from the environment and
 // never logged. The database re-validates every price and enforces its own freshness.
 // Single file on purpose: Deno needs ".ts" import paths, which the app tsconfig rejects.
 
 export const VISION_URL = "https://data-api.binance.vision/api/v3/ticker/24hr";
+export const VISION_BATCH = 20;
 export const KUCOIN_URL = "https://api.kucoin.com/api/v1/market/allTickers";
 export const ATTEMPT_TIMEOUT_MS = 2500;
 export const MAX_ATTEMPTS = 2;
@@ -180,28 +182,32 @@ export function createIngest(deps: Deps) {
     }
   }
 
+  // Vision runs in sequential batches of VISION_BATCH. The first failed batch skips the
+  // provider and stops further calls (a 418 or 429 is never followed by another call);
+  // quotes from earlier batches are kept and the rest fall to KuCoin.
   async function fromProvider(source: Source, wanted: Market[], log: Record<string, unknown>): Promise<Quote[]> {
     if (wanted.length === 0) return [];
     if (deps.now() < skipUntil[source]) {
       log[source] = "skipped";
       return [];
     }
+    const quotes: Quote[] = [];
     try {
-      const quotes =
-        source === "vision"
-          ? parseVision(
-              await getExchange(`${VISION_URL}?symbols=${encodeURIComponent(JSON.stringify(wanted.map((m) => m.vision_symbol)))}`, "Vision"),
-              wanted,
-              deps.now(),
-            )
-          : parseKucoin(await getExchange(KUCOIN_URL, "KuCoin"), wanted, deps.now());
+      if (source === "vision") {
+        for (let i = 0; i < wanted.length; i += VISION_BATCH) {
+          const batch = wanted.slice(i, i + VISION_BATCH);
+          const url = `${VISION_URL}?symbols=${encodeURIComponent(JSON.stringify(batch.map((m) => m.vision_symbol)))}`;
+          quotes.push(...parseVision(await getExchange(url, "Vision"), batch, deps.now()));
+        }
+      } else {
+        quotes.push(...parseKucoin(await getExchange(KUCOIN_URL, "KuCoin"), wanted, deps.now()));
+      }
       log[source] = `ok:${quotes.length}`;
-      return quotes;
     } catch (e) {
       skipUntil[source] = deps.now() + (e instanceof UpstreamError && e.skipMs ? e.skipMs : FAILURE_SKIP_MS);
-      log[source] = e instanceof Error ? e.message : "failed";
-      return [];
+      log[source] = `${e instanceof Error ? e.message : "failed"}${quotes.length > 0 ? ` after ${quotes.length} quotes` : ""}`;
     }
+    return quotes;
   }
 
   return async function handle(req: Request): Promise<Response> {
