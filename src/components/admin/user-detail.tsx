@@ -54,7 +54,6 @@ export function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => vo
         {user.suspended_at ? (
           <p className="text-xs text-muted-foreground">
             {t("search.since", { date: dateFormat.format(new Date(user.suspended_at)) })}
-            {user.suspension_reason ? ` · ${t("search.reason", { reason: user.suspension_reason })}` : ""}
           </p>
         ) : null}
         <div className="grid grid-cols-2 gap-2 pt-1">

@@ -50,7 +50,6 @@ function AdjustForm({ user }: { user: AdminUser }) {
   const [account, setAccount] = useState<Account>("capital");
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
-  const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -66,8 +65,7 @@ function AdjustForm({ user }: { user: AdminUser }) {
   }, [user.id]);
 
   const cents = parseAmount(amount);
-  const reasonOk = reason.trim().length >= 3 && reason.length <= 200;
-  const canSubmit = !pending && cents !== null && cents > ZERO_CENTS && reasonOk;
+  const canSubmit = !pending && cents !== null && cents > ZERO_CENTS;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,12 +74,11 @@ function AdjustForm({ user }: { user: AdminUser }) {
     setPending(true);
     setError(null);
     setDone(null);
-    const key = attempt.keyFor(`${user.id}|${account}|${delta}|${reason}`);
+    const key = attempt.keyFor(`${user.id}|${account}|${delta}`);
     const { error } = await createClient().rpc("admin_adjust_balance", {
       p_user_id: user.id,
       p_account: account,
       p_delta_cents: delta.toString(),
-      p_reason: reason,
       p_client_request_id: key,
     });
     if (error) {
@@ -105,7 +102,6 @@ function AdjustForm({ user }: { user: AdminUser }) {
       }),
     );
     setAmount("");
-    setReason("");
   }
 
   return (
@@ -159,16 +155,6 @@ function AdjustForm({ user }: { user: AdminUser }) {
             onChange={(e) => setAmount(e.target.value)}
           />
           <FormError message={amount !== "" && (cents === null || cents <= ZERO_CENTS) ? tr("invalidAmount") : null} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="topup-reason">{t("topUp.reason")}</Label>
-          <Input
-            id="topup-reason"
-            maxLength={200}
-            className="h-11 text-base"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
         </div>
         <FormError message={error} />
         {done ? (
