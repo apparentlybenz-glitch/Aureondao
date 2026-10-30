@@ -18,3 +18,18 @@ export async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>
     .maybeSingle();
   return role !== null;
 }
+
+// The caller's own admin row is a head admin. Same live-row-only rule as isAdmin;
+// admin_set_admin checks it again in SQL.
+export async function isHeadAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims.sub;
+  if (!userId) return false;
+  const { data: role } = await supabase
+    .from("user_roles")
+    .select("is_head")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return role?.is_head === true;
+}
