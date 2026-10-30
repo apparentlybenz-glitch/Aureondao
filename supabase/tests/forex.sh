@@ -2,7 +2,7 @@
 # Forex money path tests (fx tables, open_fx_position, the pending entry in ingest_fx_rates,
 # settle_fx, void_stale_fx, admin_set_fx_period, market hours). Prints PASS/FAIL lines (no keys)
 # and exits non-zero if any check fails.
-# Usage: supabase/tests/forex.sh [t1 ... t7]  (Management API, write token required)
+# Usage: supabase/tests/forex.sh [t1 ... t8]  (Management API, write token required)
 # Each step is ONE request: it creates its test users, runs its checks and ends by raising an
 # exception that carries the results, so the whole step rolls back and nothing is ever
 # committed. No cleanup is needed and live cron jobs never see the test rows.
@@ -529,6 +529,7 @@ select pg_temp.chk(format('EXECUTE %s for %s = %s', f, r, e), has_function_privi
     ('private.settle_fx(text, numeric, timestamptz)', 'anon', false), ('private.settle_fx(text, numeric, timestamptz)', 'authenticated', false),
     ('private.void_stale_fx()', 'anon', false), ('private.void_stale_fx()', 'authenticated', false),
     ('private.fx_entry_guard()', 'anon', false), ('private.fx_entry_guard()', 'authenticated', false),
+    ('private.fx_entry_wait_max()', 'anon', false), ('private.fx_entry_wait_max()', 'authenticated', false),
     ('public.ingest_fx_rates(text)', 'anon', false), ('public.ingest_fx_rates(text)', 'authenticated', false),
     ('public.ingest_fx_rates(text)', 'service_role', true),
     ('public.open_fx_position(text, public.option_direction, integer, bigint, uuid)', 'anon', false),
@@ -564,10 +565,10 @@ select pg_temp.chk('open_fx_position takes no price',
          (select pg_get_function_identity_arguments(p.oid) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname = 'open_fx_position')
          = 'p_instrument_id text, p_direction option_direction, p_duration_s integer, p_premium_cents bigint, p_client_request_id uuid', null);
-select pg_temp.chk('every new function sets search_path to empty', count(*) = 8 and bool_and(p.proconfig @> array['search_path=""']), count(*)::text)
+select pg_temp.chk('every new function sets search_path to empty', count(*) = 9 and bool_and(p.proconfig @> array['search_path=""']), count(*)::text)
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where (n.nspname, p.proname) in (('private','fx_is_closed_real'), ('private','fx_next_close_real'), ('private','settle_fx'), ('private','void_stale_fx'),
-                                  ('private','fx_entry_guard'),
+                                  ('private','fx_entry_guard'), ('private','fx_entry_wait_max'),
                                   ('public','open_fx_position'), ('public','ingest_fx_rates'), ('public','admin_set_fx_period'));
 select pg_temp.chk('the money functions are SECURITY DEFINER', bool_and(p.prosecdef) and count(*) = 5, count(*)::text)
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -615,11 +616,72 @@ select pg_temp.chk('batch 2: all open, entered at the T0-30s print', count(*) = 
 select pg_temp.chk('wallet: 80,000.00 - 1002 x 49.05 + 501 x 51.94', pg_temp.wallet('A') = 8000000 - 1002 * 4905 + 501 * 5194, pg_temp.wallet('A')::text);
 SQL
 ;;
+t8) cat <<'SQL'
+-- T8 the entry cap: only a print with ts in [created_at + 5 min, created_at + 65 min] enters,
+-- judged on the print's own ts (market hours read as Wednesday 2026-11-04 10:00 New York).
+-- P0 at T0-69m. k1 EUR-USD opens at T0-134m (cap T0-69m = P0), k2 GBP-USD at T0-134m-1s
+-- (P0 is 1 s past its cap), k3 USD-CHF at T0-68m (window T0-63m to T0-3m).
+update public.fx_periods set profit_rate_bps = 600, fee_bps = 10, min_premium_cents = 4900, enabled = true where duration_s = 3600;
+select pg_temp.clock('2026-11-04 10:00:00 America/New_York');
+select pg_temp.ingest_at(pg_temp.t0() - interval '69 minutes');
+select pg_temp.chk('open ' || x.l, pg_temp.open('A', x.ins, 'rise', 3600, 4900, x.k) ~ '^[0-9a-f-]{36}$', null)
+  from (values ('at the cap', 'EUR-USD', 1), ('1 s past the cap', 'GBP-USD', 2), ('ingested late', 'USD-CHF', 3)) x(l, ins, k);
+select pg_temp.created(pg_temp.t0() - interval '134 minutes', array[1]);
+select pg_temp.created(pg_temp.t0() - interval '134 minutes 1 second', array[2]);
+select pg_temp.created(pg_temp.t0() - interval '68 minutes', array[3]);
+select pg_temp.chk('table at T0-60m (no CHF rate) enters only k1', pg_temp.j(v) ->> 'entered' = '1', v)
+  from (select pg_temp.ingest_at(pg_temp.t0() - interval '60 minutes', replace(pg_temp.rates(), '"CHF":0.861234,', '')) v) s;
+select pg_temp.chk('a print at exactly created_at + 65 min enters (k1 at P0)', (p).status = 'open'
+         and (p).entry_price_at = (p).created_at + interval '65 minutes' and (p).entry_price_at = pg_temp.t0() - interval '69 minutes', null)
+  from (select pg_temp.pos(1) p) s;
+select pg_temp.chk('a print 1 s past created_at + 65 min does not enter (k2), nor any later one', (pg_temp.pos(2)).status = 'pending', null);
+select pg_temp.chk('k3 still pending (no USD-CHF print in its window yet)', (pg_temp.pos(3)).status = 'pending', null);
+-- The table at T0-10m is ingested at now() = T0, 3 min after k3's cap: its ts is inside the window.
+select pg_temp.chk('an in-cap print ingested after the cap still enters (k3 at T0-10m)', pg_temp.j(v) ->> 'entered' = '1', v)
+  from (select pg_temp.ingest_at(pg_temp.t0() - interval '10 minutes') v) s;
+select pg_temp.chk('... k3 entry at T0-10m, expires 1 h later', (p).status = 'open' and (p).entry_price_at = pg_temp.t0() - interval '10 minutes'
+         and (p).expires_at = (p).entry_price_at + interval '1 hour', null)
+  from (select pg_temp.pos(3) p) s;
+select pg_temp.chk('k2 still pending after a later print', (pg_temp.pos(2)).status = 'pending', null);
+update public.fx_positions set created_at = now() - interval '2 hours 20 minutes' where client_request_id = pg_temp.k(2);
+select pg_temp.chk('k2 at exactly 2 h 20 min is not voided', private.void_stale_fx() = 0, null);
+update public.fx_positions set created_at = now() - interval '2 hours 20 minutes 1 second' where client_request_id = pg_temp.k(2);
+select pg_temp.chk('k2 voids past 2 h 20 min', private.void_stale_fx() = 1, null);
+select pg_temp.chk('... with a full refund of premium + fee, pnl sum 0', (p).status = 'void' and (p).entry_price is null and (p).payout_cents = 4905
+         and pg_temp.bills(2) = 'forex_margin -4900 pnl 0, fee -5 pnl -5, forex_refund 4905 pnl 5', pg_temp.bills(2))
+  from (select pg_temp.pos(2) p) s;
+select pg_temp.chk('CHECK: an entry past created_at + 65 min is refused', v ~ 'fx_positions_entry_check', v)
+  from (select pg_temp.try(format('update public.fx_positions set entry_price_at = created_at + interval %L, expires_at = created_at + interval %L where id = %L',
+                                  '65 minutes 1 second', '125 minutes 1 second', (pg_temp.pos(3)).id)) v) s;
+
+-- Friday 2026-11-06: k10 opens at 13:45 New York (the last 1 h open). The 14:00 print is missing; the
+-- next is 15:00, 75 min after the open. Entering there would expire 16:00 and settle into the 17:00
+-- closure, so it must never enter. The scenario is built at T0 = 13:45 and then moved back 75 min
+-- (positions and EUR-USD prints together), so the 15:00 print can be ingested at T0.
+select pg_temp.ingest_at(pg_temp.t0() - interval '15 seconds');
+select pg_temp.clock('2026-11-06 13:45:00 America/New_York');
+select pg_temp.chk('Friday 13:45: fx opens', v ~ '^[0-9a-f-]{36}$', v) from (select pg_temp.open('A', 'EUR-USD', 'rise', 3600, 4900, 10) v) s;
+update public.fx_positions set created_at = created_at - interval '75 minutes' where client_request_id = pg_temp.k(10);
+update public.fx_prices set ts = ts - interval '75 minutes' where instrument_id = 'EUR-USD';
+select pg_temp.chk('the 15:00 print (75 min after the open) enters nothing', pg_temp.j(v) ->> 'entered' = '0', v)
+  from (select pg_temp.ingest_at(pg_temp.t0()) v) s;
+select pg_temp.chk('... k10 stays pending', (pg_temp.pos(10)).status = 'pending' and (pg_temp.pos(10)).expires_at is null, null);
+update public.fx_positions set created_at = now() - interval '2 hours 20 minutes 1 second' where client_request_id = pg_temp.k(10);
+select pg_temp.chk('k10 voids with a full refund', private.void_stale_fx() = 1, null);
+select pg_temp.chk('... premium + fee back, pnl sum 0', pg_temp.bills(10) = 'forex_margin -4900 pnl 0, fee -5 pnl -5, forex_refund 4905 pnl 5', pg_temp.bills(10));
+select pg_temp.chk('ledger identity on every closed position', bool_and((select sum(l.pnl_cents) from public.ledger l where l.ref_id = p.id)
+         = p.payout_cents - p.premium_cents - p.fee_cents) and count(*) = 3, count(*)::text)
+  from public.fx_positions p where p.status in ('settled', 'void');
+select pg_temp.chk('forex wallets reconcile with the ledger', bool_and(w.available_cents =
+         (select sum(l.delta_cents) from public.ledger l where l.wallet_id = w.id)), null)
+  from public.wallets w where w.user_id = pg_temp.u('A') and w.account = 'forex';
+SQL
+;;
 *) echo "unknown step $1" >&2; return 1;;
 esac
 }
 
-steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7)
+steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7 t8)
 for s in "${steps[@]}"; do
   echo "== $s"
   sql=$(body "$s") || { FAILS=$((FAILS+1)); continue; }

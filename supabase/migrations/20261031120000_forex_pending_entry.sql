@@ -10,10 +10,12 @@
 --     must still be at most 70 minutes old and not in the future (PRICE_STALE),
 --     as a feed-health guard only. No cancel while pending.
 --   * Entry: ingest_fx_rates, before settlement, gives every pending position of
---     each instrument it wrote the first print with ts >= created_at +
---     ENTRY_GUARD (5 minutes): entry_price, entry_price_at (that ts), expires_at =
---     entry_price_at + duration_s, status 'open'. No money moves and no wallet is
---     locked in this step.
+--     each instrument it wrote the first print with created_at + ENTRY_GUARD
+--     (5 minutes) <= ts <= created_at + ENTRY_WAIT_MAX (65 minutes), judged on the
+--     print's own ts: entry_price, entry_price_at (that ts), expires_at =
+--     entry_price_at + duration_s, status 'open'. A position with no print in that
+--     window stays pending until the void. No money moves and no wallet is locked
+--     in this step.
 --   * Settle (unchanged): the first print with expires_at <= ts <= expires_at +
 --     2 h and ts > entry_price_at, compared at price_decimals.
 --   * Void: pending with no entry by created_at + 2 h 20 min or open with no
@@ -45,8 +47,9 @@ begin
 end $$;
 
 -- -----------------------------------------------------------------------------
--- 1. ENTRY_GUARD: the one definition, used by the CHECK, open_fx_position and
--- ingest_fx_rates.
+-- 1. ENTRY_GUARD and ENTRY_WAIT_MAX: the one definition of each, used by the
+-- CHECK, open_fx_position (closure rule) and ingest_fx_rates (entry window).
+-- ENTRY_WAIT_MAX is ENTRY_GUARD plus one print interval (60 minutes).
 -- -----------------------------------------------------------------------------
 create or replace function private.fx_entry_guard()
 returns interval
@@ -54,6 +57,13 @@ language sql
 immutable
 set search_path = ''
 as $$ select interval '5 minutes' $$;
+
+create or replace function private.fx_entry_wait_max()
+returns interval
+language sql
+immutable
+set search_path = ''
+as $$ select private.fx_entry_guard() + interval '60 minutes' $$;
 
 -- -----------------------------------------------------------------------------
 -- 2. fx_positions: own status enum, nullable entry columns and expiry, new CHECKs.
@@ -73,12 +83,13 @@ alter table public.fx_positions
   alter column entry_price_at drop not null,
   alter column expires_at drop not null;
 
--- The entry columns and expires_at are set together; the entry print is at least
--- ENTRY_GUARD after the open and the expiry follows the entry.
+-- The entry columns and expires_at are set together; the entry print lies in
+-- [created_at + ENTRY_GUARD, created_at + ENTRY_WAIT_MAX] and the expiry follows it.
 alter table public.fx_positions add constraint fx_positions_entry_check check (
   num_nulls(entry_price, entry_price_at, expires_at) in (0, 3)
   and (entry_price_at is null
        or (entry_price_at >= created_at + private.fx_entry_guard()
+           and entry_price_at <= created_at + private.fx_entry_wait_max()
            and expires_at = entry_price_at + make_interval(secs => duration_s)))
 );
 
@@ -179,9 +190,8 @@ as $$
 declare
   -- Feed health: the newest print must be at most this old (it is not the entry).
   c_max_print_age   constant interval := interval '70 minutes';
-  -- ENTRY_WAIT_MAX: the entry print can land up to one print interval (60 min)
-  -- after created_at + ENTRY_GUARD.
-  c_entry_wait_max  constant interval := private.fx_entry_guard() + interval '60 minutes';
+  -- ENTRY_WAIT_MAX: the latest entry print, created_at + 65 min.
+  c_entry_wait_max  constant interval := private.fx_entry_wait_max();
   -- SETTLE_MARGIN: the settle print can land up to one print interval (60 min)
   -- plus the fetch margin (10 min) after expiry.
   c_settle_margin   constant interval := interval '70 minutes';
@@ -352,13 +362,16 @@ begin
   if v_ok + v_ign = 0 then raise exception 'FX_NO_RATES'; end if;
 
   -- Entry: each pending position of an instrument written here takes the first
-  -- print with ts >= created_at + ENTRY_GUARD. No money moves; no wallet lock.
+  -- print with ts in [created_at + ENTRY_GUARD, created_at + ENTRY_WAIT_MAX], on the
+  -- print's own ts. None in the window: it stays pending for the void job.
+  -- No money moves; no wallet lock.
   with e as (
     select p.id, x.price, x.ts
       from public.fx_positions p
       cross join lateral (
         select f.price, f.ts from public.fx_prices f
          where f.instrument_id = p.instrument_id and f.ts >= p.created_at + private.fx_entry_guard()
+           and f.ts <= p.created_at + private.fx_entry_wait_max()
          order by f.ts
          limit 1) x
      where p.instrument_id = any (v_ids) and p.status = 'pending'
@@ -402,3 +415,4 @@ end;
 $$;
 
 revoke all on function private.fx_entry_guard() from public, anon, authenticated;
+revoke all on function private.fx_entry_wait_max() from public, anon, authenticated;
