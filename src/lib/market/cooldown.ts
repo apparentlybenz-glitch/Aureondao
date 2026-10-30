@@ -1,6 +1,6 @@
 // Shared upstream protection, framework-free.
 // - Cool-down: a 418 or 429 from a host pauses every call to that host (tickers,
-//   klines, depth, trades) until Retry-After, or 60 s when the header is absent
+//   depth, trades) until Retry-After, or 60 s when the header is absent
 //   or not readable (cross-origin responses hide it without Access-Control-Expose-Headers).
 // - Negative window: after a failed load the md routes do not call the same host
 //   again for a short time, whatever key asked.

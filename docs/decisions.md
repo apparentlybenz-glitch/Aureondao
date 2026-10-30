@@ -117,6 +117,14 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 | Names | `option_periods` and `admin_set_option_period` (C1) |
 | UI labels (Part B) | One plain button: "Call" for Rise, "Put" for Fall; the enum stays `rise`/`fall` |
 
+## Part 1f: Decisions locked by the owner (TradingView chart, 2026-10-30)
+
+- **One chart: the free TradingView Advanced Chart widget** on Spot, Options and Forex. It replaces Lightweight Charts, `klines.ts` and `/md/v1/klines`, which were deleted. This supersedes O15 (the Lightweight Charts attribution).
+- **The widget is an essential script.** It loads without cookie consent. This reverses the Cookie consent rule in CLAUDE.md (optional scripts load only on "accept") for this one script; any other optional script still follows the rule. The legal pages need the owner's wording (privacy policy and cookie text: TradingView is a third party that receives the visitor's IP address and device details on the three trading pages and may set its own cookies and storage; licenses and disclosures: the TradingView attribution, and that Lightweight Charts is no longer used; terms and risk disclosure: chart prices come from TradingView and can differ from the price an order fills at).
+- **Options loses its dashed entry lines.** Nothing replaces them.
+- **No CSP.** If one is added later it must allow the script from `s3.tradingview.com` and the widget frames.
+- **Symbols:** `BINANCE:<BASE>USDT` for crypto, `FX:<PAIR>` for currency pairs, `OANDA:XAUUSD` and `OANDA:XAGUSD` for gold and silver with `TVC:GOLD` and `TVC:SILVER` as alternates.
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.

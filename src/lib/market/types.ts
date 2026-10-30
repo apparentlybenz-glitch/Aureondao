@@ -21,6 +21,8 @@ export type Market = {
   displaySymbol: string;
   visionSymbol: string;
   kucoinSymbol: string;
+  // TradingView chart symbol: BINANCE:<BASE>USDT, the Vision symbol on that exchange.
+  tvSymbol: string;
   priceDecimals: number;
   sortOrder: number;
   // Order rules (slice 4): decimals allowed in a quantity, minimum order value in cents.
@@ -55,6 +57,7 @@ export function toMarket(row: MarketRow): Market {
     displaySymbol: row.display_symbol,
     visionSymbol: row.vision_symbol,
     kucoinSymbol: row.kucoin_symbol,
+    tvSymbol: `BINANCE:${row.vision_symbol}`,
     priceDecimals: row.price_decimals,
     sortOrder: row.sort_order,
     qtyDecimals: row.qty_decimals,

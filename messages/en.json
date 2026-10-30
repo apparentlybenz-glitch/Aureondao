@@ -637,11 +637,8 @@
     "footnote": "Prices are for reference and refresh about every 5 seconds."
   },
   "Chart": {
-    "timeframe": "Chart timeframe",
-    "more": "More",
-    "chartLoading": "Loading chart…",
-    "chartUnavailable": "Chart unavailable. Retrying.",
-    "chartDelayed": "Delayed"
+    "unlock": "Tap to use the chart",
+    "label": "Price chart"
   },
   "Options": {
     "chooseMarket": "Choose market, current {symbol}",
@@ -732,7 +729,6 @@
     "close": "Close",
     "showChart": "Show chart",
     "hideChart": "Hide chart",
-    "chartPlaceholder": "Chart coming soon",
     "currentPrice": "{symbol} Current price <value>{price}</value>",
     "buy": "Buy",
     "sell": "Sell",

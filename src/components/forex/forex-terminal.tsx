@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
 import { OrderBook } from "@/components/market/order-book";
+import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { FOREX_PAIRS } from "@/lib/forex-pairs";
 import { formatPrice } from "@/lib/market/decimal";
 import { LG, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import { ForexHeader, PairIcon } from "./forex-header";
+import { ForexHeader } from "./forex-header";
 import { ForexPositions } from "./forex-positions";
 import { ForexTicket } from "./forex-ticket";
 
@@ -20,7 +20,6 @@ import { ForexTicket } from "./forex-ticket";
 const QTY_DECIMALS = 0;
 
 export function ForexTerminal() {
-  const t = useTranslations("Forex");
   const [symbol, setSymbol] = useState(FOREX_PAIRS[0].symbol);
   const [chartShown, setChartShown] = useState(true);
   const pair = FOREX_PAIRS.find((p) => p.symbol === symbol) ?? FOREX_PAIRS[0];
@@ -60,11 +59,8 @@ export function ForexTerminal() {
         )}
       >
         {chartShown ? (
-          <div className="flex h-72 flex-col items-center justify-center gap-3 rounded-xl border bg-card md:h-[420px] lg:col-start-1 lg:row-start-1">
-            <PairIcon icon={pair.icon} className="size-12 text-base" />
-            <p className="text-lg font-semibold">{pair.display}</p>
-            <p className="text-sm text-muted-foreground">{pair.name}</p>
-            <p className="text-sm text-muted-foreground">{t("chartPlaceholder")}</p>
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+            <TradingViewChart key={pair.symbol} symbol={pair.tvSymbol} />
           </div>
         ) : null}
         <div className="lg:col-start-1 lg:row-start-2">
