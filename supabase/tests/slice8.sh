@@ -67,7 +67,7 @@ console.log(String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, "0"));' "
 # submit <uid> <key> <path> [country] [name] [dob sql] [city]
 submit() { user "$1" "select (s).status, (s).id from (select public.submit_kyc('${4:-DE}', 'passport', '${5:-Test Person}',
   ${6:-date '1990-05-01'}, '${7:-Berlin}', '$3', '$2') s) x;"; }
-review() { adm "select (r).status, (r).rejection_reason from (select public.admin_review_kyc('$1', $2, $3, '$4') r) x;"; }
+review() { adm "select (r).status from (select public.admin_review_kyc('$1', $2, '$3') r) x;"; }
 sub_id() { echo "select id from public.kyc_submissions where client_request_id = '$1';" | run | jq -r '.[0].id'; }
 # Files in the test users' folders, by path.
 test_files() { echo "select coalesce(json_agg(name order by name), '[]') f from storage.objects where bucket_id = 'kyc-photos'
@@ -145,31 +145,32 @@ t5) echo "T5 one pending submission per user; no client writes"
     expect "kyc_current shows A pending" '"status":"pending"' "$(user $A "select status from public.kyc_current where user_id = '$A';")"
     expect "C has no state (not started)" '"count":0' "$(user $C "select count(*) from public.kyc_current;")";;
 t6) echo "T6 admin_review_kyc: FORBIDDEN, argument checks, reject with an audit row"
-    S=$(sub_id "$(key 41)"); K=$(key 61); LONG=$(printf 'x%.0s' $(seq 1 201))
-    expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select public.admin_review_kyc('$S', true, null, '$K');")"
-    expect "plain user at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 user "select public.admin_review_kyc('$S', true, null, '$K');")"
-    expect "admin claim without an admin row at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 admin "select public.admin_review_kyc('$S', true, null, '$K');")"
-    expect "admin at aal1 passes the gate (unknown submission -> KYC_NOT_FOUND)" KYC_NOT_FOUND "$(as $B aal1 admin "select public.admin_review_kyc('00000000-0000-4000-8000-000000000001', true, null, '$K');")"
-    expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select public.admin_review_kyc('$S', true, null, '$K');")"
-    expect "reject without a reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(review "$S" false null "$K")"
-    expect "reject with 2 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(review "$S" false "'ab'" "$K")"
-    expect "reject with 201 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(review "$S" false "'$LONG'" "$K")"
-    expect "unknown submission -> KYC_NOT_FOUND" KYC_NOT_FOUND "$(review "00000000-0000-4000-8000-000000000001" true null "$K")"
+    S=$(sub_id "$(key 41)"); K=$(key 61)
+    expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select public.admin_review_kyc('$S', true, '$K');")"
+    expect "plain user at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 user "select public.admin_review_kyc('$S', true, '$K');")"
+    expect "admin claim without an admin row at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 admin "select public.admin_review_kyc('$S', true, '$K');")"
+    expect "admin at aal1 passes the gate (unknown submission -> KYC_NOT_FOUND)" KYC_NOT_FOUND "$(as $B aal1 admin "select public.admin_review_kyc('00000000-0000-4000-8000-000000000001', true, '$K');")"
+    expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select public.admin_review_kyc('$S', true, '$K');")"
+    expect "old signature with a reason is gone, new one exists, no reason column" '"old":0,"new":1,"col":0,"view_col":0,"invoker":true' "$(echo "select count(to_regprocedure('public.admin_review_kyc(uuid, boolean, text, uuid)')) old, count(to_regprocedure('public.admin_review_kyc(uuid, boolean, uuid)')) new,
+      (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'kyc_submissions' and column_name = 'rejection_reason') col,
+      (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'kyc_current' and column_name = 'rejection_reason') view_col,
+      (select 'security_invoker=true' = any (reloptions) from pg_class where oid = 'public.kyc_current'::regclass) invoker;" | run)"
+    expect "unknown submission -> KYC_NOT_FOUND" KYC_NOT_FOUND "$(review "00000000-0000-4000-8000-000000000001" true "$K")"
     expect "nothing changed, no audit row" '"status":"pending","a":0' "$(echo "select status, (select count(*) from public.admin_audit_log where client_request_id = '$K') a from public.kyc_submissions where id = '$S';" | run)"
-    expect "reject with a reason" '"status":"rejected","rejection_reason":"Photo is blurred"' "$(review "$S" false "'  Photo is blurred '" "$K")"
-    expect "audit row kyc_reject with the target and reason" "\"action\":\"kyc_reject\",\"target_user_id\":\"$A\",\"target_id\":\"$S\",\"reason\":\"Photo is blurred\"" \
-      "$(echo "select action, target_user_id, target_id, payload ->> 'reason' reason from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key again returns the row: one audit row" '"n":1' "$(review "$S" false "'Photo is blurred'" "$K" > /dev/null; echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key, approve -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(review "$S" true null "$K")"
-    expect "a new key on a decided submission -> KYC_NOT_PENDING" KYC_NOT_PENDING "$(review "$S" true null "$(key 62)")"
+    expect "reject with no reason" '"status":"rejected"' "$(review "$S" false "$K")"
+    expect "audit row kyc_reject with the target, empty payload, no reason key" "\"action\":\"kyc_reject\",\"target_user_id\":\"$A\",\"target_id\":\"$S\",\"e\":true,\"r\":false" \
+      "$(echo "select action, target_user_id, target_id, payload = '{}'::jsonb e, payload ? 'reason' r from public.admin_audit_log where client_request_id = '$K';" | run)"
+    expect "same key again returns the row: one audit row" '"n":1' "$(review "$S" false "$K" > /dev/null; echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
+    expect "same key, approve -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(review "$S" true "$K")"
+    expect "a new key on a decided submission -> KYC_NOT_PENDING" KYC_NOT_PENDING "$(review "$S" true "$(key 62)")"
     expect "decided_at and decided_by set" "\"d\":true,\"decided_by\":\"$B\"" "$(echo "select decided_at is not null d, decided_by from public.kyc_submissions where id = '$S';" | run)"
-    expect "A reads the reason" '"status":"rejected","rejection_reason":"Photo is blurred"' "$(user $A "select status, rejection_reason from public.kyc_current;")";;
+    expect "A reads the rejected status" '"status":"rejected"' "$(user $A "select status from public.kyc_current;")";;
 t7) echo "T7 resubmit after a rejection, approve, then Update after approval"
     expect "A uploads a new photo" '^200 ' "$(upload "$TA" "$A/$(key 71).png" "$TMP/a.png" image/png)"
     expect "resubmit after rejection is pending" '"status":"pending"' "$(submit $A "$(key 71)" "$A/$(key 71).png" DE 'Test Person Two')"
     S=$(sub_id "$(key 71)")
-    expect "approve" '"status":"approved","rejection_reason":null' "$(review "$S" true "'ignored on approve'" "$(key 72)")"
-    expect "audit row kyc_approve without a reason" '"action":"kyc_approve","reason":null' "$(echo "select action, payload ->> 'reason' reason from public.admin_audit_log where client_request_id = '$(key 72)';" | run)"
+    expect "approve" '"status":"approved"' "$(review "$S" true "$(key 72)")"
+    expect "audit row kyc_approve, empty payload, no reason key" '"action":"kyc_approve","e":true,"r":false' "$(echo "select action, payload = '{}'::jsonb e, payload ? 'reason' r from public.admin_audit_log where client_request_id = '$(key 72)';" | run)"
     expect "kyc_current shows approved" '"status":"approved","full_name":"Test Person Two"' "$(user $A "select status, full_name from public.kyc_current;")"
     expect "A uploads for an update" '^200 ' "$(upload "$TA" "$A/$(key 73).png" "$TMP/a.png" image/png)"
     expect "Update after approval returns to pending" '"status":"pending"' "$(submit $A "$(key 73)" "$A/$(key 73).png" FR 'Test Person Three' "date '1985-02-03'" Paris)"
