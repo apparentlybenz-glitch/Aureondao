@@ -81,10 +81,10 @@ In Supabase → **Authentication → URL Configuration**:
   - `https://aureonx.app/auth/confirm`
   - `https://aureonx.app/auth/callback`
   - Transition entries, which the owner removes after confirming the new host: the same two paths on `https://aureonx.<subdomain>.workers.dev`, and (optional, only if you sign in on preview URLs) `https://*-aureonx.<subdomain>.workers.dev/**`
-- Email links are built from the Site URL, so every confirmation and reset link opens on `aureonx.app` whichever host the user signed up on.
+- Email links are built from the Site URL, so every reset link opens on `aureonx.app` whichever host the user requested it on.
 
 Why these two paths:
-- Sign-up (`emailRedirectTo`) and password reset (`redirectTo`) send users to `<origin>/auth/confirm`.
+- Password reset (`redirectTo`) sends users to `<origin>/auth/confirm`.
 - `/auth/callback` handles PKCE `?code=` links.
 
 If a redirect URL is not on the list, Supabase falls back to the Site URL.
@@ -100,12 +100,7 @@ SMTP settings:
 - Sender address: on a domain verified in Resend (`aureonx.app`).
 - After custom SMTP is enabled Supabase's default rate limit is **30 emails per hour**; adjust it under **Authentication → Rate Limits**.
 
-Both templates link to `/auth/confirm` with a `token_hash`, never the default `{{ .ConfirmationURL }}`. **Confirm signup**:
-
-```html
-<h2>Confirm your email</h2>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirm your email address</a></p>
-```
+The Reset password template links to `/auth/confirm` with a `token_hash`, never the default `{{ .ConfirmationURL }}`. The Confirm signup template is unused: sign-up sends no email (decisions Part 1g).
 
 **Reset password**:
 
@@ -115,10 +110,10 @@ Both templates link to `/auth/confirm` with a `token_hash`, never the default `{
 ```
 
 Behavior:
-- `/auth/confirm` runs `verifyOtp({ type, token_hash })` and sets the session. `type=email` lands signed in at `/home`; `type=recovery` lands at `/update-password`.
-- The links use `{{ .SiteURL }}`, so the Site URL must be the app's real origin and `/auth/confirm` must be on the redirect allow-list. Changing a template or the Site URL can break the flow.
-- Confirm email stays on. Sign-up confirmation is verified live. Password reset is not yet tested live.
-- Invites are unsupported: a Dashboard invite creates a user with no password. Create users with a password through **Authentication → Users → Add user**.
+- `/auth/confirm` runs `verifyOtp({ type, token_hash })` and sets the session. `type=recovery` lands at `/update-password`.
+- The link uses `{{ .SiteURL }}`, so the Site URL must be the app's real origin and `/auth/confirm` must be on the redirect allow-list. Changing the template or the Site URL can break the flow.
+- **Confirm email must be OFF** (Authentication → Sign In / Providers → Email, Dashboard only). With it on, sign-up returns no session and the page shows the generic error. Password reset is not yet tested live.
+- Create users with a password through **Authentication → Users → Add user**.
 
 ### 3.2 Moving the app to `aureonx.app`
 
@@ -136,7 +131,7 @@ The workers.dev host keeps serving as a fallback. Open item: the in-memory marke
 
 ## 4. Post-deploy checklist
 
-Run this against `https://aureonx.app` after the first production deploy. Use a private window. The fallback host `https://aureonx.<subdomain>.workers.dev` answers the same checks while it serves, but confirmation and reset emails always open on `aureonx.app`.
+Run this against `https://aureonx.app` after the first production deploy. Use a private window. The fallback host `https://aureonx.<subdomain>.workers.dev` answers the same checks while it serves, but reset emails always open on `aureonx.app`.
 
 1. **Signed-out redirect**
    - Open `/account`. Expect to land on `/sign-in?next=%2Faccount`.
@@ -144,9 +139,8 @@ Run this against `https://aureonx.app` after the first production deploy. Use a 
    - From a terminal: `curl -sI https://aureonx.app/account`. Expect `307` and `location: …/sign-in?next=%2Faccount`.
    - `curl -sI https://aureonx.app/` returns `200` with no redirect for a signed-out request (the proxy also runs on `/`, `/sign-in` and `/sign-up`, but only redirects a request that carries a valid login token to `/home`; with no auth cookie it passes straight through).
 2. **Sign up**
-   - On `/sign-up`, use any address; mail is sent through Resend (§3.1).
-   - Expect "Check your email". Open the link from the Resend email: `/auth/confirm` verifies the address and you land signed in at `/home`.
-   - Confirm email stays on. If it were off, sign-up would go straight to `/home`.
+   - On `/sign-up`, enter any address, a password twice and tick the terms box. No email is sent.
+   - Expect a direct landing on `/home`. If the page shows the generic error instead, Confirm email is still on (§3.1).
    - In Supabase SQL, the new user has exactly 1 `profiles` row and 4 `wallets` rows at 0:
 
      ```sql

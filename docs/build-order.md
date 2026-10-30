@@ -54,9 +54,9 @@ Rules for every slice:
 - Pages: sign-up, sign-in, reset password, `/auth/callback`, `/auth/confirm`.
 - `proxy.ts`: matcher covers the protected routes and, since the Day 6 bug pass, the entry pages `/`, `/sign-in` and `/sign-up`; verifies with `getClaims()` (local JWT verification).
 - Migration 1: `profiles`, `user_roles`, `wallets`, `ledger`, the locked balance-mutation function (`private.wallet_apply`), the signup trigger (profile + UID + 4 wallets at 0; no starting credit, see `docs/decisions.md` Part 1b), and the custom access token hook (`user_role` claim).
-- Auth: email confirmation through `verifyOtp({ token_hash, type })`, not PKCE; `emailRedirectTo` on sign-up.
+- Auth: password recovery through `verifyOtp({ token_hash, type })`, not PKCE. Sign-up sends no email (decisions Part 1g).
 - `/account`: nickname, UID, email, phone (country and KYC status moved to the latest KYC submission in slice 8).
-- `/account/security`: TOTP enroll/verify, password change, email verification status. Passkeys (O9, deferred) and phone MFA (O8: profile field only) show as unavailable.
+- `/account/security`: TOTP enroll/verify, password change. Passkeys (O9, deferred) and phone MFA (O8: profile field only) show as unavailable.
 - The "VIRTUAL FUNDS" header badge.
 
 **Files:** `src/proxy.ts`, `src/app/(auth)/**`, `src/app/(app)/layout.tsx`, `src/app/(app)/account/**`, `supabase/migrations/*_auth_profiles.sql`.
