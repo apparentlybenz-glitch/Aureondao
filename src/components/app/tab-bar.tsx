@@ -17,7 +17,7 @@ export function TabBar() {
 
   return (
     <nav data-tab-bar className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-(--safe-b) md:hidden">
-      <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-5">
+      <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-6">
         {NAV_ITEMS.map(({ href, key, Icon }) => {
           const active = isActive(href);
           if (key === "trade") {
