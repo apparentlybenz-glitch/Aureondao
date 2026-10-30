@@ -19,9 +19,11 @@
 --     open whose expires_at + 70 min passes the next closure start is refused.
 --   * Forex instruments never go into markets; crypto Options is untouched.
 --
--- Locks, as in Options: open_fx_position locks the forex wallet only. Settlement
--- and voiding lock position rows first (FOR UPDATE SKIP LOCKED), then wallets
--- ascending (private.lock_wallets). ingest_fx_rates first takes FOR NO KEY UPDATE
+-- Locks: open_fx_position locks the forex wallet only. void_stale_fx locks
+-- position rows first (FOR UPDATE SKIP LOCKED), then wallets ascending
+-- (private.lock_wallets). ingest_fx_rates locks every wallet it will pay, once and
+-- ascending, before settle_fx locks positions (SKIP LOCKED, so it never waits on
+-- a position the void job holds). ingest_fx_rates first takes FOR NO KEY UPDATE
 -- on the instrument rows, so two ingests run one after the other; that mode does
 -- not conflict with the KEY SHARE lock a position insert takes on its instrument.
 -- =============================================================================
@@ -140,15 +142,18 @@ create table public.fx_positions (
   check (case status
     when 'open' then result is null and settle_price is null and settle_price_at is null
                      and payout_cents is null and settled_at is null
-    when 'settled' then result is not null and settle_price > 0 and settle_price <> 'NaN'::numeric
+    when 'settled' then result is not null and settle_price is not null and settle_price_at is not null
+                     and payout_cents is not null and settled_at is not null
+                     and settle_price > 0 and settle_price <> 'NaN'::numeric
                      and settle_price_at >= expires_at and settle_price_at <= expires_at + interval '2 hours'
                      and settle_price_at > entry_price_at
-                     and settled_at is not null and settled_at >= settle_price_at
+                     and settled_at >= settle_price_at
                      and payout_cents = case result when 'loss' then 0
                                                     when 'draw' then premium_cents
                                                     else premium_cents + floor(premium_cents::numeric * profit_rate_bps / 10000)::bigint
                                         end
     when 'void' then result is null and settle_price is null and settle_price_at is null
+                     and payout_cents is not null and settled_at is not null
                      and payout_cents = premium_cents + fee_cents
                      and settled_at > expires_at + interval '2 hours 15 minutes'
   end)
@@ -471,13 +476,14 @@ declare
   v_ign      integer := 0;   -- valid, but not newer than the stored price
   v_set      integer := 0;   -- positions settled
   v_err      integer := 0;   -- instruments whose settlement failed (price still written)
+  v_batch    integer;
   v_skipped  text[] := '{}';
   v_ids      text[] := '{}';         -- written prices, in order
   v_prices   numeric[] := '{}';
 begin
   begin
     v_body := p_body::jsonb;
-  exception when invalid_text_representation then
+  exception when others then
     raise exception 'FX_INVALID_BODY';
   end;
   if v_body is null or jsonb_typeof(v_body) <> 'object' or jsonb_typeof(v_body -> 'rates') is distinct from 'object' then
@@ -530,12 +536,27 @@ begin
 
   if v_ok + v_ign = 0 then raise exception 'FX_NO_RATES'; end if;
 
+  -- Lock the forex wallets of every position this table settles once, ascending,
+  -- before any settle_fx call. Locking them per instrument would take them out of
+  -- order across instruments and could deadlock with void_stale_fx.
+  perform private.lock_wallets(array(
+    select distinct w.id from public.fx_positions p
+      join public.wallets w on w.user_id = p.user_id and w.account = 'forex'
+     where p.instrument_id = any (v_ids) and p.status = 'open'
+       and p.expires_at <= v_ts and p.expires_at >= v_ts - interval '2 hours'));
+
   -- Each instrument settles in its own subtransaction: a failure rolls back only
   -- that instrument's settlement, never the prices. Its due positions are
   -- retried by the next price in the window, else voided by the void job.
+  -- Batches repeat until one comes back short, so every due position settles at
+  -- this price (the next price is an hour away).
   for n in 1 .. coalesce(array_length(v_ids, 1), 0) loop
     begin
-      v_set := v_set + private.settle_fx(v_ids[n], v_prices[n], v_ts);
+      loop
+        v_batch := private.settle_fx(v_ids[n], v_prices[n], v_ts);
+        v_set := v_set + v_batch;
+        exit when v_batch < 500;
+      end loop;
     exception when others then
       v_err := v_err + 1;
       raise warning 'aureonx settle_fx failed for %: %', v_ids[n], sqlerrm;

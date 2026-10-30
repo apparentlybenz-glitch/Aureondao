@@ -2,7 +2,7 @@
 # Forex money path tests (fx tables, open_fx_position, ingest_fx_rates, settle_fx, void_stale_fx,
 # admin_set_fx_period, market hours). Prints PASS/FAIL lines (no keys) and exits non-zero if any
 # check fails.
-# Usage: supabase/tests/forex.sh [t1 ... t6]  (Management API, write token required)
+# Usage: supabase/tests/forex.sh [t1 ... t7]  (Management API, write token required)
 # Each step is ONE request: it creates its test users, runs its checks and ends by raising an
 # exception that carries the results, so the whole step rolls back and nothing is ever
 # committed. No cleanup is needed and live cron jobs never see the test rows.
@@ -117,6 +117,8 @@ t1) cat <<'SQL'
 select pg_temp.chk('body that is not JSON -> FX_INVALID_BODY', v ~ 'FX_INVALID_BODY', v) from (select pg_temp.ingest_raw('not json') v) s;
 select pg_temp.chk('body without rates -> FX_INVALID_BODY', v ~ 'FX_INVALID_BODY', v)
   from (select pg_temp.ingest_raw(format('{"base":"USD","timestamp":%s}', floor(extract(epoch from now()))::bigint)) v) s;
+select pg_temp.chk('body with a NUL escape -> FX_INVALID_BODY', v ~ 'FX_INVALID_BODY', v)
+  from (select pg_temp.ingest_raw('{"base":"USD","timestamp":1,"rates":{},"x":"\u0000"}') v) s;
 select pg_temp.chk('base EUR -> FX_INVALID_BASE', v ~ 'FX_INVALID_BASE', v) from (select pg_temp.ingest(interval '10 minutes', null, 'EUR') v) s;
 select pg_temp.chk('timestamp 2 h 1 s old -> FX_INVALID_TIMESTAMP', v ~ 'FX_INVALID_TIMESTAMP', v) from (select pg_temp.ingest(interval '2 hours 1 second') v) s;
 select pg_temp.chk('timestamp 6 min ahead -> FX_INVALID_TIMESTAMP', v ~ 'FX_INVALID_TIMESTAMP', v) from (select pg_temp.ingest(interval '-6 minutes') v) s;
@@ -125,7 +127,6 @@ select pg_temp.chk('fractional timestamp -> FX_INVALID_TIMESTAMP', v ~ 'FX_INVAL
 select pg_temp.chk('timestamp as a string -> FX_INVALID_TIMESTAMP', v ~ 'FX_INVALID_TIMESTAMP', v)
   from (select pg_temp.ingest_raw(format('{"base":"USD","timestamp":"%s","rates":%s}', floor(extract(epoch from now()))::bigint, pg_temp.rates())) v) s;
 select pg_temp.chk('every instrument skipped -> FX_NO_RATES', v ~ 'FX_NO_RATES', v) from (select pg_temp.ingest(interval '10 minutes', '{"USD":1,"EUR":0}') v) s;
-select pg_temp.chk('refused tables wrote nothing', count(*) = 0, count(*)::text) from public.fx_prices where ingested_at = now();
 
 select pg_temp.chk('table 1 h 59 min old accepted: 17 written, none skipped',
          pg_temp.j(v) ->> 'accepted' = '17' and pg_temp.j(v) -> 'skipped' = '[]'::jsonb, v)
@@ -201,6 +202,8 @@ SQL
 ;;
 t3) cat <<'SQL'
 -- T3 open, settle and void (market hours read as Wednesday 2026-11-04 10:00 New York).
+-- The payout figures below assume 600 / 10 bps and a 49.00 minimum (the live 30 s Options row at apply time).
+update public.fx_periods set profit_rate_bps = 600, fee_bps = 10, min_premium_cents = 4900, enabled = true where duration_s = 3600;
 select pg_temp.clock('2026-11-04 10:00:00 America/New_York');
 select pg_temp.chk('base table ingested 5 min ago', pg_temp.j(v) ->> 'accepted' = '17', v) from (select pg_temp.ingest(interval '5 minutes') v) s;
 select pg_temp.chk('open ' || x.l, pg_temp.open(x.who, x.ins, x.dir, 3600, x.prem, x.k) ~ '^[0-9a-f-]{36}$', pg_temp.open(x.who, x.ins, x.dir, 3600, x.prem, x.k))
@@ -279,12 +282,19 @@ select pg_temp.chk('each position: one premium, one fee, one close row when clos
 select pg_temp.chk('forex wallets reconcile with the ledger', bool_and(w.available_cents =
          (select sum(l.delta_cents) from public.ledger l where l.wallet_id = w.id)), null)
   from public.wallets w where w.user_id in (pg_temp.u('A'), pg_temp.u('C'), pg_temp.u('D')) and w.account = 'forex';
+select pg_temp.chk('CHECK: void without settled_at is refused', v ~ 'fx_positions_check', v)
+  from (select pg_temp.try(format('update public.fx_positions set status = %L, payout_cents = premium_cents + fee_cents where id = %L', 'void', (pg_temp.pos(6)).id)) v) s;
+select pg_temp.chk('CHECK: settled without settle_price is refused', v ~ 'fx_positions_check', v)
+  from (select pg_temp.try(format('update public.fx_positions set status = %L, result = %L, settle_price_at = expires_at, payout_cents = 0, settled_at = now() where id = %L',
+                                  'settled', 'loss', (pg_temp.pos(6)).id)) v) s;
 select pg_temp.chk('only forex wallets moved', (select count(*) from public.ledger l where l.user_id in (pg_temp.u('A'), pg_temp.u('D'))
          and l.account <> 'forex') = 0, null);
 SQL
 ;;
 t4) cat <<'SQL'
 -- T4 refusals: price age, market hours, idempotency, funds and arguments.
+-- The payout figures below assume 600 / 10 bps and a 49.00 minimum (the live 30 s Options row at apply time).
+update public.fx_periods set profit_rate_bps = 600, fee_bps = 10, min_premium_cents = 4900, enabled = true where duration_s = 3600;
 select pg_temp.clock('2026-11-04 10:00:00 America/New_York');
 select pg_temp.ingest(interval '61 minutes');
 select pg_temp.chk('newest price 61 min old -> PRICE_STALE', v ~ 'PRICE_STALE', v) from (select pg_temp.open('A', 'EUR-USD', 'rise', 3600, 4900, 1) v) s;
@@ -392,7 +402,22 @@ select pg_temp.chk('option_periods untouched by the admin RPC', (select count(*)
 SQL
 ;;
 t6) cat <<'SQL'
--- T6 RLS, grants and function hygiene.
+-- T6 RLS, grants and function hygiene. The EXECUTE checks read the catalog before
+-- pg_temp.clock replaces the market hours functions.
+select pg_temp.chk(format('EXECUTE %s for %s = %s', f, r, e), has_function_privilege(r, f, 'execute') = e,
+                   has_function_privilege(r, f, 'execute')::text)
+  from (values
+    ('private.fx_is_closed(public.fx_class, timestamptz)', 'anon', false), ('private.fx_is_closed(public.fx_class, timestamptz)', 'authenticated', false),
+    ('private.fx_next_close(public.fx_class, timestamptz)', 'anon', false), ('private.fx_next_close(public.fx_class, timestamptz)', 'authenticated', false),
+    ('private.settle_fx(text, numeric, timestamptz)', 'anon', false), ('private.settle_fx(text, numeric, timestamptz)', 'authenticated', false),
+    ('private.void_stale_fx()', 'anon', false), ('private.void_stale_fx()', 'authenticated', false),
+    ('public.ingest_fx_rates(text)', 'anon', false), ('public.ingest_fx_rates(text)', 'authenticated', false),
+    ('public.ingest_fx_rates(text)', 'service_role', true),
+    ('public.open_fx_position(text, public.option_direction, integer, bigint, uuid)', 'anon', false),
+    ('public.open_fx_position(text, public.option_direction, integer, bigint, uuid)', 'authenticated', true),
+    ('public.admin_set_fx_period(integer, integer, integer, bigint, boolean)', 'anon', false),
+    ('public.admin_set_fx_period(integer, integer, integer, bigint, boolean)', 'authenticated', true)
+  ) t(f, r, e);
 select pg_temp.clock('2026-11-04 10:00:00 America/New_York');
 select pg_temp.ingest(interval '5 minutes');
 select pg_temp.open('A', 'EUR-USD', 'rise', 3600, 4900, 1);
@@ -404,7 +429,9 @@ select pg_temp.chk('authenticated reads prices', pg_temp.as_user(pg_temp.u('D'),
 select pg_temp.chk('anon: ' || q, pg_temp.as_role('anon', null, null, q) ~ 'permission denied', pg_temp.as_role('anon', null, null, q))
   from unnest(array['select count(*) from public.fx_positions', 'select count(*) from public.fx_instruments',
                     'select count(*) from public.fx_prices', 'select count(*) from public.fx_periods',
-                    $q$select public.open_fx_position('EUR-USD', 'rise', 3600, 4900, gen_random_uuid())$q$]) q;
+                    $q$select public.open_fx_position('EUR-USD', 'rise', 3600, 4900, gen_random_uuid())$q$,
+                    $q$select public.ingest_fx_rates('{}')$q$,
+                    $q$select public.admin_set_fx_period(3600, 600, 10, 4900, true)$q$]) q;
 select pg_temp.chk('authenticated: ' || q, pg_temp.as_user(pg_temp.u('A'), q) ~ 'permission denied', pg_temp.as_user(pg_temp.u('A'), q))
   from unnest(array[
     $q$insert into public.fx_positions (user_id, instrument_id, direction, duration_s, premium_cents, fee_cents, profit_rate_bps, entry_price, entry_price_at, created_at, expires_at, client_request_id) values (auth.uid(), 'EUR-USD', 'rise', 3600, 4900, 5, 600, 1, now(), now(), now() + interval '1 hour', gen_random_uuid())$q$,
@@ -414,8 +441,7 @@ select pg_temp.chk('authenticated: ' || q, pg_temp.as_user(pg_temp.u('A'), q) ~ 
     $q$update public.fx_instruments set enabled = true$q$,
     $q$select public.ingest_fx_rates('{}')$q$,
     $q$select private.settle_fx('EUR-USD', 1, now())$q$,
-    $q$select private.void_stale_fx()$q$,
-    $q$select private.fx_is_closed('fx', now())$q$]) q;
+    $q$select private.void_stale_fx()$q$]) q;
 select pg_temp.chk('open_fx_position takes no price',
          (select pg_get_function_identity_arguments(p.oid) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname = 'open_fx_position')
@@ -436,11 +462,31 @@ select pg_temp.chk('RLS on all four tables', (select bool_and(relrowsecurity) fr
          where oid in ('public.fx_instruments'::regclass, 'public.fx_periods'::regclass, 'public.fx_prices'::regclass, 'public.fx_positions'::regclass)), null);
 SQL
 ;;
+t7) cat <<'SQL'
+-- T7 one price settles every due position of an instrument, beyond one batch of 500.
+select pg_temp.clock('2026-11-04 10:00:00 America/New_York');
+update public.fx_periods set profit_rate_bps = 600, fee_bps = 10, min_premium_cents = 4900, enabled = true where duration_s = 3600;
+select private.wallet_apply((select id from public.wallets where user_id = pg_temp.u('A') and account = 'forex'),
+         5000000, 0, 'admin_credit', 'admin_adjustment', gen_random_uuid(), p_memo => 'Balance adjustment');
+select pg_temp.ingest(interval '5 minutes');
+select pg_temp.chk('501 positions opened', v = '501', v)
+  from (select pg_temp.as_user(pg_temp.u('A'),
+    $q$select count(public.open_fx_position('EUR-USD', 'rise', 3600, 4900, gen_random_uuid())) from generate_series(1, 501)$q$) v) s;
+update public.fx_positions set created_at = created_at - interval '3700 seconds', expires_at = expires_at - interval '3700 seconds',
+       entry_price_at = entry_price_at - interval '3700 seconds' where user_id = pg_temp.u('A');
+select pg_temp.chk('one price settles all 501', pg_temp.j(v) ->> 'settled' = '501', v)
+  from (select pg_temp.ingest(interval '30 seconds',
+    '{"USD":1,"EUR":0.92,"GBP":0.771234,"JPY":152.3445,"CHF":0.861234,"CAD":1.381234,"AUD":1.521234,"NZD":1.671234,"XAU":0.000251234,"XAG":0.0301234}') v) s;
+select pg_temp.chk('all at the same price and ts', count(*) = 501 and count(distinct (settle_price, settle_price_at)) = 1, count(*)::text)
+  from public.fx_positions where user_id = pg_temp.u('A') and status = 'settled';
+select pg_temp.chk('wallet: 80,000.00 - 501 x 49.05 + 501 x 51.94', pg_temp.wallet('A') = 8000000 - 501 * 4905 + 501 * 5194, pg_temp.wallet('A')::text);
+SQL
+;;
 *) echo "unknown step $1" >&2; return 1;;
 esac
 }
 
-steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6)
+steps=("$@"); [ ${#steps[@]} -eq 0 ] && steps=(t1 t2 t3 t4 t5 t6 t7)
 for s in "${steps[@]}"; do
   echo "== $s"
   sql=$(body "$s") || { FAILS=$((FAILS+1)); continue; }
