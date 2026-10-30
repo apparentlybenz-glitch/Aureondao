@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, Timer, Users, Wallet, X } from "lucide-react";
+import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, Timer, Users, Wallet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
 import { useAccount } from "@/lib/use-account";
+import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
-// route and its `Admin.sections` string.
+// route and its `Admin.sections` string. Admin access is listed for head admins only.
 const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
   { key: "topUp", href: "/admin/top-up", Icon: Wallet },
@@ -20,20 +21,23 @@ const SECTIONS = [
   { key: "optionPeriods", href: "/admin/option-periods", Icon: Timer },
   { key: "support", href: "/admin/support", Icon: LifeBuoy },
   { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText },
+  { key: "adminAccess", href: "/admin/admin-access", Icon: ShieldCheck },
 ] as const;
 
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
 // Gate, then the section nav: below `md:` a bar under the top bar whose hamburger
 // opens the section list in a drawer from the left; from `md:` a tab row like the
-// account tabs. The gate is UX only. The real boundary is
-// in SQL: RLS admin reads and every admin RPC require the live admin row (no
-// second factor, docs/decisions.md C21).
+// account tabs. This gate is for nav visibility: the admin layout already
+// redirects a non-admin on the server. The data boundary is in SQL: RLS admin
+// reads and every admin RPC require the live admin row (no second factor,
+// docs/decisions.md C21).
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");
   const pathname = usePathname();
   const { ready, isAdmin } = useAccount();
+  const isHead = useHeadAdmin();
   // The page the drawer was opened on: it is open only while still there, so a
   // route change closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
@@ -42,13 +46,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (!ready) return <p className="text-sm">{c("loading")}</p>;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
+  const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || isHead === true);
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 
   return (
     <SelectedUserProvider>
       <nav aria-label={t("navLabel")} className="-mx-4 mb-5 hidden border-b px-4 md:block">
         <ul className="flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {SECTIONS.map(({ key, href }) => {
+          {sections.map(({ key, href }) => {
             const active = pathname === href;
             return (
               <li key={key} className="shrink-0">
@@ -72,7 +77,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </li>
         </ul>
       </nav>
-      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 md:hidden items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center md:hidden gap-2 border-b bg-background/95 px-4 backdrop-blur">
         <Dialog.Root open={openedOn === pathname} onOpenChange={(next) => setOpenedOn(next ? pathname : null)}>
           <Dialog.Trigger
             aria-label={t("openMenu")}
@@ -94,7 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <nav aria-label={t("navLabel")} className="flex flex-1 flex-col justify-between gap-3">
                 <ul className="space-y-1">
-                  {SECTIONS.map(({ key, href, Icon }) => {
+                  {sections.map(({ key, href, Icon }) => {
                     const active = pathname === href;
                     return (
                       <li key={key}>
