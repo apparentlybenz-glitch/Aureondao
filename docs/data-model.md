@@ -110,7 +110,7 @@ All tables live in `public` and have RLS enabled. "own" means `user_id = auth.ui
 Index: `lower(email)` (for admin search).
 
 ### 3.2 `user_roles`
-`(user_id → auth.users, role app_role('admin'), granted_at, granted_by, is_head boolean not null default false)`, PK `(user_id, role)`. Clients have SELECT only. Admins are granted and revoked by a head admin through `admin_set_admin` (a grant inserts `is_head = false`; a revoke of a row with `is_head = true` raises `HEAD_ADMIN_PROTECTED`). `is_head` is written by nothing in the app or the database: a head admin is set by hand in SQL, `update public.user_roles set is_head = true where user_id = '<uuid>' and role = 'admin';`. Only a head admin passes `private.is_head_admin()`, which `admin_set_admin` requires on top of the admin checks.
+`(user_id → auth.users, role app_role('admin'), granted_at, granted_by, is_head boolean not null default false, is_owner boolean not null default false with CHECK `not is_owner or is_head`)`, PK `(user_id, role)`. Clients have SELECT only. Admins are granted and revoked by a head admin through `admin_set_admin` (a grant inserts `is_head = false`; a revoke of a row with `is_head = true` raises `HEAD_ADMIN_PROTECTED`). `is_head` is written by nothing in the app or the database: a head admin is set by hand in SQL, `update public.user_roles set is_head = true where user_id = '<uuid>' and role = 'admin';`. Only a head admin passes `private.is_head_admin()`, which `admin_set_admin` requires on top of the admin checks. `is_owner` marks the owner, who is always a head admin; it is also written by nothing in the app or the database: `update public.user_roles set is_owner = true where user_id = '<uuid>' and role = 'admin' and is_head;`. Only the owner passes `private.is_owner()`, which `admin_demote_head(user, remove_admin, reason, key)` requires: it sets `is_head = false` on a head admin (`head_demote`) or deletes the row (`head_remove`), and refuses the owner row (`OWNER_PROTECTED`) and any row that is not a head admin (`NOT_HEAD_ADMIN`). Nothing can create a head admin or an owner; only the owner can demote or remove a head admin.
 
 ### 3.3 `wallets` (cash)
 | Column | Type | Notes |
@@ -444,7 +444,7 @@ There is **never** a fallback to a random, synthetic, last-known-good or client 
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | profiles | own (`id`) or admin | -- (trigger) | -- (`update_profile` RPC) | -- (cascade from auth.users) |
-| user_roles | own or admin; `supabase_auth_admin` (hook) | -- (`admin_set_admin`, head admin) | -- (nothing writes `is_head`) | -- (`admin_set_admin`, never a head admin) |
+| user_roles | own or admin; `supabase_auth_admin` (hook) | -- (`admin_set_admin`, head admin) | -- (nothing writes `is_head` or `is_owner`; `admin_demote_head` writes `is_head = false`) | -- (`admin_set_admin` never a head admin; `admin_demote_head`, owner only, a head admin) |
 | wallets, spot_holdings | own or admin | -- | -- (RPC + guard trigger) | -- |
 | transfers, orders, forex_positions, options_positions, deposits, withdrawals, kyc_submissions, ledger | own or admin | -- | -- | -- |
 | favorites | own | -- (RPC) | -- | -- (RPC) |

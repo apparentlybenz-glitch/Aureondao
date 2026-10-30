@@ -16,14 +16,18 @@ import { createClient } from "@/lib/supabase/client";
 import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
 
+type Action = "grant" | "revoke" | "demote" | "remove";
+const LABEL = { grant: "access.grant", revoke: "access.revoke", demote: "access.demote", remove: "access.remove" } as const;
+const DONE = { grant: "access.doneGranted", revoke: "access.doneRevoked", demote: "access.doneDemoted", remove: "access.doneRevoked" } as const;
+
 export default function AdminAccessPage() {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");
-  const isHead = useHeadAdmin();
+  const viewer = useHeadAdmin();
   const { user, select } = useSelectedUser();
 
-  if (isHead === null) return <p className="text-sm">{c("loading")}</p>;
-  if (!isHead) return <p className="text-sm text-muted-foreground">{t("access.notAllowed")}</p>;
+  if (viewer === null) return <p className="text-sm">{c("loading")}</p>;
+  if (!viewer.isHead) return <p className="text-sm text-muted-foreground">{t("access.notAllowed")}</p>;
 
   return (
     <>
@@ -31,7 +35,7 @@ export default function AdminAccessPage() {
       {user ? (
         <div className="space-y-5">
           <SelectedUserCard user={user} onChange={() => select(null)} changeLabel={t("access.change")} />
-          <AccessForm key={user.id} user={user} />
+          <AccessForm key={user.id} user={user} viewerIsOwner={viewer.isOwner} />
         </div>
       ) : (
         <div className="space-y-4">
@@ -43,7 +47,7 @@ export default function AdminAccessPage() {
   );
 }
 
-function AccessForm({ user }: { user: AdminUser }) {
+function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: boolean }) {
   const t = useTranslations("Admin");
   const c = useTranslations("Common");
   const rpcMessage = useRpcMessage();
@@ -68,24 +72,34 @@ function AccessForm({ user }: { user: AdminUser }) {
   if (role === undefined) return <p className="text-sm">{c("loading")}</p>;
   if (role === null) return <p className="text-sm text-destructive">{t("loadError")}</p>;
 
-  const makeAdmin = !role.isAdmin;
+  // The owner is never changed in the app. A head admin is changed only by the owner,
+  // through admin_demote_head; admin_set_admin refuses it.
+  const actions: Action[] = role.isOwner ? [] : role.isHead ? (viewerIsOwner ? ["demote", "remove"] : []) : [role.isAdmin ? "revoke" : "grant"];
   const trimmed = reason.trim();
-  const canSubmit = !pending && !role.isHead && trimmed.length >= 3 && trimmed.length <= 200;
+  const validReason = trimmed.length >= 3 && trimmed.length <= 200;
   const email = user.email ?? user.nickname;
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!canSubmit) return;
+  async function submit(action: Action) {
+    if (pending || !validReason) return;
     setPending(true);
     setError(null);
     setDone(null);
-    const key = attempt.keyFor(`${user.id}|${makeAdmin}|${trimmed}`);
-    const { error } = await createClient().rpc("admin_set_admin", {
-      p_user_id: user.id,
-      p_make_admin: makeAdmin,
-      p_reason: trimmed,
-      p_client_request_id: key,
-    });
+    const key = attempt.keyFor(`${user.id}|${action}|${trimmed}`);
+    const supabase = createClient();
+    const { error } =
+      action === "demote" || action === "remove"
+        ? await supabase.rpc("admin_demote_head", {
+            p_user_id: user.id,
+            p_remove_admin: action === "remove",
+            p_reason: trimmed,
+            p_client_request_id: key,
+          })
+        : await supabase.rpc("admin_set_admin", {
+            p_user_id: user.id,
+            p_make_admin: action === "grant",
+            p_reason: trimmed,
+            p_client_request_id: key,
+          });
     setPending(false);
     if (error) {
       // Without a server answer the change may have run: keep the key so a retry
@@ -95,7 +109,7 @@ function AccessForm({ user }: { user: AdminUser }) {
       return;
     }
     attempt.settle();
-    setDone(t(makeAdmin ? "access.doneGranted" : "access.doneRevoked", { email }));
+    setDone(t(DONE[action], { email }));
     setReason("");
     setRole(await fetchAdminRole(user.id));
   }
@@ -111,19 +125,29 @@ function AccessForm({ user }: { user: AdminUser }) {
               role.isAdmin ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
             )}
           >
-            {role.isHead ? t("access.head") : role.isAdmin ? t("access.admin") : t("access.notAdmin")}
+            {role.isOwner ? t("access.owner") : role.isHead ? t("access.head") : role.isAdmin ? t("access.admin") : t("access.notAdmin")}
           </span>
         </p>
-        {role.isHead ? <p className="text-xs text-muted-foreground">{t("access.headNote")}</p> : null}
+        {role.isOwner ? (
+          <p className="text-xs text-muted-foreground">{t("access.ownerNote")}</p>
+        ) : role.isHead ? (
+          <p className="text-xs text-muted-foreground">{t(viewerIsOwner ? "access.headNoteOwner" : "access.headNote")}</p>
+        ) : null}
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (actions.length === 1) submit(actions[0]);
+        }}
+        className="space-y-4"
+      >
         <div className="space-y-1.5">
           <Label htmlFor="access-reason">{t("access.reasonField")}</Label>
           <Input
             id="access-reason"
             maxLength={200}
-            disabled={role.isHead}
+            disabled={actions.length === 0}
             className="h-11 text-base"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -135,9 +159,24 @@ function AccessForm({ user }: { user: AdminUser }) {
             {done}
           </p>
         ) : null}
-        <Button type="submit" variant={makeAdmin ? "default" : "destructive"} className="h-11 w-full" disabled={!canSubmit}>
-          {pending ? t("access.sending") : makeAdmin ? t("access.grant") : t("access.revoke")}
-        </Button>
+        {actions.length === 0 ? (
+          <Button type="button" variant="destructive" className="h-11 w-full" disabled>
+            {t("access.revoke")}
+          </Button>
+        ) : (
+          actions.map((action) => (
+            <Button
+              key={action}
+              type={actions.length === 1 ? "submit" : "button"}
+              variant={action === "grant" ? "default" : "destructive"}
+              className="h-11 w-full"
+              disabled={pending || !validReason}
+              onClick={actions.length === 1 ? undefined : () => submit(action)}
+            >
+              {pending ? t("access.sending") : t(LABEL[action])}
+            </Button>
+          ))
+        )}
       </form>
     </section>
   );
