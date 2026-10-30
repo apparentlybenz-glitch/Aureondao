@@ -26,6 +26,7 @@ export const privacy: LegalContent = {
       heading: "3. Third-Party Sharing & Transfers",
       paragraphs: [
         "We do not sell personal data. Information may be shared with regulatory bodies, liquidity partners, and risk intelligence services solely for compliance and trade execution purposes under strict confidentiality agreements.",
+        "Charts are provided by TradingView, which loads from its servers and may set its own cookies.",
       ],
     },
   ],
