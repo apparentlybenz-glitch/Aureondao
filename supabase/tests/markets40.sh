@@ -1,13 +1,13 @@
 #!/bin/bash
-# Tests for 20261030120000_markets_40: the 40 markets, Options on every market, and Options
-# prices with 8 decimals (SHIB). Prints PASS/FAIL lines (no keys) and exits non-zero if any
+# Tests for 20261030120000_markets_40: the 40 markets, Options on 38 of them (not SHIB or
+# PEPE), an Options position on a coarse-tick pair (OP), and Spot on SHIB. Prints PASS/FAIL lines (no keys) and exits non-zero if any
 # check fails.
 # Usage: supabase/tests/markets40.sh [t1 ... t3]  (Management API, write token required;
 # run it only after the migration is applied)
 # Always runs setup, the given steps (all by default), then cleanup, in one process.
 # setup pauses the aureonx-price-tick and aureonx-options-void cron jobs so live prices never
 # settle a test position and the test calls settlement itself. A trap on EXIT, INT, TERM and
-# ERR runs cleanup, which turns both jobs back on, deletes the test user and the SHIB and
+# ERR runs cleanup, which turns both jobs back on, deletes the test user and the OP, SHIB and
 # PEPE test snapshots. Test snapshots are written as postgres with fixed prices.
 # The project comes from SUPABASE_PROJECT_REF; abort before any query unless it matches the
 # ref in NEXT_PUBLIC_SUPABASE_URL.
@@ -62,41 +62,49 @@ select private.wallet_apply((select id from public.wallets where user_id='$A' an
 select 1 ok;
 SQL
     job aureonx-price-tick false; job aureonx-options-void false;;
-t1) echo "T1 catalog: 40 enabled markets, Options on all, complete metadata, unique sort order"
+t1) echo "T1 catalog: 40 enabled markets, Options on 38 (not SHIB or PEPE), complete metadata, unique sort order"
     out=$(echo "select count(*) filter (where enabled) enabled, count(*) filter (where enabled and options_enabled) options,
       count(distinct sort_order) sorts, count(*) filter (where qty_decimals is null or min_notional_cents is null or price_decimals is null) missing,
       count(*) filter (where vision_symbol <> base || 'USDT' or kucoin_symbol <> base || '-USDT' or display_symbol <> base || 'USD') naming
       from public.markets;" | run)
     expect "40 enabled markets" '"enabled":40' "$out"
-    expect "Options on all 40" '"options":40' "$out"
+    expect "Options on 38" '"options":38' "$out"
     expect "40 distinct sort orders" '"sorts":40' "$out"
     expect "no missing metadata" '"missing":0' "$out"
     expect "symbol naming follows the seeded rows" '"naming":0' "$out"
+    out=$(echo "select id, options_enabled from public.markets where id in ('SHIB-USDT','PEPE-USDT','OP-USDT') order by id;" | run)
+    expect "OP has Options" '"id":"OP-USDT","options_enabled":true' "$out"
+    expect "SHIB has no Options" '"id":"SHIB-USDT","options_enabled":false' "$out"
+    expect "PEPE has no Options" '"id":"PEPE-USDT","options_enabled":false' "$out"
     out=$(echo "select id, price_decimals pd, qty_decimals qd, min_notional_cents mn from public.markets where id in ('SHIB-USDT','BCH-USDT','HBAR-USDT','SEI-USDT') order by id;" | run)
     expect "SHIB 8 / 0 / 100" '"id":"SHIB-USDT","pd":8,"qd":0,"mn":100' "$out"
     expect "BCH 1 / 3 / 500" '"id":"BCH-USDT","pd":1,"qd":3,"mn":500' "$out"
     expect "HBAR 5 / 0 / 500" '"id":"HBAR-USDT","pd":5,"qd":0,"mn":500' "$out"
     expect "SEI 5 / 1 / 500" '"id":"SEI-USDT","pd":5,"qd":1,"mn":500' "$out";;
-t2) echo "T2 Options on SHIB (8 decimals): entry is the exact half-tick mid, a rise settles as a win, equal mids draw"
-    snap SHIB-USDT 0.00000451 0.00000452 1 > /dev/null
-    out=$(as $A "select public.open_option('SHIB-USDT','rise',30,4900,'$(key 1)') opened, public.open_option('SHIB-USDT','fall',30,4900,'$(key 2)') opened2;")
-    expect "positions opened on SHIB" '"opened"' "$out"
+t2) echo "T2 Options on OP (coarse tick): entry is the exact half-tick mid, a rise wins, equal mids draw; SHIB and PEPE are refused"
+    snap OP-USDT 0.0983 0.0985 1 > /dev/null
+    out=$(as $A "select public.open_option('OP-USDT','rise',30,4900,'$(key 1)') opened, public.open_option('OP-USDT','fall',30,4900,'$(key 2)') opened2;")
+    expect "positions opened on OP" '"opened"' "$out"
     echo "update public.options_positions set created_at = created_at - interval '40 seconds', expires_at = expires_at - interval '40 seconds',
       entry_price_at = entry_price_at - interval '40 seconds' where user_id = '$A' and status = 'open'; select 1 ok;" | run > /dev/null
-    ingest SHIB-USDT 0.00000452 0.00000453 > /dev/null
+    ingest OP-USDT 0.0984 0.0986 > /dev/null
     out=$(position "$(key 1)")
-    expect "entry mid is 0.000004515 exactly" '"entry":"0.000004515' "$out"
-    expect "rise wins at settle mid 0.000004525" '"result":"win","settle":"0.000004525' "$out"
+    expect "entry mid is 0.0984 exactly" '"entry":"0.0984' "$out"
+    expect "rise wins at settle mid 0.0985" '"result":"win","settle":"0.0985' "$out"
     expect "win pays 4900 + 294" '"payout_cents":5194' "$out"
     out=$(position "$(key 2)")
     expect "fall loses" '"result":"loss"' "$out"
-    snap SHIB-USDT 0.00000451 0.00000452 1 > /dev/null
-    as $A "select public.open_option('SHIB-USDT','rise',30,4900,'$(key 3)');" > /dev/null
+    snap OP-USDT 0.0983 0.0985 1 > /dev/null
+    as $A "select public.open_option('OP-USDT','rise',30,4900,'$(key 3)');" > /dev/null
     echo "update public.options_positions set created_at = created_at - interval '40 seconds', expires_at = expires_at - interval '40 seconds',
       entry_price_at = entry_price_at - interval '40 seconds' where client_request_id = '$(key 3)'; select 1 ok;" | run > /dev/null
-    ingest SHIB-USDT 0.00000451 0.00000452 > /dev/null
+    ingest OP-USDT 0.0983 0.0985 > /dev/null
     out=$(position "$(key 3)")
-    expect "equal mids draw and refund the premium" '"result":"draw".*"payout_cents":4900' "$out";;
+    expect "equal mids draw and refund the premium" '"result":"draw".*"payout_cents":4900' "$out"
+    for m in SHIB-USDT PEPE-USDT; do
+      out=$(as $A "select public.open_option('$m','rise',30,4900,gen_random_uuid());")
+      expect "open_option on $m is refused with MARKET_DISABLED" 'MARKET_DISABLED' "$out"
+    done;;
 t3) echo "T3 Spot on SHIB: minimum is 1 USDT, quantities are whole units"
     echo "select private.wallet_apply((select id from public.wallets where user_id='$A' and account='spot'), 100000, 0, 'admin_credit', 'admin_adjustment', gen_random_uuid(), p_memo => 'Balance adjustment'); select 1 ok;" | run > /dev/null
     snap SHIB-USDT 0.00000451 0.00000452 1 > /dev/null
@@ -108,7 +116,7 @@ t3) echo "T3 Spot on SHIB: minimum is 1 USDT, quantities are whole units"
     expect "222000 SHIB buys at the ask 0.00000452 for 101 cents" '"qty":"222000[0.]*","price":"0.00000452[0]*","notional_cents":101' "$out";;
 cleanup) job aureonx-price-tick true; job aureonx-options-void true; run <<SQL
 delete from auth.users where id = '$A';
-delete from public.price_snapshots where market_id in ('SHIB-USDT','PEPE-USDT');
+delete from public.price_snapshots where market_id in ('OP-USDT','SHIB-USDT','PEPE-USDT');
 update public.system_state set price_demand_until = '-infinity' where id;
 select (select count(*) from public.profiles where id = '$A') profiles;
 SQL

@@ -7,6 +7,16 @@ export function estReturnCents(premiumCents: bigint, profitRateBps: number): big
   return (premiumCents * BigInt(profitRateBps)) / BPS;
 }
 
+// Lowest minimum premium (cents) an enabled period may have: the smallest p with
+// (rate - fee) x p > 20000, which guarantees a win nets at least 1 cent after the
+// floor on the payout and the ceil on the fee (option_periods_min_premium_floor).
+// Null when the rate is not above the fee: such a period cannot be enabled.
+export function minPremiumFloorCents(profitRateBps: number, feeBps: number): bigint | null {
+  const margin = profitRateBps - feeBps;
+  if (margin <= 0) return null;
+  return BigInt(Math.floor(20000 / margin) + 1);
+}
+
 // 600 -> "6", 10 -> "0.1", 650 -> "6.5", 1 -> "0.01" (the percent without its sign).
 export function bpsToPercentText(bps: number): string {
   const whole = Math.trunc(bps / 100);

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { centsToInput, parseAmount, ZERO_CENTS } from "@/lib/money";
 import { type OptionPeriod, useOptionPeriods } from "@/lib/options";
-import { bpsToPercentText, percentToBps } from "@/lib/options-math";
+import { bpsToPercentText, minPremiumFloorCents, percentToBps } from "@/lib/options-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +58,17 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
   const feeError = feeBps === null || feeBps > MAX_FEE_BPS ? t("optionPeriods.errors.fee") : null;
   const minError = minCents === null || minCents <= ZERO_CENTS ? t("optionPeriods.errors.minPremium") : null;
   const enabledError = enabled && profitBps === 0 ? t("optionPeriods.errors.enabledNeedsRate") : null;
-  const valid = !profitError && !feeError && !minError && !enabledError;
+  // An enabled period needs a minimum premium above the floor (option_periods_min_premium_floor).
+  const floorCents = profitBps !== null && feeBps !== null ? minPremiumFloorCents(profitBps, feeBps) : null;
+  const floorError =
+    enabled && profitBps !== null && profitBps > 0 && feeBps !== null && !minError
+      ? floorCents === null
+        ? t("optionPeriods.errors.rateBelowFee")
+        : minCents !== null && minCents < floorCents
+          ? t("optionPeriods.errors.minPremiumFloor", { min: centsToInput(floorCents) })
+          : null
+      : null;
+  const valid = !profitError && !feeError && !minError && !enabledError && !floorError;
 
   const dirty =
     profitBps !== period.profitRateBps ||
@@ -171,6 +181,7 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
         </div>
       </div>
       <FormError message={enabledError} />
+      <FormError message={floorError} />
       <FormError message={error} />
       {saved ? (
         <p role="status" className="text-sm text-up">

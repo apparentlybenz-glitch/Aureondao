@@ -107,7 +107,7 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 
 | Decision | Locked choice |
 |---|---|
-| O4 underlyings | Crypto only: `markets.options_enabled`, true for BTC, ETH and SOL |
+| O4 underlyings | Crypto only: `markets.options_enabled`, true for BTC, ETH and SOL; 38 of 40 pairs since the 40 pair migration (not SHIB or PEPE: a 1e-8 tick gives many draws) |
 | O5 entry price | Mid of the snapshot bid and ask, read inside `open_option` (no price argument). `PRICE_STALE` unless `fetched_at <= now()` and `fetched_at > now() - 15 s`. The 15 is a constant in the function, not config |
 | O12 settle price | Mid of the **first** snapshot with `expires_at <= fetched_at <= expires_at + 60 s`. Settlement runs inside `ingest_prices`, in the transaction that upserts that snapshot. One source per snapshot (Vision, KuCoin fallback); no multi-source median |
 | O6 no price | A position still open at `now() > expires_at + 90 s` (the 60 s window plus the 30 s source age limit) is void: premium and fee refunded. Run by a SQL-only pg_cron job, never the Edge Function |
