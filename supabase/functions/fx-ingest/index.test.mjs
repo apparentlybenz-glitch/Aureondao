@@ -129,7 +129,13 @@ test("a real abort through the signal is one call and a timeout", async () => {
     },
     env: (k) => env[k],
     now: () => 0,
-    timeout: (ms) => (ms === OXR_TIMEOUT_MS ? AbortSignal.timeout(5) : AbortSignal.timeout(ms)),
+    // AbortSignal.timeout timers are unref'd, so the loop can exit before 5 ms pass.
+    timeout: (ms) => {
+      if (ms !== OXR_TIMEOUT_MS) return AbortSignal.timeout(ms);
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(new DOMException("timed out", "TimeoutError")), 5);
+      return ctrl.signal;
+    },
   });
   const r = await handle(post());
   assert.deepEqual(await r.json(), { status: null, error: "timeout" });

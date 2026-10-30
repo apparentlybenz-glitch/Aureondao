@@ -231,7 +231,6 @@
   },
   "AuthErrors": {
     "invalidCredentials": "Wrong email or password.",
-    "emailNotConfirmed": "Confirm your email first. Check your inbox for the link.",
     "userExists": "An account with this email already exists.",
     "weakPassword": "Choose a stronger password.",
     "rateLimited": "Too many attempts. Wait a few minutes and try again.",
@@ -250,6 +249,7 @@
     "forgotPassword": "Forgot password?",
     "signUpTitle": "Create your account",
     "signUpSubmit": "Create account",
+    "nickname": "Nickname (optional)",
     "confirmPassword": "Confirm password",
     "passwordMismatch": "The two passwords do not match.",
     "termsRequired": "Agree to the Terms of Service and the Privacy Policy to continue.",

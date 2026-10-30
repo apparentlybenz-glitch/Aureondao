@@ -33,9 +33,12 @@ export default function SignUpPage() {
       return;
     }
     setPending(true);
+    const nickname = String(form.get("nickname") ?? "").trim();
     const { data, error } = await createClient().auth.signUp({
       email: String(form.get("email")),
       password,
+      // The signup trigger reads raw_user_meta_data.nickname.
+      options: { data: nickname ? { nickname } : {} },
     });
     setPending(false);
     if (error) {
@@ -59,6 +62,7 @@ export default function SignUpPage() {
         autoComplete="new-password"
         required
       />
+      <Field id="nickname" label={t("nickname")} maxLength={32} autoComplete="nickname" />
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="terms" required className="mt-0.5 size-4 shrink-0 accent-primary" />
         <span>

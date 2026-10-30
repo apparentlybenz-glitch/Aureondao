@@ -119,7 +119,7 @@ Legend:
 | Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | -- | LegalArticle (MDX or TSX), Footer |
 | Sign in | `/sign-in` | (auth) | S | -- (the proxy redirects a signed-in user to `/home`) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
 | MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP via InputOTP, phone OTP, passkey) |
-| Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, confirm password, required terms checkbox linking `/terms` and `/privacy`; no country or nickname, no email step, a session lands on `/home`) |
+| Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, confirm password, optional nickname, required terms checkbox linking `/terms` and `/privacy`; no country, no email step, a session lands on `/home`) |
 | Forgot password | `/forgot-password` | (auth) | S | -- | ResetRequestForm |
 | Update password | `/update-password` | (auth) | S | recovery session | UpdatePasswordForm |
 | Auth callback | `/auth/callback` | -- | RH | -- | `exchangeCodeForSession` and redirect to `next` |
