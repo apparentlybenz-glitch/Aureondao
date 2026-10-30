@@ -23,7 +23,7 @@ import { totalCents, useWallets } from "@/lib/wallets";
 const ACTIONS = [
   { key: "deposit", Icon: ArrowDownToLine, href: "/assets/deposit" },
   { key: "options", Icon: Timer, href: "/options" },
-  { key: "forex", Icon: Coins },
+  { key: "forex", Icon: Coins, href: "/forex" },
   { key: "spot", Icon: CandlestickChart, href: "/spot" },
   { key: "transfer", Icon: ArrowRightLeft, href: "/assets/transfer" },
   { key: "support", Icon: LifeBuoy, href: "/support" },

@@ -308,6 +308,7 @@
     "market": "Market",
     "trade": "Trade",
     "options": "Options",
+    "forex": "Forex",
     "assets": "Assets",
     "account": "Account",
     "search": "Search symbol",
@@ -719,6 +720,28 @@
     "listError": "Could not load your positions. Try again shortly.",
     "usd": "{amount} USD",
     "loading": "Loading…"
+  },
+  "Forex": {
+    "choosePair": "Choose pair, current {symbol}",
+    "pairsTitle": "Forex pairs",
+    "close": "Close",
+    "showChart": "Show chart",
+    "hideChart": "Hide chart",
+    "chartPlaceholder": "Chart coming soon",
+    "currentPrice": "{symbol} Current price <value>{price}</value>",
+    "buy": "Buy",
+    "sell": "Sell",
+    "amount": "Amount",
+    "amountInput": "Amount",
+    "amountPlaceholder": "Amount",
+    "notAvailable": "Forex trading is not available yet.",
+    "tabs": {
+      "positions": "Positions ({count})",
+      "history": "History"
+    },
+    "currentOnly": "Current instrument",
+    "noOpen": "No open positions.",
+    "noHistory": "No history yet."
   },
   "Spot": {
     "title": "Spot",

@@ -78,6 +78,7 @@ export const config = {
     "/market",
     "/spot",
     "/options",
+    "/forex",
     "/support",
     "/legal",
   ],
