@@ -1,25 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchAdminRole } from "@/lib/admin";
+import { type AdminRole, fetchAdminRole } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/client";
 
-// Whether the signed-in user's own user_roles row is a head admin; null while
-// loading. UX only: admin_set_admin checks the live row itself.
-export function useHeadAdmin(): boolean | null {
-  const [isHead, setIsHead] = useState<boolean | null>(null);
+// The signed-in user's own user_roles row (head admin and owner flags); null while
+// loading. UX only: the admin RPCs check the live row themselves.
+export function useHeadAdmin(): AdminRole | null {
+  const [role, setRole] = useState<AdminRole | null>(null);
   useEffect(() => {
     let active = true;
     createClient()
       .auth.getClaims()
       .then(async ({ data }) => {
         const id = data?.claims.sub;
-        const role = id ? await fetchAdminRole(id) : null;
-        if (active) setIsHead(role?.isHead === true);
+        const r = id ? await fetchAdminRole(id) : null;
+        if (active) setRole(r ?? { isAdmin: false, isHead: false, isOwner: false });
       });
     return () => {
       active = false;
     };
   }, []);
-  return isHead;
+  return role;
 }

@@ -37,7 +37,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const c = useTranslations("Common");
   const pathname = usePathname();
   const { ready, isAdmin } = useAccount();
-  const isHead = useHeadAdmin();
+  const viewer = useHeadAdmin();
   // The page the drawer was opened on: it is open only while still there, so a
   // route change closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (!ready) return <p className="text-sm">{c("loading")}</p>;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
-  const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || isHead === true);
+  const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || viewer?.isHead === true);
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 
   return (

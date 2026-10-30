@@ -212,6 +212,8 @@
     "SUPPORT_NOT_FOUND": "This ticket was not found.",
     "SUPPORT_CLOSED": "This ticket is closed.",
     "HEAD_ADMIN_PROTECTED": "A head admin cannot be changed here.",
+    "OWNER_PROTECTED": "The owner cannot be changed here.",
+    "NOT_HEAD_ADMIN": "This user is not a head admin.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -529,6 +531,12 @@
       "admin": "Admin",
       "head": "Head admin",
       "headNote": "A head admin cannot be changed here.",
+      "owner": "Owner",
+      "ownerNote": "The owner cannot be changed here.",
+      "headNoteOwner": "As owner you can demote this head admin to admin or remove their admin access.",
+      "demote": "Demote to admin",
+      "remove": "Remove admin access",
+      "doneDemoted": "{email} is now an admin, not a head admin. Their head admin tools stop at once, and the menu clears on their next token refresh.",
       "reasonField": "Reason (3 to 200 characters, kept in the audit log)",
       "grant": "Grant admin access",
       "revoke": "Revoke admin access",
