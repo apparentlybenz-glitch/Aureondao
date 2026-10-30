@@ -24,8 +24,9 @@ const SECTIONS = [
 
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
-// Gate, then a bar under the top bar whose hamburger opens the section list in a
-// drawer from the left, at every width. The gate is UX only. The real boundary is
+// Gate, then the section nav: below `md:` a bar under the top bar whose hamburger
+// opens the section list in a drawer from the left; from `md:` a tab row like the
+// account tabs. The gate is UX only. The real boundary is
 // in SQL: RLS admin reads and every admin RPC require the live admin row (no
 // second factor, docs/decisions.md C21).
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -45,7 +46,33 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SelectedUserProvider>
-      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+      <nav aria-label={t("navLabel")} className="-mx-4 mb-5 hidden border-b px-4 md:block">
+        <ul className="flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {SECTIONS.map(({ key, href }) => {
+            const active = pathname === href;
+            return (
+              <li key={key} className="shrink-0">
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
+                    active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
+                  )}
+                >
+                  {t(`sections.${key}`)}
+                </Link>
+              </li>
+            );
+          })}
+          <li className="ml-auto shrink-0">
+            <Link href="/home" className="flex h-11 items-center text-sm text-muted-foreground">
+              {t("backToApp")}
+            </Link>
+          </li>
+        </ul>
+      </nav>
+      <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 md:hidden items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
         <Dialog.Root open={openedOn === pathname} onOpenChange={(next) => setOpenedOn(next ? pathname : null)}>
           <Dialog.Trigger
             aria-label={t("openMenu")}
