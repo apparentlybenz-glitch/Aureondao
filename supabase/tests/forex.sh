@@ -238,7 +238,7 @@ select pg_temp.chk('659,000 premium: fee ceil(659) on top; Bills forex_margin an
 select pg_temp.chk('49.00 premium: fee ceil(4.9) = 5', (pg_temp.pos(4)).fee_cents = 5, (pg_temp.pos(4)).fee_cents::text);
 select pg_temp.chk('A forex wallet after opens = 30,000.00 - 3 x 6,596.59 - 6 x 49.05', pg_temp.wallet('A') = 3000000 - 3 * 659659 - 6 * 4905,
                    pg_temp.wallet('A')::text);
-update public.profiles set suspended_at = now(), suspension_reason = 'forex test' where id = pg_temp.u('D');
+update public.profiles set suspended_at = now() where id = pg_temp.u('D');
 select pg_temp.chk('suspended account -> ACCOUNT_SUSPENDED, nothing written', v ~ 'ACCOUNT_SUSPENDED' and pg_temp.wallet('D') = 100000 - 4905, v)
   from (select pg_temp.open('D', 'EUR-USD', 'rise', 3600, 4900, 9) v) s;
 

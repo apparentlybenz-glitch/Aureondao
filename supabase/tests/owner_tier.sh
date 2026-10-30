@@ -44,9 +44,9 @@ head3() { as $H3 aal1 admin "$1"; }
 # expect <label> <extended regex> <output>
 expect() { if printf '%s' "$3" | grep -Eq "$2"; then echo "PASS $1"; else echo "FAIL $1 (expected /$2/): $3"; FAILS=$((FAILS+1)); fi; }
 key() { printf '99999999-0000-4000-8000-%012d' "$1"; }
-# demote <caller fn> <user> <remove> <reason sql literal> <key>
-demote() { $1 "select (public.admin_demote_head('$2', $3, $4, '$5')).action;"; }
-setadmin() { $1 "select (public.admin_set_admin('$2', $3, $4, '$5')).action;"; }
+# demote <caller fn> <user> <remove> <key>
+demote() { $1 "select (public.admin_demote_head('$2', $3, '$4')).action;"; }
+setadmin() { $1 "select (public.admin_set_admin('$2', $3, '$4')).action;"; }
 roles() { echo "select count(*) n, coalesce(bool_or(is_head), false) h, coalesce(bool_or(is_owner), false) o from public.user_roles where user_id = '$1' and role = 'admin';" | run; }
 audits() { echo "select count(*) n from public.admin_audit_log where action in ('head_demote','head_remove') and (admin_id in ($IDS) or target_user_id in ($IDS));" | run; }
 # Real and test rows with is_head or is_owner, as a bare number.
@@ -65,80 +65,75 @@ SQL
     ;;
 t1) echo "T1 admin_demote_head: every caller who is not the owner is refused; nothing changes"
     K=$(key 1)
-    expect "anon -> denied" 'permission denied' "$(anon "select (public.admin_demote_head('$H2', false, 'step down', '$K')).action;")"
+    expect "anon -> denied" 'permission denied' "$(anon "select (public.admin_demote_head('$H2', false, '$K')).action;")"
     expect "no user id -> UNAUTHENTICATED" UNAUTHENTICATED "$(run <<SQL
 begin;
 select set_config('request.jwt.claims', json_build_object('role','authenticated','aal','aal1','user_role','user')::text, true);
 set local role authenticated;
-select (public.admin_demote_head('$H2', false, 'step down', '$K')).action;
+select (public.admin_demote_head('$H2', false, '$K')).action;
 commit;
 SQL
 )"
-    expect "plain user -> FORBIDDEN" FORBIDDEN "$(demote "as $U aal1 user" $H2 false "'step down'" $K)"
-    expect "plain user with an admin claim and no admin row -> FORBIDDEN" FORBIDDEN "$(demote "as $U aal1 admin" $H2 false "'step down'" $K)"
-    expect "plain admin -> FORBIDDEN" FORBIDDEN "$(demote "as $P aal1 admin" $H2 false "'step down'" $K)"
-    expect "head admin (not owner) demote -> FORBIDDEN" FORBIDDEN "$(demote head3 $H2 false "'step down'" $K)"
-    expect "head admin (not owner) remove -> FORBIDDEN" FORBIDDEN "$(demote head3 $H2 true "'step down'" $K)"
-    expect "head admin (not owner) targeting the owner -> FORBIDDEN" FORBIDDEN "$(demote head3 $O false "'step down'" $K)"
-    expect "owner row with a user claim -> FORBIDDEN" FORBIDDEN "$(demote "as $O aal1 user" $H2 false "'step down'" $K)"
+    expect "plain user -> FORBIDDEN" FORBIDDEN "$(demote "as $U aal1 user" $H2 false $K)"
+    expect "plain user with an admin claim and no admin row -> FORBIDDEN" FORBIDDEN "$(demote "as $U aal1 admin" $H2 false $K)"
+    expect "plain admin -> FORBIDDEN" FORBIDDEN "$(demote "as $P aal1 admin" $H2 false $K)"
+    expect "head admin (not owner) demote -> FORBIDDEN" FORBIDDEN "$(demote head3 $H2 false $K)"
+    expect "head admin (not owner) remove -> FORBIDDEN" FORBIDDEN "$(demote head3 $H2 true $K)"
+    expect "head admin (not owner) targeting the owner -> FORBIDDEN" FORBIDDEN "$(demote head3 $O false $K)"
+    expect "owner row with a user claim -> FORBIDDEN" FORBIDDEN "$(demote "as $O aal1 user" $H2 false $K)"
     expect "the target is still a head admin" '"n":1,"h":true,"o":false' "$(roles $H2)"
     expect "no audit row" '"n":0' "$(audits)";;
 t2) echo "T2 argument checks as the owner; nothing changes"
-    K=$(key 2); LONG=$(printf 'x%.0s' $(seq 1 201))
-    expect "no reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(demote owner $H2 false null $K)"
-    expect "whitespace reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(demote owner $H2 false "'   '" $K)"
-    expect "reason of 2 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(demote owner $H2 false "'ab'" $K)"
-    expect "reason of 201 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(demote owner $H2 true "'$LONG'" $K)"
-    expect "reason of 3 characters passes validation (then NOT_HEAD_ADMIN for a plain admin)" NOT_HEAD_ADMIN "$(demote owner $P false "'abc'" $(key 21))"
-    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head('$H3', false, 'step down', null)).action;")"
-    expect "no remove flag -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head('$H3', null, 'step down', '$K')).action;")"
-    expect "no target -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head(null, false, 'step down', '$K')).action;")"
+    K=$(key 2)
+    expect "old signature with a reason is gone, new one exists" '"old":0,"new":1' "$(echo "select count(to_regprocedure('public.admin_demote_head(uuid, boolean, text, uuid)')) old, count(to_regprocedure('public.admin_demote_head(uuid, boolean, uuid)')) new;" | run)"
+    expect "no reason passes validation (then NOT_HEAD_ADMIN for a plain admin)" NOT_HEAD_ADMIN "$(demote owner $P false $(key 21))"
+    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head('$H3', false, null)).action;")"
+    expect "no remove flag -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head('$H3', null, '$K')).action;")"
+    expect "no target -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(owner "select (public.admin_demote_head(null, false, '$K')).action;")"
     expect "the head admins are untouched" '"n":3' "$(echo "select count(*) n from public.user_roles where user_id in ('$H','$H2','$H3') and role = 'admin' and is_head;" | run)"
     expect "no audit row" '"n":0' "$(audits)";;
 t3) echo "T3 owner demotes a head admin to admin; replay"
     K=$(key 3)
-    expect "demote returns the audit row" 'head_demote' "$(demote owner $H false "'back to admin'" $K)"
+    expect "demote with no reason returns the audit row" 'head_demote' "$(demote owner $H false $K)"
     expect "the row stays with is_head false" '"n":1,"h":false,"o":false' "$(roles $H)"
-    expect "audit row has admin, target and reason" '"n":1,"r":"back to admin"' "$(echo "select count(*) n, min(payload ->> 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'head_demote' and admin_id = '$O' and target_user_id = '$H';" | run)"
-    demote owner $H false "'back to admin'" $K > /dev/null
+    expect "audit row has admin and target, empty payload, no reason key" '"n":1,"e":true,"r":false' "$(echo "select count(*) n, bool_and(payload = '{}'::jsonb) e, bool_or(payload ? 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'head_demote' and admin_id = '$O' and target_user_id = '$H';" | run)"
+    demote owner $H false $K > /dev/null
     expect "same key twice: one audit row" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
     expect "same key twice: the row is unchanged" '"n":1,"h":false,"o":false' "$(roles $H)"
-    expect "same key, other reason -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H false "'other reason'" $K)"
-    expect "same key, remove instead of demote -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H true "'back to admin'" $K)"
-    expect "same key, other user -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H3 false "'back to admin'" $K)"
-    expect "demoted again with a new key -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $H false "'back to admin'" $(key 31))"
-    expect "the demoted admin is no head admin: admin_set_admin -> FORBIDDEN" 'FORBIDDEN' "$(setadmin "as $H aal1 admin" $U true "'new colleague'" $(key 32))"
+    expect "same key, remove instead of demote -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H true $K)"
+    expect "same key, other user -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H3 false $K)"
+    expect "demoted again with a new key -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $H false $(key 31))"
+    expect "the demoted admin is no head admin: admin_set_admin -> FORBIDDEN" 'FORBIDDEN' "$(setadmin "as $H aal1 admin" $U true $(key 32))"
     expect "no extra audit row for the refused call" '"n":0' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$(key 31)';" | run)";;
 t4) echo "T4 owner removes a head admin; replay"
     K=$(key 4)
-    expect "remove returns the audit row" 'head_remove' "$(demote owner $H3 true "'left the team'" $K)"
+    expect "remove with no reason returns the audit row" 'head_remove' "$(demote owner $H3 true $K)"
     expect "the row is gone" '"n":0' "$(roles $H3)"
-    expect "audit row has admin, target and reason" '"n":1,"r":"left the team"' "$(echo "select count(*) n, min(payload ->> 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'head_remove' and admin_id = '$O' and target_user_id = '$H3';" | run)"
-    demote owner $H3 true "'left the team'" $K > /dev/null
+    expect "audit row has admin and target, empty payload, no reason key" '"n":1,"e":true,"r":false' "$(echo "select count(*) n, bool_and(payload = '{}'::jsonb) e, bool_or(payload ? 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'head_remove' and admin_id = '$O' and target_user_id = '$H3';" | run)"
+    demote owner $H3 true $K > /dev/null
     expect "same key twice: one audit row" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key, other reason -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H3 true "'other reason'" $K)"
-    expect "same key, demote instead of remove -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H3 false "'left the team'" $K)"
-    expect "removed again with a new key -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $H3 true "'left the team'" $(key 41))"
+    expect "same key, demote instead of remove -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(demote owner $H3 false $K)"
+    expect "removed again with a new key -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $H3 true $(key 41))"
     expect "the removed admin's tools stop at once (RLS read of other profiles)" '"n":0' "$(as $H3 aal1 admin "select count(*) n from public.profiles where id <> '$H3';")"
-    expect "the removed admin's RPCs are refused" FORBIDDEN "$(setadmin "as $H3 aal1 admin" $U true "'new colleague'" $(key 42))";;
+    expect "the removed admin's RPCs are refused" FORBIDDEN "$(setadmin "as $H3 aal1 admin" $U true $(key 42))";;
 t5) echo "T5 the owner cannot be demoted or removed; other non-head targets"
-    expect "owner targets self, demote -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O false "'stepping down'" $(key 5))"
-    expect "owner targets self, remove -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O true "'stepping down'" $(key 51))"
-    expect "owner targets another owner row -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O2 true "'not needed'" $(key 52))"
+    expect "owner targets self, demote -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O false $(key 5))"
+    expect "owner targets self, remove -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O true $(key 51))"
+    expect "owner targets another owner row -> OWNER_PROTECTED" OWNER_PROTECTED "$(demote owner $O2 true $(key 52))"
     expect "both owner rows are intact" '"n":2' "$(echo "select count(*) n from public.user_roles where user_id in ('$O','$O2') and role = 'admin' and is_head and is_owner;" | run)"
-    expect "plain admin target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $P true "'not needed'" $(key 53))"
-    expect "plain user target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $U true "'not needed'" $(key 54))"
-    expect "unknown user target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner 00000000-0000-4000-8000-000000000001 true "'not needed'" $(key 55))"
+    expect "plain admin target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $P true $(key 53))"
+    expect "plain user target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner $U true $(key 54))"
+    expect "unknown user target -> NOT_HEAD_ADMIN" NOT_HEAD_ADMIN "$(demote owner 00000000-0000-4000-8000-000000000001 true $(key 55))"
     expect "the plain admin is still there" '"n":1,"h":false' "$(roles $P)"
     expect "no audit row for the refused calls" '"n":0' "$(echo "select count(*) n from public.admin_audit_log where client_request_id in ('$(key 5)','$(key 51)','$(key 52)','$(key 53)','$(key 54)','$(key 55)');" | run)";;
 t6) echo "T6 admin_set_admin still refuses head admin and owner targets, for the owner and for a head admin"
-    expect "owner revokes a head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $H2 false "'not needed'" $(key 6))"
-    expect "head admin revokes another head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin "as $H2 aal1 admin" $O2 false "'not needed'" $(key 61))"
-    expect "head admin revokes the owner -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin "as $H2 aal1 admin" $O false "'not needed'" $(key 62))"
-    expect "owner revokes another owner row -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $O2 false "'not needed'" $(key 63))"
-    expect "owner revokes itself -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $O false "'stepping down'" $(key 64))"
-    expect "a head admin still grants and revokes plain admins" 'admin_grant' "$(setadmin "as $H2 aal1 admin" $U true "'new colleague'" $(key 65))"
-    expect "and the revoke" 'admin_revoke' "$(setadmin "as $H2 aal1 admin" $U false "'left the team'" $(key 66))"
+    expect "owner revokes a head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $H2 false $(key 6))"
+    expect "head admin revokes another head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin "as $H2 aal1 admin" $O2 false $(key 61))"
+    expect "head admin revokes the owner -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin "as $H2 aal1 admin" $O false $(key 62))"
+    expect "owner revokes another owner row -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $O2 false $(key 63))"
+    expect "owner revokes itself -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(setadmin owner $O false $(key 64))"
+    expect "a head admin still grants and revokes plain admins" 'admin_grant' "$(setadmin "as $H2 aal1 admin" $U true $(key 65))"
+    expect "and the revoke" 'admin_revoke' "$(setadmin "as $H2 aal1 admin" $U false $(key 66))"
     expect "the head admin and the owners are intact" '"n":3' "$(echo "select count(*) n from public.user_roles where user_id in ('$H2','$O','$O2') and role = 'admin' and is_head;" | run)"
     expect "no audit row for the refused calls" '"n":0' "$(echo "select count(*) n from public.admin_audit_log where client_request_id in ('$(key 6)','$(key 61)','$(key 62)','$(key 63)','$(key 64)');" | run)";;
 t7) echo "T7 no client write to user_roles, reads work, nothing can create a head admin or owner"

@@ -39,9 +39,9 @@ hadm() { as $H aal1 admin "$1"; }
 # expect <label> <extended regex> <output>
 expect() { if printf '%s' "$3" | grep -Eq "$2"; then echo "PASS $1"; else echo "FAIL $1 (expected /$2/): $3"; FAILS=$((FAILS+1)); fi; }
 key() { printf '88888888-0000-4000-8000-%012d' "$1"; }
-# grant <user> <reason sql literal> <key>: admin_set_admin(..., true, ...) as the head admin.
-grant_to() { hadm "select (public.admin_set_admin('$1', true, $2, '$3')).action;"; }
-revoke_from() { hadm "select (public.admin_set_admin('$1', false, $2, '$3')).action;"; }
+# grant_to <user> <key>: admin_set_admin(..., true, ...) as the head admin.
+grant_to() { hadm "select (public.admin_set_admin('$1', true, '$2')).action;"; }
+revoke_from() { hadm "select (public.admin_set_admin('$1', false, '$2')).action;"; }
 roles() { echo "select count(*) n, coalesce(bool_or(is_head), false) h from public.user_roles where user_id = '$1' and role = 'admin';" | run; }
 audits() { echo "select count(*) n from public.admin_audit_log where action in ('admin_grant','admin_revoke') and (admin_id in ($IDS) or target_user_id in ($IDS));" | run; }
 
@@ -57,78 +57,72 @@ SQL
     ;;
 t1) echo "T1 admin_set_admin: every caller who is not a head admin is refused; nothing changes"
     K=$(key 1)
-    expect "anon -> denied" 'permission denied' "$(anon "select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;")"
+    expect "anon -> denied" 'permission denied' "$(anon "select (public.admin_set_admin('$N', true, '$K')).action;")"
     expect "no user id -> UNAUTHENTICATED" UNAUTHENTICATED "$(run <<SQL
 begin;
 select set_config('request.jwt.claims', json_build_object('role','authenticated','aal','aal1','user_role','user')::text, true);
 set local role authenticated;
-select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;
+select (public.admin_set_admin('$N', true, '$K')).action;
 commit;
 SQL
 )"
-    expect "plain user -> FORBIDDEN" FORBIDDEN "$(as $U aal1 user "select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;")"
-    expect "plain user with an admin claim and no admin row -> FORBIDDEN" FORBIDDEN "$(as $U aal1 admin "select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;")"
-    expect "plain admin (is_head false) grant -> FORBIDDEN" FORBIDDEN "$(as $P aal1 admin "select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;")"
-    expect "plain admin revoke -> FORBIDDEN" FORBIDDEN "$(as $P aal1 admin "select (public.admin_set_admin('$H', false, 'remove', '$K')).action;")"
-    expect "head admin row with a user claim -> FORBIDDEN" FORBIDDEN "$(as $H aal1 user "select (public.admin_set_admin('$N', true, 'new colleague', '$K')).action;")"
+    expect "plain user -> FORBIDDEN" FORBIDDEN "$(as $U aal1 user "select (public.admin_set_admin('$N', true, '$K')).action;")"
+    expect "plain user with an admin claim and no admin row -> FORBIDDEN" FORBIDDEN "$(as $U aal1 admin "select (public.admin_set_admin('$N', true, '$K')).action;")"
+    expect "plain admin (is_head false) grant -> FORBIDDEN" FORBIDDEN "$(as $P aal1 admin "select (public.admin_set_admin('$N', true, '$K')).action;")"
+    expect "plain admin revoke -> FORBIDDEN" FORBIDDEN "$(as $P aal1 admin "select (public.admin_set_admin('$H', false, '$K')).action;")"
+    expect "head admin row with a user claim -> FORBIDDEN" FORBIDDEN "$(as $H aal1 user "select (public.admin_set_admin('$N', true, '$K')).action;")"
     expect "no user_roles row for the target, no audit row" '"n":0' "$(roles $N)"
     expect "no audit row" '"n":0' "$(audits)";;
 t2) echo "T2 argument checks as the head admin; nothing changes"
-    K=$(key 2); LONG=$(printf 'x%.0s' $(seq 1 201))
-    expect "no reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(grant_to $N null $K)"
-    expect "whitespace reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(grant_to $N "'   '" $K)"
-    expect "reason of 2 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(grant_to $N "'ab'" $K)"
-    expect "reason of 201 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(grant_to $N "'$LONG'" $K)"
-    expect "revoke needs a reason too" NOTE_REQUIRED "$(revoke_from $P null $K)"
-    expect "unknown user -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(grant_to 00000000-0000-4000-8000-000000000001 "'new colleague'" $K)"
-    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin('$N', true, 'new colleague', null)).action;")"
-    expect "no direction -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin('$N', null, 'new colleague', '$K')).action;")"
-    expect "no target -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin(null, true, 'new colleague', '$K')).action;")"
+    K=$(key 2)
+    expect "old signature with a reason is gone, new one exists" '"old":0,"new":1' "$(echo "select count(to_regprocedure('public.admin_set_admin(uuid, boolean, text, uuid)')) old, count(to_regprocedure('public.admin_set_admin(uuid, boolean, uuid)')) new;" | run)"
+    expect "unknown user -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(grant_to 00000000-0000-4000-8000-000000000001 $K)"
+    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin('$N', true, null)).action;")"
+    expect "no direction -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin('$N', null, '$K')).action;")"
+    expect "no target -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(hadm "select (public.admin_set_admin(null, true, '$K')).action;")"
     expect "the plain admin is still there" '"n":1,"h":false' "$(roles $P)"
     expect "no user_roles row for the target" '"n":0' "$(roles $N)"
     expect "no audit row" '"n":0' "$(audits)";;
 t3) echo "T3 head admin grants a user; replay and repeat grants"
     K=$(key 3)
-    expect "grant returns the audit row" 'admin_grant' "$(grant_to $N "'new colleague'" $K)"
+    expect "grant with no reason returns the audit row" 'admin_grant' "$(grant_to $N $K)"
     expect "role row exists with is_head false and granted_by the head admin" '"n":1,"h":false,"g":1' "$(echo "select count(*) n, bool_or(is_head) h, count(*) filter (where granted_by = '$H') g from public.user_roles where user_id = '$N' and role = 'admin';" | run)"
-    expect "audit row has admin, target and reason" '"n":1,"r":"new colleague"' "$(echo "select count(*) n, min(payload ->> 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'admin_grant' and admin_id = '$H' and target_user_id = '$N';" | run)"
-    grant_to $N "'new colleague'" $K > /dev/null
+    expect "audit row has admin and target, empty payload, no reason key" '"n":1,"e":true,"r":false' "$(echo "select count(*) n, bool_and(payload = '{}'::jsonb) e, bool_or(payload ? 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'admin_grant' and admin_id = '$H' and target_user_id = '$N';" | run)"
+    grant_to $N $K > /dev/null
     expect "same key twice: one role row" '"n":1' "$(roles $N)"
     expect "same key twice: one audit row" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key, other reason -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(grant_to $N "'other reason'" $K)"
-    expect "same key, other action -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(revoke_from $N "'new colleague'" $K)"
-    expect "same key, other user -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(grant_to $U "'new colleague'" $K)"
-    expect "a new key on an existing admin: no second role row" 'admin_grant' "$(grant_to $N "'again'" $(key 31))"
+    expect "same key, other action -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(revoke_from $N $K)"
+    expect "same key, other user -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(grant_to $U $K)"
+    expect "a new key on an existing admin: no second role row" 'admin_grant' "$(grant_to $N $(key 31))"
     expect "still one role row, still not a head, granted_by unchanged" '"n":1,"h":false,"g":1' "$(echo "select count(*) n, bool_or(is_head) h, count(*) filter (where granted_by = '$H') g from public.user_roles where user_id = '$N' and role = 'admin';" | run)";;
 t4) echo "T4 the newly granted admin cannot grant or revoke others"
     K=$(key 4)
     expect "admin tools open for the new admin (a read passes)" '"n":[1-9]' "$(as $N aal1 admin "select count(*) n from public.profiles;")"
-    expect "grant -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$U', true, 'my friend', '$K')).action;")"
-    expect "revoke the plain admin -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$P', false, 'removing', '$K')).action;")"
-    expect "revoke the head admin -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$H', false, 'removing', '$K')).action;")"
+    expect "grant -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$U', true, '$K')).action;")"
+    expect "revoke the plain admin -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$P', false, '$K')).action;")"
+    expect "revoke the head admin -> FORBIDDEN" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$H', false, '$K')).action;")"
     expect "the user was not granted" '"n":0' "$(roles $U)"
     expect "the plain admin is still there" '"n":1' "$(roles $P)"
     expect "the head admin is still there" '"n":1,"h":true' "$(roles $H)";;
 t5) echo "T5 head admin revokes plain admins; replay; no-op revoke"
     K=$(key 5)
-    expect "revoke returns the audit row" 'admin_revoke' "$(revoke_from $P "'left the team'" $K)"
+    expect "revoke with no reason returns the audit row" 'admin_revoke' "$(revoke_from $P $K)"
     expect "the plain admin's row is gone" '"n":0' "$(roles $P)"
-    expect "audit row has admin, target and reason" '"n":1,"r":"left the team"' "$(echo "select count(*) n, min(payload ->> 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'admin_revoke' and admin_id = '$H' and target_user_id = '$P';" | run)"
-    revoke_from $P "'left the team'" $K > /dev/null
+    expect "audit row has admin and target, empty payload, no reason key" '"n":1,"e":true,"r":false' "$(echo "select count(*) n, bool_and(payload = '{}'::jsonb) e, bool_or(payload ? 'reason') r from public.admin_audit_log where client_request_id = '$K' and action = 'admin_revoke' and admin_id = '$H' and target_user_id = '$P';" | run)"
+    revoke_from $P $K > /dev/null
     expect "same key twice: one audit row" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key, other reason -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(revoke_from $P "'other reason'" $K)"
-    expect "revoke the granted admin" 'admin_revoke' "$(revoke_from $N "'left the team'" $(key 51))"
+    expect "revoke the granted admin" 'admin_revoke' "$(revoke_from $N $(key 51))"
     expect "the granted admin's row is gone" '"n":0' "$(roles $N)"
     expect "the revoked admin's tools stop at once (RLS read of other profiles)" '"n":0' "$(as $N aal1 admin "select count(*) n from public.profiles where id <> '$N';")"
-    expect "the revoked admin's RPCs are refused" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$U', true, 'my friend', '$(key 52)')).action;")"
-    expect "revoking a user who is not an admin still writes an audit row" 'admin_revoke' "$(revoke_from $U "'checking'" $(key 53))"
+    expect "the revoked admin's RPCs are refused" FORBIDDEN "$(as $N aal1 admin "select (public.admin_set_admin('$U', true, '$(key 52)')).action;")"
+    expect "revoking a user who is not an admin still writes an audit row" 'admin_revoke' "$(revoke_from $U $(key 53))"
     expect "and creates no role row" '"n":0' "$(roles $U)";;
 t6) echo "T6 a head admin cannot be revoked, not even by a head admin or by itself"
-    expect "revoke another head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(revoke_from $H2 "'not needed'" $(key 6))"
-    expect "revoke itself -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(revoke_from $H "'stepping down'" $(key 61))"
+    expect "revoke another head admin -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(revoke_from $H2 $(key 6))"
+    expect "revoke itself -> HEAD_ADMIN_PROTECTED" HEAD_ADMIN_PROTECTED "$(revoke_from $H $(key 61))"
     expect "both head admins are still there" '"n":2' "$(echo "select count(*) n from public.user_roles where user_id in ('$H','$H2') and role = 'admin' and is_head;" | run)"
     expect "no audit row for the refused calls" '"n":0' "$(echo "select count(*) n from public.admin_audit_log where client_request_id in ('$(key 6)','$(key 61)');" | run)"
-    expect "granting a head admin changes nothing" 'admin_grant' "$(grant_to $H2 "'already there'" $(key 62))"
+    expect "granting a head admin changes nothing" 'admin_grant' "$(grant_to $H2 $(key 62))"
     expect "it is still a head admin and granted_by is unchanged" '"n":1,"h":true,"g":0' "$(echo "select count(*) n, bool_or(is_head) h, count(*) filter (where granted_by is not null) g from public.user_roles where user_id = '$H2' and role = 'admin';" | run)";;
 t7) echo "T7 no client write to user_roles, own reads work, the auth hook still works"
     expect "user insert -> denied" 'permission denied' "$(as $U aal1 user "insert into public.user_roles (user_id, role) values ('$U','admin');")"

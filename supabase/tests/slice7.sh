@@ -31,8 +31,8 @@ adm() { as $B aal2 admin "$1"; }
 # expect <label> <extended regex> <output>
 expect() { if printf '%s' "$3" | grep -Eq "$2"; then echo "PASS $1"; else echo "FAIL $1 (expected /$2/): $3"; FAILS=$((FAILS+1)); fi; }
 key() { printf '77777777-0000-4000-8000-%012d' "$1"; }
-# susp <true|false> <reason sql literal or null>: suspend or unsuspend A through the RPC as the admin at aal2.
-susp() { adm "select (public.admin_set_suspension('$A', $1, $2, gen_random_uuid())).action;"; }
+# susp <true|false>: suspend or unsuspend A through the RPC as the admin at aal2.
+susp() { adm "select (public.admin_set_suspension('$A', $1, gen_random_uuid())).action;"; }
 snap() { run <<SQL
 insert into public.price_snapshots (market_id, bid, ask, fetched_at, source)
 values ('$1', $2, $3, now() - interval '$4 seconds', 'vision')
@@ -73,38 +73,38 @@ select user_id, account, available_cents from public.wallets where user_id = '$A
 SQL
     job aureonx-price-tick false; job aureonx-options-void false;;
 t1) echo "T1 admin_set_suspension: FORBIDDEN and argument checks; nothing changes"
-    K=$(key 1); LONG=$(printf 'x%.0s' $(seq 1 201))
-    expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
-    expect "plain user at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 user "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
-    expect "admin claim without an admin row at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 admin "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
-    expect "admin at aal1 passes the gate (unknown user -> INVALID_ARGUMENT)" INVALID_ARGUMENT "$(as $B aal1 admin "select (public.admin_set_suspension('00000000-0000-4000-8000-000000000001', true, 'abuse review', '$K')).action;")"
-    expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select (public.admin_set_suspension('$A', true, 'abuse review', '$K')).action;")"
-    expect "suspend without a reason -> NOTE_REQUIRED" NOTE_REQUIRED "$(adm "select (public.admin_set_suspension('$A', true, null, '$K')).action;")"
-    expect "reason of 2 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(adm "select (public.admin_set_suspension('$A', true, 'ab', '$K')).action;")"
-    expect "reason of 201 characters -> NOTE_REQUIRED" NOTE_REQUIRED "$(adm "select (public.admin_set_suspension('$A', true, '$LONG', '$K')).action;")"
-    expect "unknown user -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(adm "select (public.admin_set_suspension('00000000-0000-4000-8000-000000000001', true, 'abuse review', '$K')).action;")"
-    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(adm "select (public.admin_set_suspension('$A', true, 'abuse review', null)).action;")"
+    K=$(key 1)
+    expect "old signatures with a reason are gone, new ones exist" '"old":0,"new":2,"col":0' "$(echo "select count(to_regprocedure(o)) old, count(to_regprocedure(n)) new,
+      (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'suspension_reason') col
+      from (values ('public.admin_set_suspension(uuid, boolean, text, uuid)', 'public.admin_set_suspension(uuid, boolean, uuid)'),
+                   ('public.admin_adjust_balance(uuid, public.wallet_account, bigint, text, uuid)', 'public.admin_adjust_balance(uuid, public.wallet_account, bigint, uuid)')) v(o, n);" | run)"
+    expect "plain user at aal2 -> FORBIDDEN" FORBIDDEN "$(as $C aal2 user "select (public.admin_set_suspension('$A', true, '$K')).action;")"
+    expect "plain user at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 user "select (public.admin_set_suspension('$A', true, '$K')).action;")"
+    expect "admin claim without an admin row at aal1 -> FORBIDDEN" FORBIDDEN "$(as $C aal1 admin "select (public.admin_set_suspension('$A', true, '$K')).action;")"
+    expect "admin at aal1 passes the gate (unknown user -> INVALID_ARGUMENT)" INVALID_ARGUMENT "$(as $B aal1 admin "select (public.admin_set_suspension('00000000-0000-4000-8000-000000000001', true, '$K')).action;")"
+    expect "admin claim without an admin row -> FORBIDDEN" FORBIDDEN "$(as $C aal2 admin "select (public.admin_set_suspension('$A', true, '$K')).action;")"
+    expect "unknown user -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(adm "select (public.admin_set_suspension('00000000-0000-4000-8000-000000000001', true, '$K')).action;")"
+    expect "no key -> INVALID_ARGUMENT" INVALID_ARGUMENT "$(adm "select (public.admin_set_suspension('$A', true, null)).action;")"
     expect "nothing changed" '"s":false,"a":0' "$(echo "select (suspended_at is not null) s, (select count(*) from public.admin_audit_log where admin_id in ('$B','$C')) a from public.profiles where id = '$A';" | run)";;
 t2) echo "T2 suspend and unsuspend at aal2, replay, own read, no client write"
     K=$(key 2)
-    expect "suspend returns the audit row" '"action":"suspend"' "$(adm "select (public.admin_set_suspension('$A', true, 'chargeback review', '$K')).action;")"
-    expect "profile is suspended with the reason" '"s":true,"r":"chargeback review"' "$(echo "select (suspended_at is not null) s, suspension_reason r from public.profiles where id = '$A';" | run)"
-    expect "the user reads their own state" '"s":true,"r":"chargeback review"' "$(user $A "select (suspended_at is not null) s, suspension_reason r from public.profiles where id = '$A';")"
+    expect "suspend with no reason returns the audit row" '"action":"suspend"' "$(adm "select (public.admin_set_suspension('$A', true, '$K')).action;")"
+    expect "audit payload is empty, no reason key" '"e":true,"r":false' "$(echo "select payload = '{}'::jsonb e, payload ? 'reason' r from public.admin_audit_log where client_request_id = '$K';" | run)"
+    expect "profile is suspended" '"s":true' "$(echo "select (suspended_at is not null) s from public.profiles where id = '$A';" | run)"
+    expect "the user reads their own state" '"s":true' "$(user $A "select (suspended_at is not null) s from public.profiles where id = '$A';")"
     expect "another user cannot read it" '"count":0' "$(user $C "select count(*) from public.profiles where id = '$A';")"
-    expect "no client write" 'permission denied' "$(user $A "update public.profiles set suspended_at = null, suspension_reason = null where id = '$A';")"
-    adm "select (public.admin_set_suspension('$A', true, 'chargeback review', '$K')).action;" > /dev/null
+    expect "no client write" 'permission denied' "$(user $A "update public.profiles set suspended_at = null where id = '$A';")"
+    adm "select (public.admin_set_suspension('$A', true, '$K')).action;" > /dev/null
     expect "same key twice: one audit row" '"n":1' "$(echo "select count(*) n from public.admin_audit_log where client_request_id = '$K';" | run)"
-    expect "same key, other reason -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(adm "select (public.admin_set_suspension('$A', true, 'other reason', '$K')).action;")"
-    expect "same key, other action -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(adm "select (public.admin_set_suspension('$A', false, null, '$K')).action;")"
+    expect "same key, other action -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(adm "select (public.admin_set_suspension('$A', false, '$K')).action;")"
     T0=$(echo "select suspended_at::text t from public.profiles where id = '$A';" | run | jq -r '.[0].t')
-    susp true "'second look'" > /dev/null
+    susp true > /dev/null
     T1=$(echo "select suspended_at::text t from public.profiles where id = '$A';" | run | jq -r '.[0].t')
     [ "$T0" = "$T1" ] && expect "suspending again keeps suspended_at" . x || expect "suspending again keeps suspended_at" NEVER "$T0 vs $T1"
-    expect "reason replaced" '"r":"second look"' "$(echo "select suspension_reason r from public.profiles where id = '$A';" | run)"
-    expect "unsuspend needs no reason" '"action":"unsuspend"' "$(susp false null)"
-    expect "both columns null again" '"s":false,"r":null' "$(echo "select (suspended_at is not null) s, suspension_reason r from public.profiles where id = '$A';" | run)";;
+    expect "unsuspend returns the audit row" '"action":"unsuspend"' "$(susp false)"
+    expect "suspended_at null again" '"s":false' "$(echo "select (suspended_at is not null) s from public.profiles where id = '$A';" | run)";;
 t3) echo "T3 suspended: spot_market_order, open_option and transfer_between_wallets each refuse and change nothing"
-    susp true "'under review'" > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
+    susp true > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
     BEFORE=$(state)
     expect "spot_market_order" ACCOUNT_SUSPENDED "$(user $A "select public.spot_market_order('BTC-USDT','buy','0.001',gen_random_uuid());")"
     expect "open_option" ACCOUNT_SUSPENDED "$(user $A "select public.open_option('BTC-USDT','rise',30,4900,gen_random_uuid());")"
@@ -112,10 +112,10 @@ t3) echo "T3 suspended: spot_market_order, open_option and transfer_between_wall
     AFTER=$(state)
     [ "$BEFORE" = "$AFTER" ] && expect "balances and row counts unchanged" . x || expect "balances and row counts unchanged" NEVER "$BEFORE vs $AFTER";;
 t4) echo "T4 an option opened before the suspension still settles and pays out (659000 win: 659000 + 39540)"
-    susp false null > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
+    susp false > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
     P=$(key 4)
     expect "option opened while active" '"id"' "$(user $A "select public.open_option('BTC-USDT','rise',30,659000,'$P') id;")"
-    susp true "'suspended with an open option'" > /dev/null
+    susp true > /dev/null
     echo "update public.options_positions set created_at = created_at - interval '40 seconds', expires_at = expires_at - interval '40 seconds',
       entry_price_at = entry_price_at - interval '40 seconds' where client_request_id = '$P';" | run > /dev/null
     ingest BTC-USDT 50001.00 50001.10 0 > /dev/null
@@ -123,20 +123,20 @@ t4) echo "T4 an option opened before the suspension still settles and pays out (
     expect "option_settle bill written" 'option_settle 698540' "$(echo "select string_agg(kind || ' ' || delta_cents, ', ' order by id) bills from public.ledger where ref_id = (select id from public.options_positions where client_request_id = '$P');" | run)"
     expect "the account is still suspended" '"s":true' "$(echo "select (suspended_at is not null) s from public.profiles where id = '$A';" | run)";;
 t5) echo "T5 admin_adjust_balance still credits a suspended account"
-    susp true "'under review'" > /dev/null
+    susp true > /dev/null
     BEFORE=$(wallet capital)
-    expect "credit applied" '"action":"adjust_balance"' "$(adm "select (public.admin_adjust_balance('$A', 'capital', 500000, 'goodwill credit', '$(key 5)')).action;")"
+    expect "credit applied" '"action":"adjust_balance"' "$(adm "select (public.admin_adjust_balance('$A', 'capital', 500000, '$(key 5)')).action;")"
     AFTER=$(wallet capital)
     [ $((AFTER - BEFORE)) -eq 500000 ] && expect "capital wallet up by 500000" . x || expect "capital wallet up by 500000" NEVER "$BEFORE -> $AFTER"
     expect "the account is still suspended" '"s":true' "$(echo "select (suspended_at is not null) s from public.profiles where id = '$A';" | run)";;
 t6) echo "T6 after unsuspend all three money RPCs work again"
-    susp false null > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
+    susp false > /dev/null; snap BTC-USDT 50000.00 50000.10 1 > /dev/null
     expect "spot_market_order" '"side":"buy"' "$(user $A "select (public.spot_market_order('BTC-USDT','buy','0.001','$(key 61)')).side;")"
     expect "open_option" '"id"' "$(user $A "select public.open_option('BTC-USDT','rise',30,4900,'$(key 62)') id;")"
     expect "transfer_between_wallets" '"amount_cents":"?10000' "$(user $A "select (public.transfer_between_wallets('capital','spot',10000,'$(key 63)')).amount_cents;")";;
 t7) echo "T7 audit rows: written by every RPC call, readable by an admin (aal1 or aal2)"
-    expect "actions and admin on every row" '"actions":"adjust_balance,suspend,unsuspend","wrong_admin":0,"suspend_without_reason":0' "$(adm "select string_agg(distinct action, ',' order by action) actions, count(*) filter (where admin_id is distinct from '$B') wrong_admin,
-      count(*) filter (where action = 'suspend' and payload ->> 'reason' is null) suspend_without_reason from public.admin_audit_log where target_user_id = '$A';")"
+    expect "actions and admin on every row" '"actions":"adjust_balance,suspend,unsuspend","wrong_admin":0,"reason_keys":0' "$(adm "select string_agg(distinct action, ',' order by action) actions, count(*) filter (where admin_id is distinct from '$B') wrong_admin,
+      count(*) filter (where payload ? 'reason') reason_keys from public.admin_audit_log where target_user_id = '$A';")"
     expect "a plain user reads no audit rows" '"count":0' "$(user $A "select count(*) from public.admin_audit_log;")"
     expect "an admin at aal1 reads them too" '"count":[1-9]' "$(as $B aal1 admin "select count(*) from public.admin_audit_log;")"
     expect "a plain user at aal1 reads none" '"count":0' "$(as $C aal1 user "select count(*) from public.admin_audit_log;")"
