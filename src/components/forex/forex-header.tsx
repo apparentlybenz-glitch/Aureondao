@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CandlestickChart, ChevronDown, X } from "lucide-react";
+import { BookOpen, ChevronDown, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import type { ForexPair } from "@/lib/forex-pairs";
@@ -25,19 +25,19 @@ export function PairIcon({ icon, className }: { icon: string; className?: string
   );
 }
 
-// Pair picker and chart toggle, copied from OptionsHeader.
+// Pair picker and order book toggle (below lg), copied from OptionsHeader.
 export function ForexHeader({
   pair,
   pairs,
-  chartShown,
+  bookShown,
   onPick,
-  onToggleChart,
+  onToggleBook,
 }: {
   pair: ForexPair;
   pairs: readonly ForexPair[];
-  chartShown: boolean;
+  bookShown: boolean;
   onPick: (symbol: string) => void;
-  onToggleChart: () => void;
+  onToggleBook: () => void;
 }) {
   const t = useTranslations("Forex");
   const shell = useTranslations("Shell");
@@ -100,12 +100,12 @@ export function ForexHeader({
         </span>
         <button
           type="button"
-          aria-pressed={chartShown}
-          aria-label={chartShown ? t("hideChart") : t("showChart")}
-          onClick={onToggleChart}
-          className={cn(icon, chartShown && "text-primary")}
+          aria-pressed={bookShown}
+          aria-label={bookShown ? t("hideBook") : t("showBook")}
+          onClick={onToggleBook}
+          className={cn(icon, "lg:hidden", bookShown && "text-primary")}
         >
-          <CandlestickChart className="size-5" />
+          <BookOpen className="size-5" />
         </button>
       </div>
     </header>

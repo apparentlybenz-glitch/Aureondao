@@ -8,23 +8,22 @@ import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { FOREX_PAIRS } from "@/lib/forex-pairs";
 import { formatPrice } from "@/lib/market/decimal";
 import { LG, useMediaQuery } from "@/lib/use-media-query";
-import { cn } from "@/lib/utils";
 import { ForexHeader } from "./forex-header";
 import { ForexPositions } from "./forex-positions";
 import { ForexTicket } from "./forex-ticket";
 
-// /forex: header, chart (can be hidden), ticket, then Positions / History.
+// /forex: header, chart, ticket, then Positions / History.
 // Layout copied from OptionsTerminal. Placeholder: no prices, orders or wallets. The book is
-// a generated ladder around the placeholder mid (no public depth exists for forex); from lg,
-// with the chart shown, it is a right-hand column and the ticket sits under the chart.
+// a generated ladder around the placeholder mid (no public depth exists for forex); from lg
+// it is a right-hand column and the ticket sits under the chart, below lg the header icon
+// opens it under the header.
 const QTY_DECIMALS = 0;
 
 export function ForexTerminal() {
   const [symbol, setSymbol] = useState(FOREX_PAIRS[0].symbol);
-  const [chartShown, setChartShown] = useState(true);
+  const [bookShown, setBookShown] = useState(false);
   const pair = FOREX_PAIRS.find((p) => p.symbol === symbol) ?? FOREX_PAIRS[0];
   const wide = useMediaQuery(LG);
-  const sideBook = chartShown && wide;
   const [base, quote] = pair.display.split("/");
   const depth = (
     <DepthTabs
@@ -47,28 +46,20 @@ export function ForexTerminal() {
       <ForexHeader
         pair={pair}
         pairs={FOREX_PAIRS}
-        chartShown={chartShown}
+        bookShown={bookShown}
         onPick={setSymbol}
-        onToggleChart={() => setChartShown((s) => !s)}
+        onToggleBook={() => setBookShown((s) => !s)}
       />
-      <div
-        className={cn(
-          "space-y-4",
-          chartShown && "md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0 lg:grid-cols-[minmax(0,1fr)_320px]",
-          !chartShown && "md:mx-auto md:max-w-[480px]",
-        )}
-      >
-        {chartShown ? (
-          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-            <TradingViewChart key={pair.symbol} symbol={pair.tvSymbol} />
-          </div>
-        ) : null}
+      {!wide && bookShown ? <div className="mb-4">{depth}</div> : null}
+      <div className="space-y-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <TradingViewChart key={pair.symbol} symbol={pair.tvSymbol} />
+        </div>
         <div className="lg:col-start-1 lg:row-start-2">
           <ForexTicket key={pair.symbol} pair={pair} mid={formatPrice(pair.mid, pair.priceDecimals)} />
         </div>
-        {sideBook ? <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{depth}</aside> : null}
+        {wide ? <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{depth}</aside> : null}
       </div>
-      {!sideBook ? <div className="mx-auto mt-5 max-w-[480px]">{depth}</div> : null}
       <ForexPositions />
       <SupportFab />
     </div>

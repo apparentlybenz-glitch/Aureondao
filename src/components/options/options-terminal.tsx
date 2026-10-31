@@ -10,12 +10,11 @@ import { TradesPanel } from "@/components/spot/book-panels";
 import { isPositiveDecimal } from "@/lib/market/decimal";
 import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
-import { readChartShown, saveChartShown, useOptionPeriods, useOptionPositions } from "@/lib/options";
+import { useOptionPeriods, useOptionPositions } from "@/lib/options";
 import { useServerClockSync } from "@/lib/server-clock";
 import { usePriceFeedDemand } from "@/lib/spot";
 import { midPrice } from "@/lib/spot-math";
 import { LG, useMediaQuery } from "@/lib/use-media-query";
-import { cn } from "@/lib/utils";
 import { useWallets } from "@/lib/wallets";
 import { OptionTicket } from "./option-ticket";
 import { OptionsHeader } from "./options-header";
@@ -23,10 +22,10 @@ import { PositionsPanel } from "./positions-panel";
 
 const DEFAULT_MARKET = "BTC-USDT";
 
-// /options: header, chart (can be hidden), ticket, then Positions / Fill.
-// Phone first; from md: the chart and the ticket sit side by side, like Spot. From lg, with
-// the chart shown, the underlying's book is a right-hand column and the ticket sits under the
-// chart; otherwise the book is a section under the ticket.
+// /options: header, chart, ticket, then Positions / Fill.
+// Phone first; from md: the chart and the ticket sit side by side, like Spot. From lg the
+// underlying's book is a right-hand column and the ticket sits under the chart. Below lg the
+// book is hidden until the header icon opens it under the header.
 export function OptionsTerminal() {
   const m = useTranslations("Market");
   const { markets, tickers, now } = useMarketData();
@@ -34,7 +33,7 @@ export function OptionsTerminal() {
   const periods = useOptionPeriods();
   const positions = useOptionPositions();
   const [symbol, setSymbol] = useState(DEFAULT_MARKET);
-  const [chartShown, setChartShown] = useState(readChartShown);
+  const [bookShown, setBookShown] = useState(false);
   usePriceFeedDemand();
   useServerClockSync();
   const wide = useMediaQuery(LG);
@@ -53,7 +52,6 @@ export function OptionsTerminal() {
       ? midPrice(ticker.bid, ticker.ask)
       : null;
   const options = wallets?.find((w) => w.account === "options") ?? null;
-  const sideBook = chartShown && wide;
   const depth = (
     <DepthTabs
       book={
@@ -70,33 +68,21 @@ export function OptionsTerminal() {
     />
   );
 
-  function toggleChart() {
-    saveChartShown(!chartShown);
-    setChartShown(!chartShown);
-  }
-
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))] md:pb-8">
       <OptionsHeader
         market={market}
         markets={optionMarkets}
         periods={periods}
-        chartShown={chartShown}
+        bookShown={bookShown}
         onPick={setSymbol}
-        onToggleChart={toggleChart}
+        onToggleBook={() => setBookShown((s) => !s)}
       />
-      <div
-        className={cn(
-          "space-y-4",
-          chartShown && "md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0 lg:grid-cols-[minmax(0,1fr)_320px]",
-          !chartShown && "md:mx-auto md:max-w-[480px]",
-        )}
-      >
-        {chartShown ? (
-          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-            <TradingViewChart key={market.id} symbol={market.tvSymbol} />
-          </div>
-        ) : null}
+      {!wide && bookShown ? <div className="mb-4">{depth}</div> : null}
+      <div className="space-y-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:gap-6 md:space-y-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <TradingViewChart key={market.id} symbol={market.tvSymbol} />
+        </div>
         <div className="lg:col-start-1 lg:row-start-2">
           <OptionTicket
             key={market.id}
@@ -107,9 +93,8 @@ export function OptionsTerminal() {
             onOpened={() => void positions.reload()}
           />
         </div>
-        {sideBook ? <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{depth}</aside> : null}
+        {wide ? <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{depth}</aside> : null}
       </div>
-      {!sideBook ? <div className="mx-auto mt-5 max-w-[480px]">{depth}</div> : null}
       <PositionsPanel
         open={positions.open}
         fills={positions.fills}
