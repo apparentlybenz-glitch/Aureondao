@@ -6,7 +6,7 @@ import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
 import { Button } from "@/components/ui/button";
-import { savePref } from "@/lib/preferences";
+import { saveConfirmTrades } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
 export type TradeConfirmRow = { label: string; value: string; tone?: "up" };
@@ -115,7 +115,9 @@ function Body({
           <Button
             type="button"
             onClick={() => {
-              if (dontShow) savePref("confirmTrades", false);
+              // Not awaited: the order never waits on the preference. If the save fails the
+              // dialog simply shows again next time.
+              if (dontShow) void saveConfirmTrades(false);
               onConfirm();
             }}
             className={cn(

@@ -1,57 +1,78 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { onVisible } from "@/lib/on-visible";
+import { createClient } from "@/lib/supabase/client";
 
-// Per-browser preferences, one JSON object in localStorage. Storage can throw (private
-// windows, blocked site data), so every access is guarded and falls back to the default.
-const KEY = "aureonx.prefs";
+// The confirmTrades preference, stored per account in profiles.confirm_trades (read under
+// profiles_select, written only through set_confirm_trades). One module store shared by
+// every reader. value is null until loaded; readers treat null as on, the safe side.
+export type ConfirmTradesState = { value: boolean | null; failed: boolean };
 
-export type Prefs = {
-  // Show the trade confirmation dialog before a Spot or Options order is sent.
-  confirmTrades: boolean;
-};
-
-export const DEFAULT_PREFS: Prefs = { confirmTrades: true };
-
+const INITIAL: ConfirmTradesState = { value: null, failed: false };
+let state = INITIAL;
+let uid: string | null = null;
+// Latest wins: a load or save that started later makes an earlier load's result stale.
+let ticket = 0;
 const listeners = new Set<() => void>();
 
-function readAll(): Partial<Prefs> {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? "{}");
-    return parsed && typeof parsed === "object" ? (parsed as Partial<Prefs>) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function readPref<K extends keyof Prefs>(name: K): Prefs[K] {
-  const value = readAll()[name];
-  return typeof value === typeof DEFAULT_PREFS[name] ? (value as Prefs[K]) : DEFAULT_PREFS[name];
-}
-
-export function savePref<K extends keyof Prefs>(name: K, value: Prefs[K]): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ ...readAll(), [name]: value }));
-  } catch {
-    // Not saved; the default applies next time.
-  }
+function set(next: ConfirmTradesState) {
+  state = next;
   listeners.forEach((notify) => notify());
+}
+
+async function load() {
+  const mine = ++ticket;
+  const supabase = createClient();
+  const { data: session } = await supabase.auth.getSession();
+  const own = session.session?.user.id ?? null;
+  if (mine !== ticket) return;
+  if (own !== uid) {
+    // Another account signed in on this tab: never show the previous account's value.
+    uid = own;
+    set({ value: null, failed: false });
+  }
+  if (!own) return;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("confirm_trades")
+    .eq("id", own)
+    .maybeSingle()
+    .overrideTypes<{ confirm_trades: boolean }, { merge: false }>();
+  if (mine !== ticket) return;
+  set(error || !data ? { value: state.value, failed: true } : { value: data.confirm_trades, failed: false });
 }
 
 function subscribe(notify: () => void) {
   listeners.add(notify);
-  window.addEventListener("storage", notify);
   return () => {
     listeners.delete(notify);
-    window.removeEventListener("storage", notify);
   };
 }
 
-// For rendering a preference: the default on the server and during hydration, then the stored value.
-export function usePref<K extends keyof Prefs>(name: K): Prefs[K] {
+// Loads on mount and whenever the tab becomes visible (profiles is not in Realtime).
+export function useConfirmTrades(): ConfirmTradesState {
+  useEffect(() => {
+    void load();
+    return onVisible(() => void load());
+  }, []);
   return useSyncExternalStore(
     subscribe,
-    () => readPref(name),
-    () => DEFAULT_PREFS[name],
+    () => state,
+    () => INITIAL,
   );
+}
+
+// Shows the new value at once and puts the old one back if the server refuses it.
+// Returns the RPC error, or null on success.
+export async function saveConfirmTrades(value: boolean): Promise<{ code?: string; message: string } | null> {
+  const previous = state;
+  ticket++;
+  set({ value, failed: false });
+  const { error } = await createClient().rpc("set_confirm_trades", { p_value: value });
+  if (error) {
+    set(previous);
+    return error;
+  }
+  return null;
 }

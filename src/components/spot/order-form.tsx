@@ -13,7 +13,7 @@ import { useAttemptKey } from "@/lib/attempt-key";
 import { formatPrice } from "@/lib/market/decimal";
 import type { Market, Ticker } from "@/lib/market/types";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
-import { readPref } from "@/lib/preferences";
+import { useConfirmTrades } from "@/lib/preferences";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { fetchOrder } from "@/lib/spot";
 import type { SpotOrder } from "@/lib/spot";
@@ -83,6 +83,7 @@ function MarketTicket({
   const [error, setError] = useState<string | null>(null);
   const [fill, setFill] = useState<SpotOrder | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const confirmTrades = useConfirmTrades().value;
 
   const asset = market.base;
   const price = ticker ? (side === "buy" ? ticker.ask : ticker.bid) : null;
@@ -163,7 +164,8 @@ function MarketTicket({
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!canSubmit || !check.ok) return;
-    if (readPref("confirmTrades")) setConfirming(true);
+    // Not loaded yet (null) counts as on.
+    if (confirmTrades !== false) setConfirming(true);
     else void place();
   }
 

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { formatPrice } from "@/lib/market/decimal";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
-import { readPref } from "@/lib/preferences";
+import { useConfirmTrades } from "@/lib/preferences";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { fetchOrder } from "@/lib/spot";
 import type { SpotOrder } from "@/lib/spot";
@@ -68,6 +68,7 @@ export function LimitOrderForm({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const confirmTrades = useConfirmTrades().value;
 
   const asset = market.base;
   const best = ticker ? trimDecimal(side === "buy" ? ticker.bid : ticker.ask) : null;
@@ -176,7 +177,8 @@ export function LimitOrderForm({
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!canSubmit || !priceCheck.ok || !qtyCheck.ok) return;
-    if (readPref("confirmTrades")) setConfirming(true);
+    // Not loaded yet (null) counts as on.
+    if (confirmTrades !== false) setConfirming(true);
     else void place();
   }
 

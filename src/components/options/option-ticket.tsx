@@ -15,7 +15,7 @@ import { formatPrice } from "@/lib/market/decimal";
 import type { Market } from "@/lib/market/types";
 import { formatCents, parseAmount } from "@/lib/money";
 import { bpsToPercent, estReturnCents } from "@/lib/options-math";
-import { readPref } from "@/lib/preferences";
+import { useConfirmTrades } from "@/lib/preferences";
 import type { Direction, OptionPeriod } from "@/lib/options";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { feeCents } from "@/lib/spot-math";
@@ -54,6 +54,7 @@ export function OptionTicket({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const confirmTrades = useConfirmTrades().value;
 
   // The chosen period while it stays enabled, else the first enabled one.
   const period =
@@ -102,7 +103,8 @@ export function OptionTicket({
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!canSubmit || !period || cents === null) return;
-    if (readPref("confirmTrades")) setConfirming(true);
+    // Not loaded yet (null) counts as on.
+    if (confirmTrades !== false) setConfirming(true);
     else void place();
   }
 
