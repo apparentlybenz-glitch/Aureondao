@@ -11,7 +11,7 @@ import type { Market } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
 const sheet =
-  "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
+  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
 
 const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
 
@@ -53,7 +53,7 @@ export function OptionsMarketPicker({
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content aria-describedby={undefined} className={sheet}>
           <SheetHeader title={t("marketsTitle")} />
           <ul className="px-2">
@@ -93,7 +93,7 @@ export function OptionsInfo({ periods }: { periods: OptionPeriod[] | null }) {
         <Info className="size-5" />
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content aria-describedby={undefined} className={sheet}>
           <SheetHeader title={t("infoTitle")} />
           <div className="space-y-3 px-4 text-sm">
