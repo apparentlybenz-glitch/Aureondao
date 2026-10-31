@@ -14,6 +14,14 @@ export function LandingNav() {
           <BrandMark variant="small" idPrefix="nav" className="size-8" />
           <Wordmark className="h-4 w-auto" />
         </Link>
+        <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <a href="#products" className="hover:text-foreground">
+            {t("products")}
+          </a>
+          <a href="#faq" className="hover:text-foreground">
+            {t("faq")}
+          </a>
+        </div>
         <div className="flex items-center gap-1">
           <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3")}>
             {t("logIn")}
