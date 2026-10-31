@@ -212,7 +212,14 @@
 .trade-confirm-badge[data-direction="up"] svg { animation: trade-confirm-float-up 1.2s ease-in-out infinite; }
 .trade-confirm-badge[data-direction="down"] svg { animation: trade-confirm-float-down 1.2s ease-in-out infinite; }
 
+/* Auth backdrop (auth-background.tsx). Transform only; linear loops of 40 s and 90 s. */
+@keyframes auth-bg-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes auth-bg-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.auth-bg-drift { animation: auth-bg-drift 40s linear infinite; will-change: transform; }
+.auth-bg-orbit { animation: auth-bg-orbit 90s linear infinite; will-change: transform; }
+
 @media (prefers-reduced-motion: reduce) {
+  .auth-bg-drift, .auth-bg-orbit { animation: none; will-change: auto; }
   .trade-confirm-badge, .trade-confirm-badge[data-direction] svg { animation: none; }
   .trade-twist-open, .trade-twist-close { animation: none; }
   .trade-menu[data-state="open"] .trade-item { animation: trade-fade-in 120ms linear both; animation-delay: 0ms; }
