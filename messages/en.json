@@ -334,7 +334,8 @@
     "tabs": {
       "profile": "Profile",
       "verification": "Verification",
-      "security": "Security"
+      "security": "Security",
+      "preferences": "Preferences"
     }
   },
   "Security": {
@@ -355,6 +356,10 @@
     "phoneTitle": "Phone verification",
     "unavailable": "Not available yet",
     "totpCode": "Code"
+  },
+  "Preferences": {
+    "confirmTrades": "Confirm before trading",
+    "confirmTradesDescription": "Show a confirmation before a Spot or Options trade is placed."
   },
   "Shell": {
     "home": "Home",
@@ -813,7 +818,15 @@
     "noFills": "No settled positions yet.",
     "listError": "Could not load your positions. Try again shortly.",
     "usd": "{amount} USD",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "confirmCallBadge": "CALL",
+    "confirmPutBadge": "PUT",
+    "confirmEntry": "Est. entry price",
+    "confirmPremium": "Premium",
+    "confirmPeriod": "Period",
+    "confirmFee": "Fee ({rate})",
+    "confirmReturn": "Est. return",
+    "confirmNote": "The entry price shown is an estimate. The server prices and settles your position."
   },
   "Forex": {
     "choosePair": "Choose pair, current {symbol}",
@@ -946,7 +959,21 @@
       "low": "24h Low",
       "volume": "24h Vol ({quote})"
     },
-    "mid": "Mid"
+    "mid": "Mid",
+    "confirmBuyBadge": "BUY",
+    "confirmSellBadge": "SELL",
+    "confirmBuyLimitBadge": "BUY LIMIT",
+    "confirmSellLimitBadge": "SELL LIMIT",
+    "confirmEstPrice": "Est. price",
+    "confirmEstCost": "Est. cost",
+    "confirmEstProceeds": "Est. proceeds",
+    "confirmEstFee": "Est. fee ({rate})"
+  },
+  "TradeConfirm": {
+    "title": "Confirm trade",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "dontShowAgain": "Don't show this again"
   },
   "Support": {
     "title": "Support",

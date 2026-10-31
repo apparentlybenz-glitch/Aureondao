@@ -6,6 +6,7 @@ import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
+import { TradeConfirm } from "@/components/market/trade-confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -14,6 +15,7 @@ import { formatPrice } from "@/lib/market/decimal";
 import type { Market } from "@/lib/market/types";
 import { formatCents, parseAmount } from "@/lib/money";
 import { bpsToPercent, estReturnCents } from "@/lib/options-math";
+import { readPref } from "@/lib/preferences";
 import type { Direction, OptionPeriod } from "@/lib/options";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { feeCents } from "@/lib/spot-math";
@@ -42,6 +44,7 @@ export function OptionTicket({
   onOpened: () => void;
 }) {
   const t = useTranslations("Options");
+  const tc = useTranslations("TradeConfirm");
   const rpcMessage = useRpcMessage();
   const attempt = useAttemptKey();
   const [direction, setDirection] = useState<Direction>("rise");
@@ -50,6 +53,7 @@ export function OptionTicket({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   // The chosen period while it stays enabled, else the first enabled one.
   const period =
@@ -95,8 +99,15 @@ export function OptionTicket({
     }
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!canSubmit || !period || cents === null) return;
+    if (readPref("confirmTrades")) setConfirming(true);
+    else void place();
+  }
+
+  // The guard runs again here so a form that changed while the dialog was open sends nothing.
+  async function place() {
     if (!canSubmit || !period || cents === null) return;
     setPending(true);
     setError(null);
@@ -298,6 +309,36 @@ export function OptionTicket({
       >
         {pending ? t("sending") : !period && periods ? t("noPeriod") : t(rise ? "call" : "put")}
       </Button>
+
+      <TradeConfirm
+        open={confirming}
+        title={tc("title")}
+        base={market.base}
+        direction={rise ? "up" : "down"}
+        symbolLabel={market.displaySymbol}
+        badge={t(rise ? "confirmCallBadge" : "confirmPutBadge")}
+        rows={[
+          { label: t("confirmEntry"), value: mid ? formatPrice(mid, market.priceDecimals) : "--" },
+          { label: t("confirmPremium"), value: cents !== null ? t("usd", { amount: formatCents(cents) }) : "--" },
+          { label: t("confirmPeriod"), value: period ? t("seconds", { seconds: period.durationS }) : "--" },
+          {
+            label: t("confirmFee", { rate: period ? bpsToPercent(period.feeBps) : "--" }),
+            value: fee !== null ? t("usd", { amount: formatCents(fee) }) : "--",
+          },
+          {
+            label: t("confirmReturn"),
+            value: est !== null ? t("usd", { amount: formatCents(est) }) : "--",
+            tone: "up",
+          },
+        ]}
+        note={t("confirmNote")}
+        confirmLabel={tc("confirm")}
+        onConfirm={() => {
+          setConfirming(false);
+          void place();
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </form>
   );
 }

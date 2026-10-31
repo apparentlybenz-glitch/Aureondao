@@ -200,7 +200,20 @@
 .trade-menu[data-state="closed"] .trade-item[data-picked] { animation: trade-item-picked 200ms ease-out both; }
 .trade-menu[data-state="closed"] .trade-item[data-other] { animation: trade-fade-out 120ms linear both; }
 
+/* Trade confirm dialog (trade-confirm.tsx): the arrow floats in its direction and the
+   badge ring pulses in the badge's own color (currentColor), on the same rhythm. */
+@keyframes trade-confirm-float-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes trade-confirm-float-down { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes trade-confirm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 30%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in oklab, currentColor 0%, transparent); }
+}
+.trade-confirm-badge { animation: trade-confirm-pulse 1.2s ease-in-out infinite; }
+.trade-confirm-badge[data-direction="up"] svg { animation: trade-confirm-float-up 1.2s ease-in-out infinite; }
+.trade-confirm-badge[data-direction="down"] svg { animation: trade-confirm-float-down 1.2s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
+  .trade-confirm-badge, .trade-confirm-badge[data-direction] svg { animation: none; }
   .trade-twist-open, .trade-twist-close { animation: none; }
   .trade-menu[data-state="open"] .trade-item { animation: trade-fade-in 120ms linear both; animation-delay: 0ms; }
   .trade-menu[data-state="closed"] .trade-item,

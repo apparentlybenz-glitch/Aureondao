@@ -9,9 +9,10 @@ const TABS = [
   { key: "profile", href: "/account" },
   { key: "verification", href: "/account/verification" },
   { key: "security", href: "/account/security" },
+  { key: "preferences", href: "/account/preferences" },
 ] as const;
 
-// Profile, Verification and Security. Hidden inside the verification flow,
+// Profile, Verification, Security and Preferences. Hidden inside the verification flow,
 // which has its own header and stepper.
 export function AccountTabs() {
   const t = useTranslations("Account");
