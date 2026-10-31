@@ -424,7 +424,7 @@
     "addressLabel": "Deposit Address",
     "addressEmpty": "--",
     "copy": "Copy",
-    "note": "Your balance is virtual and is credited by AureonX. No transfer is needed.",
+    "note": "Your balance is credited by AureonX. No transfer is needed.",
     "coins": {
       "BTC": "Bitcoin",
       "USDT": "Tether USD",
@@ -466,7 +466,7 @@
     "success": "Moved {amount} USD from {from} to {to}.",
     "invalidAmount": "Enter an amount with up to 2 decimals.",
     "overBalance": "The amount is more than the available balance.",
-    "note": "Moves virtual funds between your own wallets."
+    "note": "Moves funds between your own wallets."
   },
   "Bills": {
     "title": "Bills",
@@ -535,7 +535,7 @@
       "since": "Suspended since {date}"
     },
     "topUp": {
-      "description": "Credit or debit a user's virtual balance. Every change is written to the audit log.",
+      "description": "Credit or debit a user's balance. Every change is written to the audit log.",
       "pickUser": "Search for a user to continue.",
       "change": "Change user",
       "credit": "Credit",
@@ -752,7 +752,7 @@
     "pnl": "PnL {rate}",
     "premium": "Premium Amount (USD)",
     "available": "{amount}",
-    "toTransfer": "Move virtual funds to the Options wallet",
+    "toTransfer": "Move funds to the Options wallet",
     "premiumInput": "Premium in USD",
     "premiumPlaceholder": "Minimum {min}",
     "fee": "Transaction fee: {rate}",
@@ -903,7 +903,7 @@
     "proceeds": "Proceeds",
     "fee": "Fee",
     "usd": "{amount} USD",
-    "fundHint": "Your Spot wallet is empty. Move virtual funds to it with Transfer.",
+    "fundHint": "Your Spot wallet is empty. Move funds to it with Transfer.",
     "toTransfer": "Transfer",
     "history": "Order history",
     "holdings": "Holdings",
