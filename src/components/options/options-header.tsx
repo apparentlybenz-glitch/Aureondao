@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CandlestickChart, ChevronDown, Info, X } from "lucide-react";
+import { BookOpen, ChevronDown, Info, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { bpsToPercent } from "@/lib/options-math";
@@ -24,21 +24,21 @@ function SheetHeader({ title }: { title: string }) {
   );
 }
 
-// Symbol (opens the options markets), info (periods, rates, fee), chart toggle.
+// Symbol (opens the options markets), info (periods, rates, fee), order book toggle (below lg).
 export function OptionsHeader({
   market,
   markets,
   periods,
-  chartShown,
+  bookShown,
   onPick,
-  onToggleChart,
+  onToggleBook,
 }: {
   market: Market;
   markets: Market[];
   periods: OptionPeriod[] | null;
-  chartShown: boolean;
+  bookShown: boolean;
   onPick: (id: string) => void;
-  onToggleChart: () => void;
+  onToggleBook: () => void;
 }) {
   const t = useTranslations("Options");
   const shell = useTranslations("Shell");
@@ -123,12 +123,12 @@ export function OptionsHeader({
         </span>
         <button
           type="button"
-          aria-pressed={chartShown}
-          aria-label={chartShown ? t("hideChart") : t("showChart")}
-          onClick={onToggleChart}
-          className={cn(icon, chartShown && "text-primary")}
+          aria-pressed={bookShown}
+          aria-label={bookShown ? t("hideBook") : t("showBook")}
+          onClick={onToggleBook}
+          className={cn(icon, "lg:hidden", bookShown && "text-primary")}
         >
-          <CandlestickChart className="size-5" />
+          <BookOpen className="size-5" />
         </button>
       </div>
     </header>

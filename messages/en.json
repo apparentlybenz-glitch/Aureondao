@@ -693,8 +693,8 @@
     "infoFee": "Transaction fee {rate}, charged on top of the premium.",
     "infoSettle": "A position settles at the first server price at or after expiry. If none arrives within 90 seconds, the premium and fee are refunded.",
     "infoEmpty": "No option period is open right now.",
-    "showChart": "Show chart",
-    "hideChart": "Hide chart",
+    "showBook": "Show order book",
+    "hideBook": "Hide order book",
     "currentPrice": "{symbol} Current price <value>{price}</value>",
     "expect": "I expect {symbol} will <dir>{direction}</dir>",
     "rise": "Rise",
@@ -770,8 +770,8 @@
     "choosePair": "Choose pair, current {symbol}",
     "pairsTitle": "Forex pairs",
     "close": "Close",
-    "showChart": "Show chart",
-    "hideChart": "Hide chart",
+    "showBook": "Show order book",
+    "hideBook": "Hide order book",
     "currentPrice": "{symbol} Current price <value>{price}</value>",
     "buy": "Buy",
     "sell": "Sell",
@@ -804,7 +804,6 @@
     "columns": {
       "price": "Price ({quote})",
       "amount": "Amount ({base})",
-      "total": "Total ({base})",
       "time": "Time"
     },
     "group": {
@@ -869,12 +868,6 @@
       "high": "24h High",
       "low": "24h Low",
       "volume": "24h Vol ({quote})"
-    },
-    "bookView": {
-      "label": "Order book view",
-      "both": "Both",
-      "bids": "Bids",
-      "asks": "Asks"
     },
     "mid": "Mid"
   },

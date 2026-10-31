@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { BOOK_LEVELS, BOOK_POLL_MS, BOOK_TIMEOUT_MS, normalizeVisionDepth, visionDepthUrl } from "@/lib/market/book";
+import { BOOK_POLL_MS, BOOK_TIMEOUT_MS, normalizeVisionDepth, visionDepthUrl } from "@/lib/market/book";
 import type { Book } from "@/lib/market/book";
 import { formatMid, formatPrice } from "@/lib/market/decimal";
 import { getJson } from "@/lib/market/http";
@@ -16,8 +16,8 @@ import { cn } from "@/lib/utils";
 const browserFetch = (url: string, init: { signal: AbortSignal }) => fetch(url, init);
 const every5s = () => BOOK_POLL_MS;
 
-type View = "both" | "bids" | "asks";
-const BOTH_LEVELS = 10;
+// Rows per side.
+const BOOK_ROWS = 8;
 // Grouping choices as multiples of the tick (10^-priceDecimals).
 const GROUPS = [1, 10, 100] as const;
 
@@ -26,8 +26,6 @@ type Common = {
   quote: string;
   priceDecimals: number;
   qtyDecimals: number;
-  // Rows per side in the Asks and Bids views (the Both view shows 10).
-  levels?: number;
 };
 
 export type OrderBookProps =
@@ -84,6 +82,8 @@ function GeneratedBook(props: Common & { mode: "generated"; id: string; mid: str
   return <BookView {...props} book={book} mid={mid} empty={t("loading")} />;
 }
 
+const CELL = "relative flex justify-between py-px text-[11px] leading-4 tabular-nums";
+
 function BookView({
   book,
   mid,
@@ -93,66 +93,58 @@ function BookView({
   quote,
   priceDecimals,
   qtyDecimals,
-  levels = BOOK_LEVELS,
 }: Common & { book: Book | null; mid: string | null; empty: string; note?: string }) {
   const t = useTranslations("Spot");
-  const [view, setView] = useState<View>("both");
   const [group, setGroup] = useState<number>(GROUPS[0]);
 
-  const depth = view === "both" ? BOTH_LEVELS : levels;
   const asks = useMemo(
-    () => (book ? withTotals(groupLevels(book.asks, "ask", priceDecimals, group).slice(0, depth)) : []),
-    [book, priceDecimals, group, depth],
+    () => (book ? withTotals(groupLevels(book.asks, "ask", priceDecimals, group).slice(0, BOOK_ROWS)) : []),
+    [book, priceDecimals, group],
   );
   const bids = useMemo(
-    () => (book ? withTotals(groupLevels(book.bids, "bid", priceDecimals, group).slice(0, depth)) : []),
-    [book, priceDecimals, group, depth],
+    () => (book ? withTotals(groupLevels(book.bids, "bid", priceDecimals, group).slice(0, BOOK_ROWS)) : []),
+    [book, priceDecimals, group],
   );
   const QTY = 18;
-  const shown = [...(view !== "bids" ? asks : []), ...(view !== "asks" ? bids : [])];
-  const max = shown.reduce((m, l) => {
+  const max = [...asks, ...bids].reduce((m, l) => {
     const v = toUnits(l.total, QTY);
     return v > m ? v : m;
   }, BigInt(0));
   const width = (total: string) => (max > BigInt(0) ? Number((toUnits(total, QTY) * BigInt(1000)) / max) / 10 : 0);
 
-  const row = (l: { price: string; qty: string; total: string }, side: "bid" | "ask") => (
-    <li key={`${side}${l.price}`} className="relative grid grid-cols-3 py-0.5 text-[13px] tabular-nums">
-      <span
-        aria-hidden="true"
-        className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-up/35" : "bg-down/35")}
-        style={{ width: `${width(l.total)}%` }}
-      />
-      <span className={cn("relative", side === "bid" ? "text-up" : "text-down")}>{formatPrice(l.price, priceDecimals)}</span>
-      <span className="relative text-right">{formatPrice(l.qty, qtyDecimals)}</span>
-      <span className="relative text-right">{formatPrice(l.total, qtyDecimals)}</span>
-    </li>
-  );
+  const price = t("columns.price", { quote });
+  const amount = t("columns.amount", { base });
+  // Depth bars start at the centre edge and grow outward.
+  const cell = (l: { price: string; qty: string; total: string } | undefined, side: "bid" | "ask", i: number) => {
+    const key = `${side}${i}`;
+    if (!l) return <div key={key} aria-hidden="true" className={CELL}>&nbsp;</div>;
+    const p = <span className={side === "bid" ? "text-up" : "text-down"}>{formatPrice(l.price, priceDecimals)}</span>;
+    const q = <span>{formatPrice(l.qty, qtyDecimals)}</span>;
+    return (
+      <div key={key} className={CELL}>
+        <span
+          aria-hidden="true"
+          className={cn("absolute inset-y-0", side === "bid" ? "right-0 bg-up/35" : "left-0 bg-down/35")}
+          style={{ width: `${width(l.total)}%` }}
+        />
+        <span className="relative flex w-full justify-between">
+          {side === "bid" ? q : p}
+          {side === "bid" ? p : q}
+        </span>
+      </div>
+    );
+  };
+
+  const rows = Math.max(asks.length, bids.length);
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div role="group" aria-label={t("bookView.label")} className="flex gap-2">
-          {(["both", "bids", "asks"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={view === key}
-              onClick={() => setView(key)}
-              className={cn(
-                "h-7 rounded-md px-2.5 text-xs",
-                view === key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {t(`bookView.${key}`)}
-            </button>
-          ))}
-        </div>
+      <div className="mb-2 flex justify-end">
         <select
           aria-label={t("group.label")}
           value={group}
           onChange={(e) => setGroup(Number(e.target.value))}
-          className="h-7 rounded-md bg-muted px-2 text-xs tabular-nums text-foreground"
+          className="h-6 rounded-md bg-muted px-2 text-[11px] tabular-nums text-foreground"
         >
           {GROUPS.map((g) => (
             <option key={g} value={g}>
@@ -161,21 +153,23 @@ function BookView({
           ))}
         </select>
       </div>
-      <div className="grid grid-cols-3 pb-1 text-xs text-muted-foreground">
-        <span>{t("columns.price", { quote })}</span>
-        <span className="text-right">{t("columns.amount", { base })}</span>
-        <span className="text-right">{t("columns.total", { base })}</span>
-      </div>
       {book ? (
         <>
-          {view !== "bids" ? <ul>{[...asks].reverse().map((l) => row(l, "ask"))}</ul> : null}
-          {view === "both" ? (
-            <p className="my-1 flex items-baseline justify-between border-y py-1.5 tabular-nums">
-              <span className="text-base font-bold">{mid ? formatMid(mid, priceDecimals) : "--"}</span>
-              <span className="text-xs text-muted-foreground">{t("mid")}</span>
-            </p>
-          ) : null}
-          {view !== "asks" ? <ul>{bids.map((l) => row(l, "bid"))}</ul> : null}
+          <p className="mb-1 flex items-baseline justify-center gap-2 border-y py-1 tabular-nums">
+            <span className="text-sm font-bold">{mid ? formatMid(mid, priceDecimals) : "--"}</span>
+            <span className="text-[10px] text-muted-foreground">{t("mid")}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-x-2">
+            <div className="flex justify-between pb-1 text-[10px] text-muted-foreground">
+              <span>{amount}</span>
+              <span>{price}</span>
+            </div>
+            <div className="flex justify-between pb-1 text-[10px] text-muted-foreground">
+              <span>{price}</span>
+              <span>{amount}</span>
+            </div>
+            {Array.from({ length: rows }, (_, i) => i).flatMap((i) => [cell(bids[i], "bid", i), cell(asks[i], "ask", i)])}
+          </div>
         </>
       ) : (
         <p className="py-8 text-center text-sm text-muted-foreground">{empty}</p>

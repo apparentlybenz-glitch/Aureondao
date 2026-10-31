@@ -206,22 +206,3 @@ export function useOptionPositions() {
 
   return { open: data?.open ?? null, fills: data?.fills ?? null, error, reload };
 }
-
-// Chart shown or hidden on the Options screen, remembered per browser.
-const CHART_KEY = "aureonx.optionsChart";
-
-export function readChartShown(): boolean {
-  try {
-    return localStorage.getItem(CHART_KEY) !== "hidden";
-  } catch {
-    return true;
-  }
-}
-
-export function saveChartShown(shown: boolean) {
-  try {
-    localStorage.setItem(CHART_KEY, shown ? "shown" : "hidden");
-  } catch {
-    // Storage blocked: the choice lasts for this visit only.
-  }
-}
