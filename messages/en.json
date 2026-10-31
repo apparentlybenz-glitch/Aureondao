@@ -84,28 +84,12 @@
       }
     },
     "hero": {
-      "badge": "Virtual funds on live prices",
       "title": "Trade crypto on live prices",
-      "subtitle": "Open Spot orders or timed Rise and Fall options on BTC, ETH, SOL and 34 more markets. Your balance is virtual funds, so no real money moves.",
+      "subtitle": "Open Spot orders or timed Rise and Fall options on BTC, ETH, SOL and 34 more markets.",
       "createAccount": "Create account",
-      "logIn": "Log in",
-      "metrics": {
-        "markets": {
-          "value": "37",
-          "label": "Spot markets"
-        },
-        "wallets": {
-          "value": "4",
-          "label": "Wallets"
-        },
-        "money": {
-          "value": "0",
-          "label": "Real money moved"
-        }
-      }
+      "logIn": "Log in"
     },
     "features": {
-      "label": "What you can do",
       "eyebrow": "Products",
       "title": "Three ways to use your balance",
       "subtitle": "Trade Spot, call timed options or move funds between wallets, all from one account.",
@@ -164,8 +148,7 @@
       "high": "24h high",
       "amount": "Amount (BTC)",
       "buy": "Buy",
-      "sell": "Sell",
-      "feed": "Prices refresh every 5 seconds"
+      "sell": "Sell"
     },
     "cta": {
       "title": "Ready to start trading?",
@@ -786,8 +769,7 @@
     "delayed": "Delayed",
     "addFavorite": "Add {symbol} to favorites",
     "removeFavorite": "Remove {symbol} from favorites",
-    "seeAll": "See all markets",
-    "footnote": "Prices are for reference and refresh about every 5 seconds."
+    "seeAll": "See all markets"
   },
   "Chart": {
     "unlock": "Tap to use the chart",

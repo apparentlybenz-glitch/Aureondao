@@ -32,18 +32,13 @@ const FEATURES = [
 ] as const;
 
 const POINTS = ["one", "two", "three"] as const;
-const METRICS = ["markets", "wallets", "money"] as const;
 
 export default function LandingPage() {
   const t = useTranslations("Landing");
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 space-y-16 px-4 py-10 md:space-y-24 md:py-16">
       <section className="grid items-center gap-10 lg:grid-cols-12 lg:gap-8">
-        <div className="space-y-6 text-center lg:col-span-7 lg:text-left">
-          <p className="inline-flex items-center gap-2 rounded-full border bg-card px-3.5 py-1.5 text-xs font-medium text-primary">
-            <span className="size-2 rounded-full bg-primary" />
-            {t("hero.badge")}
-          </p>
+        <div className="min-w-0 space-y-6 text-center lg:col-span-7 lg:text-left">
           <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl xl:text-6xl">
             {t("hero.title")}
           </h1>
@@ -56,16 +51,8 @@ export default function LandingPage() {
               {t("hero.logIn")}
             </Link>
           </div>
-          <dl className="grid grid-cols-3 gap-4 border-t pt-6">
-            {METRICS.map((key) => (
-              <div key={key}>
-                <dt className="text-2xl font-semibold tabular-nums md:text-3xl">{t(`hero.metrics.${key}.value`)}</dt>
-                <dd className="mt-0.5 text-xs text-muted-foreground">{t(`hero.metrics.${key}.label`)}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
-        <div className="lg:col-span-5">
+        <div className="mx-auto w-full min-w-0 max-w-md lg:col-span-5 lg:max-w-none">
           <HeroPreview />
         </div>
       </section>

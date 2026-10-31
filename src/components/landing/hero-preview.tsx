@@ -22,12 +22,12 @@ export function HeroPreview() {
   const change = live ? formatChange(live.ticker.changePct) : "--";
 
   return (
-    <div aria-hidden="true" className="rounded-2xl border bg-card p-5 md:p-6">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div className="flex items-center gap-3">
+    <div aria-hidden="true" className="rounded-2xl border bg-card p-4 md:p-6">
+      <div className="flex items-center justify-between gap-2 border-b pb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <BrandMark variant="small" idPrefix="preview" className="size-8" />
           <div>
-            <p className="text-sm font-semibold">BTC / USDT</p>
+            <p className="text-sm font-semibold whitespace-nowrap">BTC / USDT</p>
             <p
               className={cn(
                 "text-xs tabular-nums",
@@ -39,13 +39,13 @@ export function HeroPreview() {
           </div>
         </div>
         <div className="flex rounded-lg border bg-background p-1 text-xs font-semibold">
-          <span className="rounded-md bg-primary px-3 py-1 text-primary-foreground">{t("spot")}</span>
-          <span className="px-3 py-1 text-muted-foreground">{t("options")}</span>
+          <span className="rounded-md bg-primary px-2.5 py-1 text-primary-foreground">{t("spot")}</span>
+          <span className="px-2.5 py-1 text-muted-foreground">{t("options")}</span>
         </div>
       </div>
 
       <div className="mt-4 space-y-4">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
           <div>
             <p className="text-xs text-muted-foreground uppercase">{t("price")}</p>
             <p className="text-3xl font-semibold tabular-nums">
@@ -77,13 +77,6 @@ export function HeroPreview() {
           <span className="rounded-xl bg-primary py-3 text-center text-primary-foreground">{t("buy")}</span>
           <span className="rounded-xl bg-down/60 py-3 text-center">{t("sell")}</span>
         </div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="size-1.5 rounded-full bg-primary" />
-          {t("feed")}
-        </span>
       </div>
     </div>
   );

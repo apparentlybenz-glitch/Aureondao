@@ -22,11 +22,11 @@ export function LandingNav() {
             {t("faq")}
           </a>
         </div>
-        <div className="flex items-center gap-1">
-          <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3")}>
+        <div className="flex items-center">
+          <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "hidden h-9 px-2.5 min-[360px]:inline-flex")}>
             {t("logIn")}
           </Link>
-          <Link href="/sign-up" className={cn(buttonVariants(), "h-9 px-3")}>
+          <Link href="/sign-up" className={cn(buttonVariants(), "h-9 px-2.5")}>
             {t("createAccount")}
           </Link>
         </div>
