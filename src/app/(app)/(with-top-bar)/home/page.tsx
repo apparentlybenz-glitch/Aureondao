@@ -14,6 +14,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { MarketCards } from "@/components/market/market-cards";
 import { MarketTable } from "@/components/market/market-table";
 import { formatCents } from "@/lib/money";
 import { useSuspension } from "@/lib/suspension";
@@ -91,6 +92,8 @@ export default function HomePage() {
           );
         })}
       </section>
+
+      <MarketCards />
 
       <MarketTable variant="home" />
     </div>
