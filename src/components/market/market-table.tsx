@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { CoinBadge } from "@/components/market/coin-badge";
+import { CoinIcon } from "@/components/market/coin-icon";
 import { formatChange, formatPrice } from "@/lib/market/decimal";
 import { useFavorites } from "@/lib/market/favorites";
 import { saveLastMarket } from "@/lib/market/last-symbol";
@@ -170,7 +170,7 @@ export function MarketTable({
                     onSelect?.(m.id);
                   }} className={cn(GRID, "py-2.5 text-left")}>
                   <span className="flex min-w-0 items-center gap-1.5">
-                    <CoinBadge symbol={m.base} />
+                    <CoinIcon symbol={m.base} size={24} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{m.displaySymbol}</span>
                       {ticker ? (
