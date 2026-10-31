@@ -38,13 +38,6 @@ export default function VerificationPage() {
 
       <KycStepper done={state === "none" ? 0 : KYC_STEPS.length} />
 
-      {current?.status === "rejected" && current.rejection_reason ? (
-        <p className="rounded-xl bg-destructive/10 p-3 text-sm">
-          <span className="font-medium text-destructive">{t("reasonLabel")}: </span>
-          {current.rejection_reason}
-        </p>
-      ) : null}
-
       {current ? (
         <p className="text-xs text-muted-foreground">
           {t("submittedOn", { date: dateFormat.format(new Date(current.submitted_at)) })}

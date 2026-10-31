@@ -41,9 +41,8 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       {suspension?.suspended ? (
-        <div role="alert" className="space-y-1 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
           <p className="font-medium">{t("suspended")}</p>
-          {suspension.reason ? <p className="text-muted-foreground">{suspension.reason}</p> : null}
         </div>
       ) : null}
 

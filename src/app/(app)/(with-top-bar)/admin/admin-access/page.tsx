@@ -7,8 +7,6 @@ import { AdminHeading } from "@/components/admin/admin-heading";
 import { SelectedUserCard, useSelectedUser, UserSearch } from "@/components/admin/selected-user";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { type AdminRole, type AdminUser, fetchAdminRole } from "@/lib/admin";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { serverAnswered } from "@/lib/rpc-error";
@@ -54,7 +52,6 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
   const attempt = useAttemptKey();
   // undefined while loading, null when the read failed.
   const [role, setRole] = useState<AdminRole | null | undefined>(undefined);
-  const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -75,29 +72,25 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
   // The owner is never changed in the app. A head admin is changed only by the owner,
   // through admin_demote_head; admin_set_admin refuses it.
   const actions: Action[] = role.isOwner ? [] : role.isHead ? (viewerIsOwner ? ["demote", "remove"] : []) : [role.isAdmin ? "revoke" : "grant"];
-  const trimmed = reason.trim();
-  const validReason = trimmed.length >= 3 && trimmed.length <= 200;
   const email = user.email ?? user.nickname;
 
   async function submit(action: Action) {
-    if (pending || !validReason) return;
+    if (pending) return;
     setPending(true);
     setError(null);
     setDone(null);
-    const key = attempt.keyFor(`${user.id}|${action}|${trimmed}`);
+    const key = attempt.keyFor(`${user.id}|${action}`);
     const supabase = createClient();
     const { error } =
       action === "demote" || action === "remove"
         ? await supabase.rpc("admin_demote_head", {
             p_user_id: user.id,
             p_remove_admin: action === "remove",
-            p_reason: trimmed,
             p_client_request_id: key,
           })
         : await supabase.rpc("admin_set_admin", {
             p_user_id: user.id,
             p_make_admin: action === "grant",
-            p_reason: trimmed,
             p_client_request_id: key,
           });
     setPending(false);
@@ -110,7 +103,6 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
     }
     attempt.settle();
     setDone(t(DONE[action], { email }));
-    setReason("");
     setRole(await fetchAdminRole(user.id));
   }
 
@@ -142,17 +134,6 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
         }}
         className="space-y-4"
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="access-reason">{t("access.reasonField")}</Label>
-          <Input
-            id="access-reason"
-            maxLength={200}
-            disabled={actions.length === 0}
-            className="h-11 text-base"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </div>
         <FormError message={error} />
         {done ? (
           <p role="status" className="text-sm text-up">
@@ -170,7 +151,7 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
               type={actions.length === 1 ? "submit" : "button"}
               variant={action === "grant" ? "default" : "destructive"}
               className="h-11 w-full"
-              disabled={pending || !validReason}
+              disabled={pending}
               onClick={actions.length === 1 ? undefined : () => submit(action)}
             >
               {pending ? t("access.sending") : t(LABEL[action])}

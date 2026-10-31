@@ -22,13 +22,12 @@ export type KycSubmission = {
   city: string;
   photo_path: string;
   status: KycStatus;
-  rejection_reason: string | null;
   submitted_at: string;
   decided_at: string | null;
 };
 
 export const KYC_SELECT =
-  "id, user_id, country, document_type, full_name, date_of_birth, city, photo_path, status, rejection_reason, submitted_at, decided_at";
+  "id, user_id, country, document_type, full_name, date_of_birth, city, photo_path, status, submitted_at, decided_at";
 
 export type OwnKyc = { userId: string; current: KycSubmission | null };
 
