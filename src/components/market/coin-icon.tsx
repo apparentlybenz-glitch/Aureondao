@@ -13,6 +13,10 @@ const COINS = new Set(
   ).split(" "),
 );
 
+// Logos that are near-black in the library: drawn unedited on a light circle so they
+// stay visible on the dark theme.
+const BACKED = new Set(["FET", "QNT", "XLM"]);
+
 // Deposit and Withdraw network keys (src/lib/coins.ts) to the chain's icon file.
 const NETWORKS: Record<string, string> = { bitcoin: "bitcoin", trc20: "tron", erc20: "ethereum", solana: "solana" };
 
@@ -42,13 +46,25 @@ export function CoinIcon({
       </span>
     );
   }
-  return (
+  const backed = kind === "coin" && BACKED.has(symbol);
+  const inner = backed ? Math.round(size * 0.72) : size;
+  const image = (
     <Image
       src={`/icons/${kind === "network" ? "network" : "crypto"}/${file}.svg`}
       alt=""
-      width={size}
-      height={size}
-      className={cn("shrink-0", className)}
+      width={inner}
+      height={inner}
+      className={backed ? undefined : cn("shrink-0", className)}
     />
+  );
+  if (!backed) return image;
+  return (
+    <span
+      aria-hidden="true"
+      style={{ width: size, height: size }}
+      className={cn("flex shrink-0 items-center justify-center rounded-full bg-zinc-200", className)}
+    >
+      {image}
+    </span>
   );
 }
