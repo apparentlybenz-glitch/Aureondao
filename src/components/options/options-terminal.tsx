@@ -30,6 +30,7 @@ const DEFAULT_MARKET = "BTC-USDT";
 // book is hidden until the header icon opens it under the header.
 export function OptionsTerminal() {
   const m = useTranslations("Market");
+  const w = useTranslations("Wallets");
   const { markets, tickers, now } = useMarketData();
   const { wallets } = useWallets();
   const periods = useOptionPeriods();
@@ -63,7 +64,7 @@ export function OptionsTerminal() {
           mode="real"
           market={market}
           base={market.base}
-          quote={market.quote}
+          quote={w("currency")}
           priceDecimals={market.priceDecimals}
           qtyDecimals={market.qtyDecimals}
           fill={fill}

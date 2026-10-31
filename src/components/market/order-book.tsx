@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { ArrowDownToLine, ArrowUpToLine, Rows3 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { BOOK_POLL_MS, BOOK_TIMEOUT_MS, normalizeVisionDepth, visionDepthUrl } from "@/lib/market/book";
@@ -192,11 +192,30 @@ const VIEWS = [
   { key: "asks", Icon: ArrowUpToLine, tone: "text-down" },
 ] as const satisfies readonly { key: BookViewKey; Icon: typeof Rows3; tone: string }[];
 
-const FILL_ROW = "relative grid shrink-0 grid-cols-3 py-px text-xs leading-4 tabular-nums";
+// One fixed row height (px) so the number of whole rows that fit is exact. Rows are laid out
+// with this value as their inline height.
+const ROW_HEIGHT = 18;
+const FILL_ROW = "relative grid shrink-0 grid-cols-3 items-center text-xs tabular-nums";
+
+// Whole rows that fit in an element: floor(height / ROW_HEIGHT), kept current by a ResizeObserver.
+// Takes the element in state (a callback ref) so it follows the element as it mounts and unmounts.
+function useRowCount(el: HTMLElement | null): number {
+  const [rows, setRows] = useState(0);
+  useLayoutEffect(() => {
+    if (!el) return;
+    const measure = () => setRows(Math.floor(el.clientHeight / ROW_HEIGHT));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [el]);
+  return rows;
+}
 
 // The stacked book for the desktop card: toolbar, then asks (best nearest the mid, aligned to the
 // bottom of their area), the bold mid, then bids from the top. Asks and bids take equal shares of
-// the height; rows that do not fit are clipped, never scrolled. Same data and grouping as BookView.
+// the height and each shows only the whole rows that fit (measured, capped at the levels fetched),
+// so no row is ever cut. Same data and grouping as BookView.
 function FillBookView({
   book,
   mid,
@@ -210,14 +229,18 @@ function FillBookView({
   const t = useTranslations("Spot");
   const [view, setView] = useState<BookViewKey>("both");
   const [group, setGroup] = useState<number>(GROUPS[0]);
+  // The list under the mid: bids, or asks in the Asks view. In Both view the asks area has the
+  // same height (equal flex shares), so its count is the same.
+  const [area, setArea] = useState<HTMLElement | null>(null);
+  const rows = useRowCount(area);
 
   const asks = useMemo(
-    () => (book ? withTotals(groupLevels(book.asks, "ask", priceDecimals, group)) : []),
-    [book, priceDecimals, group],
+    () => (book ? withTotals(groupLevels(book.asks, "ask", priceDecimals, group)).slice(0, rows) : []),
+    [book, priceDecimals, group, rows],
   );
   const bids = useMemo(
-    () => (book ? withTotals(groupLevels(book.bids, "bid", priceDecimals, group)) : []),
-    [book, priceDecimals, group],
+    () => (book ? withTotals(groupLevels(book.bids, "bid", priceDecimals, group)).slice(0, rows) : []),
+    [book, priceDecimals, group, rows],
   );
   const QTY = 18;
   const shown = [...(view !== "bids" ? asks : []), ...(view !== "asks" ? bids : [])];
@@ -228,7 +251,7 @@ function FillBookView({
   const width = (total: string) => (max > BigInt(0) ? Number((toUnits(total, QTY) * BigInt(1000)) / max) / 10 : 0);
 
   const row = (l: { price: string; qty: string; total: string }, side: "bid" | "ask") => (
-    <li key={`${side}${l.price}`} className={FILL_ROW}>
+    <li key={`${side}${l.price}`} className={FILL_ROW} style={{ height: ROW_HEIGHT }}>
       <span
         aria-hidden="true"
         className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-up/35" : "bg-down/35")}
@@ -288,13 +311,13 @@ function FillBookView({
             </ul>
           ) : null}
           <p className="my-1 flex shrink-0 items-baseline justify-between border-y py-1.5 tabular-nums">
-            <span className="text-base font-bold">{mid ? formatMid(mid, priceDecimals) : "--"}</span>
+            <span className="text-base font-bold">{mid ? formatPrice(mid, priceDecimals) : "--"}</span>
             <span className="text-xs text-muted-foreground">{t("mid")}</span>
           </p>
           {view === "asks" ? (
-            <ul className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">{asks.map((l) => row(l, "ask"))}</ul>
+            <ul ref={setArea} className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">{asks.map((l) => row(l, "ask"))}</ul>
           ) : (
-            <ul className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">{bids.map((l) => row(l, "bid"))}</ul>
+            <ul ref={setArea} className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">{bids.map((l) => row(l, "bid"))}</ul>
           )}
         </>
       ) : (

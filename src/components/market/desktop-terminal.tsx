@@ -1,38 +1,30 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
 
 // Desktop (xl and up) layout shared by Spot, Options and Forex: a strip across the top, then
 // one fixed-height row (chart, book, trading) and a full-width bottom panel. Layout only: every
 // slot is built by the terminal, and the terminals mount this from xl and their own markup below
-// it, never both. With `chartShown` false the book and trading cards sit side by side, centred.
+// it, never both.
 export function DesktopTerminal({
   strip,
   chart,
   book,
   trading,
   bottom,
-  chartShown = true,
 }: {
   strip: ReactNode;
   chart: ReactNode;
   book: ReactNode;
   trading: ReactNode;
   bottom: ReactNode;
-  chartShown?: boolean;
 }) {
   const t = useTranslations("Terminal");
   const card = "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card";
   return (
     <div className="mx-auto w-full max-w-[1680px] px-6 pt-[calc(0.75rem+var(--safe-t))] pb-8">
       <div className="mb-4 flex min-h-[4.5rem] items-center rounded-xl border bg-card px-4 py-3 *:w-full">{strip}</div>
-      <div
-        className={cn(
-          "grid h-[620px] gap-4",
-          chartShown ? "grid-cols-[minmax(0,1fr)_300px_340px]" : "mx-auto w-fit grid-cols-[300px_340px]",
-        )}
-      >
-        {chartShown ? <div className="min-w-0 overflow-hidden rounded-xl border bg-card">{chart}</div> : null}
+      <div className="grid h-[620px] grid-cols-[minmax(0,1fr)_300px_340px] gap-4">
+        <div className="min-w-0 overflow-hidden rounded-xl border bg-card">{chart}</div>
         <section aria-label={t("book")} className={card}>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">{book}</div>
         </section>

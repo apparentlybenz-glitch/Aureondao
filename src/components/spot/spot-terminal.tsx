@@ -35,6 +35,7 @@ export function SpotTerminal() {
   const t = useTranslations("Spot");
   const m = useTranslations("Market");
   const shell = useTranslations("Shell");
+  const walletsT = useTranslations("Wallets");
   const params = useSearchParams();
   const [symbol, setSymbol] = useState(() => params.get("symbol") ?? readLastMarket());
   const [tab, setTab] = useState<Tab>("book");
@@ -70,7 +71,7 @@ export function SpotTerminal() {
       mode="real"
       market={market}
       base={market.base}
-      quote={market.quote}
+      quote={walletsT("currency")}
       priceDecimals={market.priceDecimals}
       qtyDecimals={market.qtyDecimals}
       fill={fill}
