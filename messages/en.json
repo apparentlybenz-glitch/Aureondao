@@ -34,7 +34,10 @@
       },
       "support": {
         "question": "How do I contact support?",
-        "answer": "Tap the support icon in the top bar, then choose a topic and write your subject and message. Messages can be up to 2,000 characters. Your ticket stays under Your tickets and AureonX Support replies in the same thread. You also get a notice when a reply arrives. There is no live chat."
+        "answer": "Tap the support icon in the top bar, then choose a topic and write your subject and message. Messages can be up to 2,000 characters. Your ticket stays under Your tickets and AureonX Support replies in the same thread. You also get a notice when a reply arrives. There is no live chat.",
+        "helpTitle": "Help Centre",
+        "helpBody": "Send a message to AureonX Support and follow the reply in your tickets.",
+        "helpButton": "Visit Support"
       }
     }
   },

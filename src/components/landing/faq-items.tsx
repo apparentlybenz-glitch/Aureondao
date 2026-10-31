@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { Mail } from "lucide-react";
 import type { useTranslations } from "next-intl";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { COINS, type CoinSymbol } from "@/lib/coins";
 
 export type FaqItem = { id: string; question: string; answer: ReactNode };
@@ -28,7 +32,7 @@ export function buildFaqItems(t: FaqTranslate, coinName: (symbol: CoinSymbol) =>
   return FAQ_KEYS.map((key) => ({
     id: key,
     question: t(`items.${key}.question`),
-    answer: key === "withdrawTime" ? withdrawAnswer(t) : <p>{t(`items.${key}.answer`, { coins })}</p>,
+    answer: key === "withdrawTime" ? withdrawAnswer(t) : key === "support" ? supportAnswer(t) : <p>{t(`items.${key}.answer`, { coins })}</p>,
   }));
 }
 
@@ -44,6 +48,24 @@ function withdrawAnswer(t: FaqTranslate): ReactNode {
         ))}
       </ul>
       <p>{t("items.withdrawTime.closing")}</p>
+    </div>
+  );
+}
+
+// The card sends the visitor to /support. A signed-out visitor is sent to
+// sign-in first by the proxy.
+function supportAnswer(t: FaqTranslate): ReactNode {
+  return (
+    <div className="space-y-4">
+      <p>{t("items.support.answer")}</p>
+      <div className="space-y-3 rounded-xl border bg-background p-4">
+        <Mail aria-hidden="true" className="size-5 text-primary" />
+        <p className="font-semibold text-primary">{t("items.support.helpTitle")}</p>
+        <p>{t("items.support.helpBody")}</p>
+        <Link href="/support" className={cn(buttonVariants({ variant: "outline" }), "h-10 w-full")}>
+          {t("items.support.helpButton")}
+        </Link>
+      </div>
     </div>
   );
 }
