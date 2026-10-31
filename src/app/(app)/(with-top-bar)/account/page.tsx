@@ -111,7 +111,7 @@ export default function AccountPage() {
       </dl>
 
       <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2" onChange={() => setStatus("idle")}>
-        <Field id="nickname" label={t("nickname")} defaultValue={profile.nickname} maxLength={32} required />
+        <Field id="nickname" label={t("nickname")} defaultValue={profile.nickname} maxLength={8} required />
         <Field id="phone" type="tel" label={t("phone")} defaultValue={profile.phone ?? ""} autoComplete="tel" />
         <div className="space-y-2 md:col-span-2">
           <FormError message={error ? rpcMessage(error) : null} />

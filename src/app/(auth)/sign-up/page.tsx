@@ -62,7 +62,7 @@ export default function SignUpPage() {
         autoComplete="new-password"
         required
       />
-      <Field id="nickname" label={t("nickname")} maxLength={32} autoComplete="nickname" />
+      <Field id="nickname" label={t("nickname")} maxLength={8} autoComplete="nickname" />
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="terms" required className="mt-0.5 size-4 shrink-0 accent-primary" />
         <span>
