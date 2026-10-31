@@ -226,8 +226,7 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 9. **No loosening of `tsconfig`, and no `eslint-disable` comments.**
 10. **Never export `runtime = 'edge'`.** OpenNext runs the Node.js runtime.
 11. **Suspension:** a suspended account cannot open exposure (Spot orders, Options and Forex positions, transfers); settlement and the void job always pay out and `admin_adjust_balance` still works (see the slice 7 migration above).
-12. **Deposit and Withdraw show no wallet address and take no request.** Users never request funds; an admin credits accounts through Top-Up.
-13. **KYC gates nothing**, and KYC photos live only in the private `kyc-photos` bucket under `{user_id}/`, read by admins only through short-lived signed URLs (see the slice 8 migration above).
+12. **KYC gates nothing**, and KYC photos live only in the private `kyc-photos` bucket under `{user_id}/`, read by admins only through short-lived signed URLs (see the slice 8 migration above).
 
 ## Compute budget rules
 
