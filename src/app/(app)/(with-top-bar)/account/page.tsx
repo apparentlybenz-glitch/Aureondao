@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useTranslations } from "next-intl";
 import { SignOutButton } from "@/components/app/sign-out-button";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
@@ -20,6 +21,13 @@ type Profile = {
   phone: string | null;
 };
 
+// The user sees a generic message for an unmapped error, so the real one goes to Sentry.
+function report(step: "load" | "save", error: { code?: string; message: string }) {
+  Sentry.captureException(new Error(`profile ${step} failed: ${error.code ?? "no code"} ${error.message}`), {
+    tags: { source: "account-profile" },
+  });
+}
+
 export default function AccountPage() {
   const t = useTranslations("Account");
   const c = useTranslations("Common");
@@ -33,14 +41,23 @@ export default function AccountPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    createClient()
-      .from("profiles")
-      .select("uid::text, email, nickname, phone")
-      .single<Profile>()
-      .then(({ data, error }) => {
-        if (error) setError(error);
-        else setProfile(data);
-      });
+    const supabase = createClient();
+    void (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const id = session.session?.user.id;
+      if (!id) return setError({ message: "No session" });
+      // Own row by id: an admin's RLS read covers every profile, so an unfiltered
+      // single() would fail with PGRST116 for them.
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("uid::text, email, nickname, phone")
+        .eq("id", id)
+        .single<Profile>();
+      if (error) {
+        report("load", error);
+        setError(error);
+      } else setProfile(data);
+    })();
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -55,6 +72,7 @@ export default function AccountPage() {
       })
       .single<Profile>();
     if (error) {
+      report("save", error);
       setError(error);
       setStatus("idle");
       return;

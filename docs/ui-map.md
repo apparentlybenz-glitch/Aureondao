@@ -740,7 +740,7 @@ Admin assumptions:
 Desktop captures of Profile, Security Center and Identity Verification step 1 exist. The built screens are Designed and differ from them as listed under "Differences from the captures"; nothing is copied from them, the reference's name, logo and wording are not used, and no screen may be described as matching any reference.
 
 Account assumptions:
-- **Tabs:** `/account` has a layout with three tabs, Profile, Verification and Security (underline on the active one, brand green). The tabs show only on those three routes; the flow route hides them.
+- **Tabs:** `/account` has a layout with four tabs, Profile, Verification, Security and Preferences (underline on the active one, brand green). The tabs show only on those four routes; the flow route hides them.
 - **Profile:** Country is read only and shows the country of the latest submission (any status) by its English name, or `--`. The Identity verification row shows the status badge and links to Verification. The editable form keeps Nickname and Phone (`update_profile(p_nickname, p_phone)`). The old Security text link is gone (the tab replaces it).
 - **Not started:** no `kyc_current` row means not started: badge "Not verified", status line "Verify your identity in four short steps.", no stepper stop done, and a Start button.
 - **Security:** unchanged from slice 1 apart from living under the Security tab: rows for email verification, authenticator app (enroll, verify, remove), password change, and passkeys and phone showing "Not available yet".
