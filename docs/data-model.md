@@ -691,7 +691,10 @@ Fix migration `20261026165953_ingest_prices_ignored_count.sql` replaces `ingest_
 | `spot_holdings`, `orders` in Realtime | Not published. Every order changes the Spot wallet, which is published, so screens refetch on that event (the Bills pattern) |
 | Slice 2: "the DB stores no display copy" | Spot rows carry a readable `memo` (brief), like "Balance adjustment" |
 
-### 16.4 Part C design (limit orders; not built)
+### 16.4 Part C design (limit orders; built in `20261031180000_spot_limit_orders.sql`, see CLAUDE.md)
+
+As built: item 4 runs inside `ingest_prices` (`claim_spot_fills`, `fill_spot_orders`) with the `aureonx-spot-match` cron as the safety net, not from `price-ingest`; `cancel_order` is `spot_cancel_order`; the cap is 20 open orders per user.
+
 
 1. `orders` gains `type` (`market`/`limit`), `status` (`open`/`filled`/`canceled`), `limit_price`, `hold_cents`, `hold_qty`, `filled_at`, `canceled_at`; `spot_holdings` gains `held_qty`.
 2. Placing a buy limit reserves `ceil(qty × limit × 100) + fee` through `wallet_apply` (`order_hold`: available −, held +); a sell limit moves `qty` from `available_qty` to `held_qty`.
