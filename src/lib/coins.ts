@@ -10,3 +10,14 @@ export const COINS = [
 
 export type CoinSymbol = (typeof COINS)[number]["symbol"];
 export type NetworkKey = (typeof COINS)[number]["networks"][number];
+
+// Minimum deposit per supported asset and network, shown in the landing FAQ.
+// `min` is a decimal string in units of `symbol`. The FAQ table reads only this.
+export const DEPOSIT_MINIMUMS = [
+  { id: "usdtTrc20", symbol: "USDT", network: "trc20", min: "10" },
+  { id: "usdtErc20", symbol: "USDT", network: "erc20", min: "50" },
+  { id: "btc", symbol: "BTC", network: "bitcoin", min: "0.0005" },
+  { id: "sol", symbol: "SOL", network: "solana", min: "0.1" },
+] as const satisfies readonly { id: string; symbol: CoinSymbol; network: NetworkKey; min: string }[];
+
+export type DepositMinimumId = (typeof DEPOSIT_MINIMUMS)[number]["id"];

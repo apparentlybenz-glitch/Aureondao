@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, TriangleAlert } from "lucide-react";
 import type { useTranslations } from "next-intl";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { COINS, type CoinSymbol } from "@/lib/coins";
+import { DEPOSIT_MINIMUMS } from "@/lib/coins";
 
 export type FaqItem = { id: string; question: string; answer: ReactNode };
 
@@ -21,18 +21,12 @@ export const FAQ_KEYS = [
 
 type FaqTranslate = ReturnType<typeof useTranslations<"Faq">>;
 
-function joinList(names: readonly string[]): string {
-  return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
-
-// Item 1 names the deposit coins from the shared config (src/lib/coins.ts).
-// No minimum amounts exist in the app, so it is a plain explanation, not a table.
-export function buildFaqItems(t: FaqTranslate, coinName: (symbol: CoinSymbol) => string): FaqItem[] {
-  const coins = joinList(COINS.map((c) => coinName(c.symbol)));
+// Item 1 builds its table from DEPOSIT_MINIMUMS in src/lib/coins.ts.
+export function buildFaqItems(t: FaqTranslate): FaqItem[] {
   return FAQ_KEYS.map((key) => ({
     id: key,
     question: t(`items.${key}.question`),
-    answer: key === "withdrawTime" ? withdrawAnswer(t) : key === "support" ? supportAnswer(t) : <p>{t(`items.${key}.answer`, { coins })}</p>,
+    answer: key === "deposit" ? depositAnswer(t) : key === "withdrawTime" ? withdrawAnswer(t) : key === "support" ? supportAnswer(t) : <p>{t(`items.${key}.answer`)}</p>,
   }));
 }
 
@@ -66,6 +60,38 @@ function supportAnswer(t: FaqTranslate): ReactNode {
           {t("items.support.helpButton")}
         </Link>
       </div>
+    </div>
+  );
+}
+
+function depositAnswer(t: FaqTranslate): ReactNode {
+  return (
+    <div className="space-y-3">
+      <p>{t("items.deposit.answer")}</p>
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-[20rem] text-left text-sm">
+          <thead className="bg-muted text-xs tracking-wide text-muted-foreground">
+            <tr>
+              <th scope="col" className="px-3 py-2 font-medium">{t("items.deposit.colAsset")}</th>
+              <th scope="col" className="px-3 py-2 font-medium">{t("items.deposit.colNetwork")}</th>
+              <th scope="col" className="px-3 py-2 font-medium">{t("items.deposit.colMinimum")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DEPOSIT_MINIMUMS.map((row) => (
+              <tr key={row.id} className="border-t">
+                <td className="px-3 py-2.5 font-medium text-foreground">{t(`items.deposit.rows.${row.id}.asset`)}</td>
+                <td className="px-3 py-2.5">{t(`items.deposit.rows.${row.id}.network`)}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-foreground">{`${row.min} ${row.symbol}`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="flex gap-2 rounded-lg bg-muted p-3 text-foreground">
+        <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        <span>{t("items.deposit.notice")}</span>
+      </p>
     </div>
   );
 }

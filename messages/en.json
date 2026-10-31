@@ -5,7 +5,17 @@
     "items": {
       "deposit": {
         "question": "What is the minimum deposit amount?",
-        "answer": "You can fund your balance in {coins}. AureonX does not publish a minimum deposit amount. There is no wallet address on the Deposit page and you do not send anything. AureonX credits your balance and the credit appears in Bills."
+        "answer": "AureonX accepts deposits in four assets only: USDT (TRC-20), USDT (ERC-20 / ETH), Bitcoin (BTC) and Solana (SOL). No other currencies or tokens are accepted. Please do not send unsupported assets as they cannot be recovered.",
+        "colAsset": "ASSET",
+        "colNetwork": "NETWORK",
+        "colMinimum": "MINIMUM DEPOSIT",
+        "notice": "Only send supported assets to their correct network address. Deposits sent to the wrong network are permanently lost.",
+        "rows": {
+          "usdtTrc20": { "asset": "USDT", "network": "TRC-20 (Tron)" },
+          "usdtErc20": { "asset": "USDT", "network": "ERC-20 (ETH)" },
+          "btc": { "asset": "Bitcoin", "network": "BTC" },
+          "sol": { "asset": "Solana", "network": "SOL" }
+        }
       },
       "depositTime": {
         "question": "How long do deposits take to show in my balance?",

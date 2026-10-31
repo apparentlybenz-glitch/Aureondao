@@ -8,9 +8,8 @@ import { buildFaqItems } from "./faq-items";
 
 export function Faq() {
   const t = useTranslations("Faq");
-  const tDeposit = useTranslations("Deposit");
   const base = useId();
-  const items = buildFaqItems(t, (symbol) => tDeposit(`coins.${symbol}`));
+  const items = buildFaqItems(t);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set([items[0].id]));
 
   function toggle(id: string) {
