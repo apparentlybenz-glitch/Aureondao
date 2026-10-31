@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/account/avatar";
 import { CopyButton } from "@/components/account/copy-button";
+import { InfoCard, InfoRow } from "@/components/account/info-card";
 import { SignOutButton } from "@/components/app/sign-out-button";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
@@ -17,28 +18,6 @@ import { PROFILE_SELECT, reportProfileError, useOwnProfile, type OwnProfile, typ
 import { createClient } from "@/lib/supabase/client";
 
 const NICKNAME_MAX = 8;
-
-// One row: label over value below md, side by side from md, the action on the right.
-function Row({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
-  return (
-    <div className="flex min-h-14 items-center justify-between gap-3 py-3">
-      <dl className="min-w-0 flex-1 md:flex md:items-center">
-        <dt className="text-xs text-muted-foreground md:w-48 md:shrink-0 md:text-sm">{label}</dt>
-        <dd className="mt-0.5 min-w-0 text-sm break-all md:mt-0">{children}</dd>
-      </dl>
-      {action ? <div className="shrink-0">{action}</div> : null}
-    </div>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border bg-card px-4 py-2 md:px-6 md:py-3">
-      <h2 className="py-2 text-base font-semibold">{title}</h2>
-      <div className="divide-y">{children}</div>
-    </section>
-  );
-}
 
 export default function AccountProfilePage() {
   const t = useTranslations("Account");
@@ -60,7 +39,7 @@ export default function AccountProfilePage() {
         <SignOutButton />
       </div>
 
-      <Card title={t("accountInfo")}>
+      <InfoCard title={t("accountInfo")}>
         <div className="py-3">
           <Avatar />
         </div>
@@ -73,7 +52,7 @@ export default function AccountProfilePage() {
             }}
           />
         ) : (
-          <Row
+          <InfoRow
             label={t("nickname")}
             action={
               <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)}>
@@ -82,18 +61,18 @@ export default function AccountProfilePage() {
             }
           >
             {profile.nickname}
-          </Row>
+          </InfoRow>
         )}
-        <Row label={t("uid")} action={<CopyButton value={profile.uid} label={t("copyUid")} />}>
+        <InfoRow label={t("uid")} action={<CopyButton value={profile.uid} label={t("copyUid")} />}>
           <span className="font-mono">{profile.uid}</span>
-        </Row>
-        <Row label={t("email")} action={profile.email ? <CopyButton value={profile.email} label={t("copyEmail")} /> : null}>
+        </InfoRow>
+        <InfoRow label={t("email")} action={profile.email ? <CopyButton value={profile.email} label={t("copyEmail")} /> : null}>
           {profile.email ?? "--"}
-        </Row>
-      </Card>
+        </InfoRow>
+      </InfoCard>
 
-      <Card title={t("kycDetails")}>
-        <Row
+      <InfoCard title={t("kycDetails")}>
+        <InfoRow
           label={k("title")}
           action={
             <Button asChild variant="secondary" size="sm">
@@ -102,9 +81,9 @@ export default function AccountProfilePage() {
           }
         >
           {kyc ? <KycBadge state={kycState(kyc.current)} /> : t("countryEmpty")}
-        </Row>
-        <Row label={t("country")}>{kyc?.current ? countryName(kyc.current.country) : t("countryEmpty")}</Row>
-      </Card>
+        </InfoRow>
+        <InfoRow label={t("country")}>{kyc?.current ? countryName(kyc.current.country) : t("countryEmpty")}</InfoRow>
+      </InfoCard>
     </div>
   );
 }

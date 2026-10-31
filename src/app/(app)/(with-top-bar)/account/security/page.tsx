@@ -3,24 +3,18 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { InfoCard, InfoRow, StatusPill } from "@/components/account/info-card";
 import { Field, FormError } from "@/components/auth/field";
+import { PasswordInput } from "@/components/auth/password-input";
 import { useAuthMessage } from "@/components/auth/use-auth-message";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "@/lib/use-hydrated";
 
 type Enrollment = { factorId: string; qr: string; secret: string };
 
-function Row({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3 rounded-xl border p-4">
-      <h2 className="font-medium">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
+// Security Center in the Profile page's card and row layout: Account protection
+// (authenticator app, password) and More sign-in options (not available yet).
 export default function SecurityPage() {
   const t = useTranslations("Security");
   const c = useTranslations("Common");
@@ -28,9 +22,8 @@ export default function SecurityPage() {
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [totpError, setTotpError] = useState<string | null>(null);
-  const [pwError, setPwError] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
   const [pwDone, setPwDone] = useState(false);
-  const hydrated = useHydrated();
 
   const loadFactors = useCallback(async () => {
     const { data } = await createClient().auth.mfa.listFactors();
@@ -90,79 +83,133 @@ export default function SecurityPage() {
     else await loadFactors();
   }
 
-  async function changePassword(e: React.FormEvent<HTMLFormElement>) {
+  return (
+    <div className="space-y-5">
+      <h1 className="text-xl font-semibold">{t("title")}</h1>
+
+      <InfoCard title={t("protectionTitle")}>
+        <div>
+          <InfoRow
+            label={t("totpTitle")}
+            action={
+              totpFactorId ? (
+                <Button type="button" variant="destructive" size="sm" onClick={removeTotp}>
+                  {t("totpDisable")}
+                </Button>
+              ) : enrollment ? null : (
+                <Button type="button" variant="secondary" size="sm" onClick={startEnroll}>
+                  {t("totpEnable")}
+                </Button>
+              )
+            }
+          >
+            <StatusPill on={!!totpFactorId}>{totpFactorId ? t("totpOn") : t("totpOff")}</StatusPill>
+          </InfoRow>
+          {enrollment ? (
+            <form onSubmit={verifyEnroll} className="space-y-3 pb-3">
+              <p className="text-sm text-muted-foreground">{t("totpScan")}</p>
+              <Image src={enrollment.qr} alt="" width={176} height={176} className="rounded bg-white p-2" />
+              <p className="text-xs">
+                {t("totpSecret")}: <code className="break-all">{enrollment.secret}</code>
+              </p>
+              <Field id="totp" label={t("totpCode")} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required />
+              <div className="flex gap-2">
+                <Button type="submit" className="h-10 flex-1 md:flex-none md:px-5">
+                  {t("totpVerify")}
+                </Button>
+                <Button type="button" variant="secondary" className="h-10 flex-1 md:flex-none md:px-5" onClick={() => setEnrollment(null)}>
+                  {c("cancel")}
+                </Button>
+              </div>
+            </form>
+          ) : null}
+          {totpError ? (
+            <div className="pb-3">
+              <FormError message={totpError} />
+            </div>
+          ) : null}
+        </div>
+
+        {changing ? (
+          <PasswordForm
+            onDone={(changed) => {
+              setChanging(false);
+              setPwDone(changed);
+            }}
+          />
+        ) : (
+          <InfoRow
+            label={t("passwordLabel")}
+            action={
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPwDone(false);
+                  setChanging(true);
+                }}
+              >
+                {t("passwordChange")}
+              </Button>
+            }
+          >
+            {pwDone ? <span className="text-primary">{t("passwordChanged")}</span> : t("passwordMask")}
+          </InfoRow>
+        )}
+      </InfoCard>
+
+      <InfoCard title={t("moreTitle")}>
+        <InfoRow label={t("passkeysTitle")}>
+          <StatusPill>{t("unavailable")}</StatusPill>
+        </InfoRow>
+        <InfoRow label={t("phoneTitle")}>
+          <StatusPill>{t("unavailable")}</StatusPill>
+        </InfoRow>
+      </InfoCard>
+    </div>
+  );
+}
+
+// Inline password change, opened from the Password row like the Profile nickname edit.
+// The submit waits for hydration (CLAUDE.md: a native GET submit would put the
+// password in the URL).
+function PasswordForm({ onDone }: { onDone: (changed: boolean) => void }) {
+  const t = useTranslations("Security");
+  const c = useTranslations("Common");
+  const authMessage = useAuthMessage();
+  const hydrated = useHydrated();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setPwError(null);
-    setPwDone(false);
-    const formEl = e.currentTarget;
-    const password = String(new FormData(formEl).get("new-password"));
+    setSaving(true);
+    setError(null);
+    const password = String(new FormData(e.currentTarget).get("new-password"));
     const { error } = await createClient().auth.updateUser({ password });
-    if (error) setPwError(authMessage(error));
-    else {
-      setPwDone(true);
-      formEl.reset();
-    }
+    setSaving(false);
+    if (error) setError(authMessage(error));
+    else onDone(true);
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
-
-      <Row title={t("totpTitle")}>
-        <div className="flex items-center justify-between">
-          <Badge variant={totpFactorId ? "default" : "secondary"}>
-            {totpFactorId ? t("totpOn") : t("totpOff")}
-          </Badge>
-          {totpFactorId ? (
-            <Button variant="destructive" size="sm" onClick={removeTotp}>
-              {t("totpDisable")}
-            </Button>
-          ) : (
-            !enrollment && (
-              <Button size="sm" onClick={startEnroll}>
-                {t("totpEnable")}
-              </Button>
-            )
-          )}
-        </div>
-        {enrollment && (
-          <form onSubmit={verifyEnroll} className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("totpScan")}</p>
-            <Image src={enrollment.qr} alt="" width={176} height={176} className="rounded bg-white p-2" />
-            <p className="text-xs">
-              {t("totpSecret")}: <code className="break-all">{enrollment.secret}</code>
-            </p>
-            <Field id="totp" label={t("totpCode")} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required />
-            <div className="flex gap-2">
-              <Button type="submit" className="h-10">
-                {t("totpVerify")}
-              </Button>
-              <Button type="button" variant="ghost" className="h-10" onClick={() => setEnrollment(null)}>
-                {c("cancel")}
-              </Button>
-            </div>
-          </form>
-        )}
-        <FormError message={totpError} />
-      </Row>
-
-      <Row title={t("passwordTitle")}>
-        <form onSubmit={changePassword} className="space-y-3">
-          <Field id="new-password" type="password" label={c("password")} autoComplete="new-password" required />
-          <FormError message={pwError} />
-          {pwDone && <p className="text-sm">{t("passwordChanged")}</p>}
-          <Button type="submit" className="h-10 w-full md:w-auto" disabled={!hydrated}>
-            {t("passwordSubmit")}
-          </Button>
-        </form>
-      </Row>
-
-      <Row title={t("passkeysTitle")}>
-        <Badge variant="outline">{t("unavailable")}</Badge>
-      </Row>
-      <Row title={t("phoneTitle")}>
-        <Badge variant="outline">{t("unavailable")}</Badge>
-      </Row>
-    </div>
+    <form onSubmit={onSubmit} className="space-y-2 py-3">
+      <label htmlFor="new-password" className="text-xs text-muted-foreground md:text-sm">
+        {t("newPassword")}
+      </label>
+      <div className="md:max-w-xs">
+        <PasswordInput id="new-password" name="new-password" className="h-10" autoComplete="new-password" required autoFocus />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" className="h-10 flex-1 md:flex-none md:px-5" disabled={!hydrated || saving}>
+          {saving ? c("loading") : t("passwordSubmit")}
+        </Button>
+        <Button type="button" variant="secondary" className="h-10 flex-1 md:flex-none md:px-5" onClick={() => onDone(false)}>
+          {c("cancel")}
+        </Button>
+      </div>
+      <FormError message={error} />
+    </form>
   );
 }
