@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
+import { DesktopTerminal } from "@/components/market/desktop-terminal";
 import { OrderBook } from "@/components/market/order-book";
+import { CryptoStrip } from "@/components/market/terminal-strip";
 import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { TradesPanel } from "@/components/spot/book-panels";
 import { isPositiveDecimal } from "@/lib/market/decimal";
@@ -14,10 +16,10 @@ import { useOptionPeriods, useOptionPositions } from "@/lib/options";
 import { useServerClockSync } from "@/lib/server-clock";
 import { usePriceFeedDemand } from "@/lib/spot";
 import { midPrice } from "@/lib/spot-math";
-import { LG, useMediaQuery } from "@/lib/use-media-query";
+import { LG, XL, useMediaQuery } from "@/lib/use-media-query";
 import { useWallets } from "@/lib/wallets";
 import { OptionTicket } from "./option-ticket";
-import { OptionsHeader } from "./options-header";
+import { OptionsHeader, OptionsInfo, OptionsMarketPicker } from "./options-header";
 import { PositionsPanel } from "./positions-panel";
 
 const DEFAULT_MARKET = "BTC-USDT";
@@ -37,6 +39,7 @@ export function OptionsTerminal() {
   usePriceFeedDemand();
   useServerClockSync();
   const wide = useMediaQuery(LG);
+  const desktop = useMediaQuery(XL);
 
   const optionMarkets = markets?.filter((x) => x.optionsEnabled) ?? [];
   const market = optionMarkets.find((x) => x.id === symbol) ?? optionMarkets[0] ?? null;
@@ -68,6 +71,50 @@ export function OptionsTerminal() {
     />
   );
 
+  const ticket = (
+    <OptionTicket
+      key={market.id}
+      market={market}
+      mid={mid}
+      periods={periods}
+      available={options ? options.available : null}
+      onOpened={() => void positions.reload()}
+    />
+  );
+  const positionsPanel = (
+    <PositionsPanel
+      open={positions.open}
+      fills={positions.fills}
+      error={positions.error}
+      markets={markets}
+      currentId={market.id}
+    />
+  );
+
+  // From xl the shared desktop layout replaces everything below.
+  if (desktop) {
+    return (
+      <>
+        <DesktopTerminal
+          strip={
+            <CryptoStrip
+              market={market}
+              ticker={ticker}
+              now={now}
+              picker={<OptionsMarketPicker market={market} markets={optionMarkets} onPick={setSymbol} />}
+              actions={<OptionsInfo periods={periods} />}
+            />
+          }
+          chart={<TradingViewChart key={market.id} symbol={market.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
+          book={depth}
+          trading={ticket}
+          bottom={positionsPanel}
+        />
+        <SupportFab />
+      </>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))] md:pb-8">
       <OptionsHeader
@@ -84,24 +131,11 @@ export function OptionsTerminal() {
           <TradingViewChart key={market.id} symbol={market.tvSymbol} />
         </div>
         <div className="lg:col-start-1 lg:row-start-2">
-          <OptionTicket
-            key={market.id}
-            market={market}
-            mid={mid}
-            periods={periods}
-            available={options ? options.available : null}
-            onOpened={() => void positions.reload()}
-          />
+          {ticket}
         </div>
         {wide ? <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{depth}</aside> : null}
       </div>
-      <PositionsPanel
-        open={positions.open}
-        fills={positions.fills}
-        error={positions.error}
-        markets={markets}
-        currentId={market.id}
-      />
+      {positionsPanel}
       <SupportFab />
     </div>
   );

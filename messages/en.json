@@ -1,4 +1,10 @@
 {
+  "Terminal": {
+    "book": "Order book",
+    "trading": "Trading",
+    "buy": "Buy",
+    "sell": "Sell"
+  },
   "Faq": {
     "title": "Frequently Asked Questions",
     "subtitle": "Everything you need to know before getting started.",
