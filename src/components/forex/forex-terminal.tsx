@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
+import { DesktopTerminal } from "@/components/market/desktop-terminal";
 import { OrderBook } from "@/components/market/order-book";
+import { TerminalStrip } from "@/components/market/terminal-strip";
 import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { FOREX_PAIRS } from "@/lib/forex-pairs";
 import { formatPrice } from "@/lib/market/decimal";
-import { LG, useMediaQuery } from "@/lib/use-media-query";
-import { ForexHeader } from "./forex-header";
+import { LG, XL, useMediaQuery } from "@/lib/use-media-query";
+import { ForexHeader, ForexPairPicker } from "./forex-header";
 import { ForexPositions } from "./forex-positions";
 import { ForexTicket } from "./forex-ticket";
 
@@ -24,9 +26,11 @@ export function ForexTerminal() {
   const [bookShown, setBookShown] = useState(false);
   const pair = FOREX_PAIRS.find((p) => p.symbol === symbol) ?? FOREX_PAIRS[0];
   const wide = useMediaQuery(LG);
+  const desktop = useMediaQuery(XL);
   const [base, quote] = pair.display.split("/");
-  const depth = (
+  const depthFor = (fill: boolean) => (
     <DepthTabs
+      fill={fill}
       book={
         <OrderBook
           mode="generated"
@@ -36,10 +40,33 @@ export function ForexTerminal() {
           quote={quote}
           priceDecimals={pair.priceDecimals}
           qtyDecimals={QTY_DECIMALS}
+          fill={fill}
         />
       }
     />
   );
+  const depth = depthFor(false);
+
+  // From xl the shared desktop layout replaces everything below. No stat cells until pricing lands.
+  if (desktop) {
+    return (
+      <>
+        <DesktopTerminal
+          strip={
+            <TerminalStrip
+              picker={<ForexPairPicker pair={pair} pairs={FOREX_PAIRS} onPick={setSymbol} />}
+              price={formatPrice(pair.mid, pair.priceDecimals)}
+            />
+          }
+          chart={<TradingViewChart key={pair.symbol} symbol={pair.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
+          book={depthFor(true)}
+          trading={<ForexTicket key={pair.symbol} pair={pair} mid={formatPrice(pair.mid, pair.priceDecimals)} />}
+          bottom={<ForexPositions />}
+        />
+        <SupportFab />
+      </>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 pt-[calc(0.75rem+var(--safe-t))] pb-[calc(var(--tab-bar-h)+5rem+var(--safe-b))] md:pb-8">

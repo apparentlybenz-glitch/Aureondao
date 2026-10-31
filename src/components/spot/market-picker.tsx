@@ -17,15 +17,18 @@ export function MarketPicker({
   market,
   ticker,
   onPick,
+  showChange = true,
 }: {
   market: Market;
   ticker: Ticker | undefined;
   onPick: (id: string) => void;
+  // The desktop strip shows the change under the price, so it hides the badge here.
+  showChange?: boolean;
 }) {
   const t = useTranslations("Spot");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const change = ticker ? formatChange(ticker.changePct) : null;
+  const change = ticker && showChange ? formatChange(ticker.changePct) : null;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>

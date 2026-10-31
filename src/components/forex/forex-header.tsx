@@ -25,6 +25,67 @@ export function PairIcon({ icon, className }: { icon: string; className?: string
   );
 }
 
+// The pair button and the pairs sheet it opens. Shared by the header and the desktop strip.
+export function ForexPairPicker({
+  pair,
+  pairs,
+  onPick,
+}: {
+  pair: ForexPair;
+  pairs: readonly ForexPair[];
+  onPick: (symbol: string) => void;
+}) {
+  const t = useTranslations("Forex");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  return (
+    <Dialog.Root open={pickerOpen} onOpenChange={setPickerOpen}>
+      <Dialog.Trigger asChild>
+        <button
+          type="button"
+          aria-label={t("choosePair", { symbol: pair.display })}
+          className="flex min-w-0 items-center gap-1.5"
+        >
+          <PairIcon icon={pair.icon} />
+          <span className="text-lg font-semibold">{pair.display}</span>
+          <ChevronDown className="size-4 text-muted-foreground" />
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Content aria-describedby={undefined} className={sheet}>
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <Dialog.Title className="text-base font-semibold">{t("pairsTitle")}</Dialog.Title>
+            <Dialog.Close aria-label={t("close")} className="flex size-9 items-center justify-center rounded-full">
+              <X className="size-5" />
+            </Dialog.Close>
+          </div>
+          <ul className="px-2">
+            {pairs.map((p) => (
+              <li key={p.symbol}>
+                <button
+                  type="button"
+                  aria-pressed={p.symbol === pair.symbol}
+                  onClick={() => {
+                    onPick(p.symbol);
+                    setPickerOpen(false);
+                  }}
+                  className={cn(
+                    "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
+                    p.symbol === pair.symbol ? "bg-muted text-primary" : "",
+                  )}
+                >
+                  <PairIcon icon={p.icon} />
+                  {p.display}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 // Pair picker and order book toggle (below lg), copied from OptionsHeader.
 export function ForexHeader({
   pair,
@@ -40,64 +101,15 @@ export function ForexHeader({
   onToggleBook: () => void;
 }) {
   const t = useTranslations("Forex");
-  const shell = useTranslations("Shell");
-  const [pickerOpen, setPickerOpen] = useState(false);
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
 
   return (
     <header className="mb-3 flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-1">
-        <Dialog.Root open={pickerOpen} onOpenChange={setPickerOpen}>
-          <Dialog.Trigger asChild>
-            <button
-              type="button"
-              aria-label={t("choosePair", { symbol: pair.display })}
-              className="flex min-w-0 items-center gap-1.5"
-            >
-              <PairIcon icon={pair.icon} />
-              <span className="text-lg font-semibold">{pair.display}</span>
-              <ChevronDown className="size-4 text-muted-foreground" />
-            </button>
-          </Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-            <Dialog.Content aria-describedby={undefined} className={sheet}>
-              <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                <Dialog.Title className="text-base font-semibold">{t("pairsTitle")}</Dialog.Title>
-                <Dialog.Close aria-label={t("close")} className="flex size-9 items-center justify-center rounded-full">
-                  <X className="size-5" />
-                </Dialog.Close>
-              </div>
-              <ul className="px-2">
-                {pairs.map((p) => (
-                  <li key={p.symbol}>
-                    <button
-                      type="button"
-                      aria-pressed={p.symbol === pair.symbol}
-                      onClick={() => {
-                        onPick(p.symbol);
-                        setPickerOpen(false);
-                      }}
-                      className={cn(
-                        "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
-                        p.symbol === pair.symbol ? "bg-muted text-primary" : "",
-                      )}
-                    >
-                      <PairIcon icon={p.icon} />
-                      {p.display}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        <ForexPairPicker pair={pair} pairs={pairs} onPick={onPick} />
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
-          {shell("virtualPill")}
-        </span>
         <button
           type="button"
           aria-pressed={bookShown}
