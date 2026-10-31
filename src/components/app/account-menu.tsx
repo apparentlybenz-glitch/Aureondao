@@ -44,7 +44,7 @@ export function AccountMenu({ align = "start" }: { align?: "start" | "end" }) {
             </DropdownMenu.Item>
           )}
           <DropdownMenu.Item asChild className={item}>
-            <Link href="/account">{t("menu.profile")}</Link>
+            <Link href="/account/profile">{t("menu.profile")}</Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild className={item}>
             <Link href="/account/security">{t("menu.security")}</Link>

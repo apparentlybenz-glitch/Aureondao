@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Sparkline } from "@/components/market/sparkline";
 import { formatChange, formatPrice } from "@/lib/market/decimal";
 import { isDelayed } from "@/lib/market/types";
 import type { Ticker } from "@/lib/market/types";
@@ -10,8 +11,6 @@ import { cn } from "@/lib/utils";
 
 const CARD_IDS = ["BTC-USDT", "ETH-USDT", "SOL-USDT"] as const;
 const MAX_POINTS = 60;
-const W = 48;
-const H = 20;
 
 // Last prices seen from the shared market store's poll, in memory for this
 // page view. No request of its own: a point is added when a new ticker lands.
@@ -31,19 +30,6 @@ function useLastHistory(tickers: Readonly<Record<string, Ticker>>) {
     setHistory(next);
   }
   return history;
-}
-
-function Sparkline({ values, className }: { values: number[]; className: string }) {
-  const min = Math.min(...values);
-  const span = Math.max(...values) - min;
-  const points = values
-    .map((v, i) => `${((i / (values.length - 1)) * W).toFixed(1)},${(span === 0 ? H / 2 : H - 1 - ((v - min) / span) * (H - 2)).toFixed(1)}`)
-    .join(" ");
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true" className="h-5 w-12 shrink-0">
-      <polyline points={points} fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} />
-    </svg>
-  );
 }
 
 // Three cards in one row: ticker and sparkline, then price and 24 h change.

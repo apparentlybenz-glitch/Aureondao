@@ -6,21 +6,23 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { key: "profile", href: "/account" },
-  { key: "verification", href: "/account/verification" },
+  { key: "overview", href: "/account" },
+  { key: "profile", href: "/account/profile" },
   { key: "security", href: "/account/security" },
+  { key: "verification", href: "/account/verification" },
   { key: "preferences", href: "/account/preferences" },
 ] as const;
 
-// Profile, Verification, Security and Preferences. Hidden inside the verification flow,
-// which has its own header and stepper.
+// Overview, Profile, Security, Verification and Preferences at every width. The row
+// scrolls sideways on narrow screens instead of wrapping. Hidden inside the
+// verification flow, which has its own header and stepper.
 export function AccountTabs() {
   const t = useTranslations("Account");
   const pathname = usePathname();
   if (!TABS.some((tab) => tab.href === pathname)) return null;
   return (
-    <nav aria-label={t("tabsLabel")} className="-mx-4 mb-5 border-b px-4">
-      <ul className="flex gap-6">
+    <nav aria-label={t("tabsLabel")} className="-mx-4 mb-5 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--color-border)] [scrollbar-width:none]">
+      <ul className="flex w-max gap-6">
         {TABS.map(({ key, href }) => {
           const active = pathname === href;
           return (
@@ -29,7 +31,7 @@ export function AccountTabs() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
+                  "flex h-11 items-center border-b-2 text-sm font-medium whitespace-nowrap",
                   active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
                 )}
               >

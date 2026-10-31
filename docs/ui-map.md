@@ -70,7 +70,8 @@ src/
       assets/withdraw/fiat/page.tsx
       assets/transfer/page.tsx
       assets/bills/page.tsx
-      account/page.tsx         /account (Profile)
+      account/page.tsx         /account (Overview)
+      account/profile/page.tsx /account/profile (Profile)
       account/security/page.tsx
       account/kyc/page.tsx
     admin/
@@ -134,7 +135,8 @@ Legend:
 | Withdraw fiat | `/assets/withdraw/fiat` | (app) | S+C | U + MFA + KYC approved | Stepper: Currency → BeneficiaryForm → Amount → Confirm |
 | Transfer | `/assets/transfer` | (app) | S+C | U | TransferForm (From wallet ⇄ To wallet swap button, asset, amount, Max), RecentTransfers |
 | Bills | `/assets/bills` | (app) | S+C | U | BillsFilters (wallet, type, asset, date range), BillsTable (keyset pagination), BillDetailSheet |
-| Profile | `/account` | (app) | S+C | U | ProfileCard (nickname editable, UID copy, email, phone; country and KycStatusBadge from the latest KYC submission since slice 8) |
+| Account overview | `/account` | (app) | S+C | U | Identity strip (default avatar, nickname, UID copy, masked email, KYC badge, Country/Region, View profile) and the total balance with eye toggle, Deposit, Withdraw, Transfer and a 7 day ledger sparkline (decisions Part 1h) |
+| Profile | `/account/profile` | (app) | S+C | U | Account info (default avatar, nickname with inline Edit, UID and Email with Copy; no phone row) and KYC details (status with View details, Country/Region) |
 | Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone; needs Supabase's paid Advanced MFA add-on, decisions.md O8), Email verification status, Change password; SecurityScore |
 | KYC | `/account/kyc` | (app) | S+C | U | KycStepper: Country → DocType → PersonalInfo → DocumentUpload (front/back) + Selfie → Review & submit; KycStatusPanel (pending/approved/rejected + reason) |
 | Admin dashboard | `/admin` | admin | S+C | A + MFA | QueueCountCards (pending deposits, withdrawals, KYC), RecentAuditList |
@@ -380,7 +382,7 @@ Assumptions (Described and Designed screens, plus choices inside the Captured on
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
 - **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills and Options (live since slice 5) are links; Forex and Support show a "Soon" badge and are not links (owner decision, Day 6); Deposit links to `/assets/deposit` since slice 7 (§4.15). The avatar is a generic icon (no extra profile fetch).
-- **Assets:** one card per wallet in fixed order (Capital, Spot, Forex, Options) with available and, when non-zero, frozen. No profit chart (slice 5).
+- **Assets:** one card per wallet in fixed order (Capital, Spot, Forex, Options) with available and, when non-zero, frozen. No profit chart (slice 5); the account Overview has a 7 day balance sparkline (decisions Part 1h).
 - **Transfer:** native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
 - **Admin:** replaced in slice 7 (§4.15).
@@ -740,8 +742,9 @@ Admin assumptions:
 Desktop captures of Profile, Security Center and Identity Verification step 1 exist. The built screens are Designed and differ from them as listed under "Differences from the captures"; nothing is copied from them, the reference's name, logo and wording are not used, and no screen may be described as matching any reference.
 
 Account assumptions:
-- **Tabs:** `/account` has a layout with four tabs, Profile, Verification, Security and Preferences (underline on the active one, brand green). The tabs show only on those four routes; the flow route hides them.
-- **Profile:** Country is read only and shows the country of the latest submission (any status) by its English name, or `--`. The Identity verification row shows the status badge and links to Verification. The editable form keeps Nickname and Phone (`update_profile(p_nickname, p_phone)`). The old Security text link is gone (the tab replaces it).
+- **Tabs:** `/account` has a layout with five tabs at every width, Overview (`/account`), Profile (`/account/profile`), Security, Verification and Preferences (underline on the active one, brand green); below `md` the row scrolls sideways and does not wrap. The tabs show only on those five routes; the flow route hides them.
+- **Overview:** an identity card (default avatar, nickname, UID with an icon Copy, email masked as the first two characters, `****`, then the last two before the @, the KYC badge linking to Verification, Country/Region, View profile) and a balance card (Assets label "Total balance" with the eye toggle, the wallet total in USD, Deposit, Withdraw and Transfer, the 7 day sparkline captioned "Last 7 days", red when the window ends lower than it began, hidden with the amounts).
+- **Profile:** two cards. Account info: default avatar, Nickname with Edit (inline form, at most 8 characters, `update_profile` with the stored phone passed back), UID and Email each with Copy. KYC details: Identity verification badge with View details to Verification, and Country/Region (latest submission of any status, or `--`). Below `md` each row stacks label over value with the action on the right; from `md` label and value sit side by side. No phone row.
 - **Not started:** no `kyc_current` row means not started: badge "Not verified", status line "Verify your identity in four short steps.", no stepper stop done, and a Start button.
 - **Security:** unchanged from slice 1 apart from living under the Security tab: rows for email verification, authenticator app (enroll, verify, remove), password change, and passkeys and phone showing "Not available yet".
 - **Status card:** title "Identity verification", a badge (Not verified grey, Pending review amber, Verified green, Rejected red), one status line, a four-stop stepper (Country & ID, Personal info, Documents, Review: none done when not started, all four done otherwise), the rejection reason in a red box when rejected, "Submitted <date>" when a submission exists, and one button: Start (not started), Update (verified), Resubmit (rejected), none while pending. The not-started status line, "Verify your identity in four short steps.", is ours; the other three are the owner's.
@@ -751,8 +754,7 @@ Account assumptions:
 Differences from the captures (the tab set, the four-step flow with its dot stepper and the Security rows are described above):
 - Step 1 holds the country select and the document type cards together, with no numbered heading.
 - Step 1 has no info card about the process and no privacy note with a shield icon; the only notice is the sample-image warning on the photo step.
-- Profile is one block (UID with Copy, Email, Country, Identity verification) plus the Nickname and Phone form: no separate Account Info and KYC Details blocks, no Edit button, no Copy on Email or Phone.
-- The Identity verification row is a badge that links to Verification, not a "View Details" button.
+- Profile has a default avatar only (no upload) and no phone row.
 - Security rows do not each end in one outlined button: the password change is an inline form, the authenticator uses filled or red buttons, and email, passkeys and phone show status text only.
 
 KYC Review assumptions:

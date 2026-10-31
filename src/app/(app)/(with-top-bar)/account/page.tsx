@@ -1,143 +1,151 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import * as Sentry from "@sentry/nextjs";
+import { useState } from "react";
+import { ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { SignOutButton } from "@/components/app/sign-out-button";
+import { Avatar } from "@/components/account/avatar";
+import { CopyButton } from "@/components/account/copy-button";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
-import { ChevronRight } from "lucide-react";
-import { Field, FormError } from "@/components/auth/field";
+import { FormError } from "@/components/auth/field";
 import { KycBadge } from "@/components/kyc/kyc-badge";
+import { Sparkline } from "@/components/market/sparkline";
 import { Button } from "@/components/ui/button";
+import { useBalanceHistory } from "@/lib/balance-history";
 import { countryName } from "@/lib/countries";
 import { kycState, useOwnKyc } from "@/lib/kyc";
-import { createClient } from "@/lib/supabase/client";
+import { maskEmail } from "@/lib/mask-email";
+import { formatCents } from "@/lib/money";
+import { useOwnProfile } from "@/lib/own-profile";
+import { totalCents, useWallets } from "@/lib/wallets";
 
-type Profile = {
-  uid: string;
-  email: string | null;
-  nickname: string;
-  phone: string | null;
-};
-
-// The user sees a generic message for an unmapped error, so the real one goes to Sentry.
-function report(step: "load" | "save", error: { code?: string; message: string }) {
-  Sentry.captureException(new Error(`profile ${step} failed: ${error.code ?? "no code"} ${error.message}`), {
-    tags: { source: "account-profile" },
-  });
-}
-
-export default function AccountPage() {
+// Account Overview: identity strip, then the total balance with a 7 day line.
+export default function AccountOverviewPage() {
   const t = useTranslations("Account");
   const c = useTranslations("Common");
   const k = useTranslations("Kyc");
   const rpcMessage = useRpcMessage();
-  // Identity verification and Country both come from the latest KYC submission.
+  const { profile, error } = useOwnProfile();
   const { kyc } = useOwnKyc();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<{ code?: string; message: string } | null>(null);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    void (async () => {
-      const { data: session } = await supabase.auth.getSession();
-      const id = session.session?.user.id;
-      if (!id) return setError({ message: "No session" });
-      // Own row by id: an admin's RLS read covers every profile, so an unfiltered
-      // single() would fail with PGRST116 for them.
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("uid::text, email, nickname, phone")
-        .eq("id", id)
-        .single<Profile>();
-      if (error) {
-        report("load", error);
-        setError(error);
-      } else setProfile(data);
-    })();
-  }, []);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setStatus("saving");
-    setError(null);
-    const form = new FormData(e.currentTarget);
-    const { data, error } = await createClient()
-      .rpc("update_profile", {
-        p_nickname: String(form.get("nickname")),
-        p_phone: String(form.get("phone")),
-      })
-      .single<Profile>();
-    if (error) {
-      report("save", error);
-      setError(error);
-      setStatus("idle");
-      return;
-    }
-    setProfile(data);
-    setStatus("saved");
-  }
-
-  if (!profile) {
-    return error ? <FormError message={rpcMessage(error)} /> : <p className="text-sm">{c("loading")}</p>;
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{t("profileTitle")}</h1>
-        <SignOutButton />
-      </div>
+    <div className="space-y-5">
+      <h1 className="sr-only">{t("overviewTitle")}</h1>
+      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-4 md:flex-row md:items-center md:justify-between md:p-6">
+        <div className="flex min-w-0 items-center gap-3 md:gap-4">
+          <Avatar className="md:size-16" />
+          <div className="min-w-0 space-y-1.5">
+            {profile ? (
+              <p className="truncate text-lg font-semibold">{profile.nickname}</p>
+            ) : error ? (
+              <FormError message={rpcMessage(error)} />
+            ) : (
+              <p className="text-sm text-muted-foreground">{c("loading")}</p>
+            )}
+            <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <dt>{t("uid")}</dt>
+                <dd className="flex items-center gap-0.5 font-mono text-foreground">
+                  {profile?.uid ?? "--"}
+                  {profile ? <CopyButton value={profile.uid} label={t("copyUid")} iconOnly /> : null}
+                </dd>
+              </div>
+              <div className="flex min-w-0 items-center gap-1">
+                <dt>{t("email")}</dt>
+                <dd className="truncate text-foreground">{profile?.email ? maskEmail(profile.email) : "--"}</dd>
+              </div>
+            </dl>
+            <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <dt>{k("title")}</dt>
+                <dd>
+                  <Link href="/account/verification" className="-my-1 inline-flex h-7 items-center gap-0.5">
+                    {kyc ? <KycBadge state={kycState(kyc.current)} /> : <span>{t("countryEmpty")}</span>}
+                    <ChevronRight className="size-3.5" />
+                  </Link>
+                </dd>
+              </div>
+              <div className="flex items-center gap-1">
+                <dt>{t("country")}</dt>
+                <dd className="text-foreground">{kyc?.current ? countryName(kyc.current.country) : t("countryEmpty")}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <Button asChild variant="secondary" className="h-10 w-full md:w-auto md:px-5">
+          <Link href="/account/profile">{t("viewProfile")}</Link>
+        </Button>
+      </section>
 
-      <dl className="grid gap-3 rounded-xl border p-4 text-sm md:grid-cols-2">
-        <div>
-          <dt className="text-muted-foreground">{t("uid")}</dt>
-          <dd className="flex items-center gap-2 font-mono">
-            {profile.uid}
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={async () => {
-                await navigator.clipboard.writeText(String(profile.uid));
-                setCopied(true);
-              }}
+      <BalanceCard />
+    </div>
+  );
+}
+
+function BalanceCard() {
+  const t = useTranslations("Account");
+  const a = useTranslations("Assets");
+  const h = useTranslations("Home");
+  const c = useTranslations("Common");
+  const w = useTranslations("Wallets");
+  const { wallets } = useWallets();
+  const [hidden, setHidden] = useState(false);
+  const total = wallets ? totalCents(wallets) : null;
+  const series = useBalanceHistory(total);
+  const first = series?.[0]?.cents;
+  const last = series?.at(-1)?.cents;
+
+  return (
+    <section className="space-y-4 rounded-2xl border bg-card p-4 md:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0 space-y-1">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            {a("total")}
+            <button
+              type="button"
+              onClick={() => setHidden((v) => !v)}
+              aria-label={hidden ? h("showAmounts") : h("hideAmounts")}
+              className="flex size-8 items-center justify-center rounded-full"
             >
-              {copied ? t("copied") : t("copyUid")}
-            </Button>
-          </dd>
+              {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+          <p className="text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
+            {total === null ? c("loading") : hidden ? h("hidden") : formatCents(total)}
+            <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
+          </p>
         </div>
-        <div>
-          <dt className="text-muted-foreground">{t("email")}</dt>
-          <dd className="break-all">{profile.email}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">{t("country")}</dt>
-          <dd>{kyc?.current ? countryName(kyc.current.country) : t("countryEmpty")}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">{k("title")}</dt>
-          <dd>
-            <Link href="/account/verification" className="-my-1 inline-flex h-8 items-center gap-1.5">
-              {kyc ? <KycBadge state={kycState(kyc.current)} /> : <span>{t("countryEmpty")}</span>}
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
-          </dd>
-        </div>
-      </dl>
-
-      <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2" onChange={() => setStatus("idle")}>
-        <Field id="nickname" label={t("nickname")} defaultValue={profile.nickname} maxLength={8} required />
-        <Field id="phone" type="tel" label={t("phone")} defaultValue={profile.phone ?? ""} autoComplete="tel" />
-        <div className="space-y-2 md:col-span-2">
-          <FormError message={error ? rpcMessage(error) : null} />
-          <Button type="submit" className="h-10 w-full md:w-auto" disabled={status === "saving"}>
-            {status === "saving" ? c("loading") : status === "saved" ? c("saved") : c("save")}
+        <div className="grid grid-cols-3 gap-2 md:flex">
+          <Button asChild className="h-10 md:px-5">
+            <Link href="/assets/deposit">{a("deposit")}</Link>
+          </Button>
+          <Button asChild variant="secondary" className="h-10 md:px-5">
+            <Link href="/assets/withdraw">{a("withdraw")}</Link>
+          </Button>
+          <Button asChild variant="secondary" className="h-10 md:px-5">
+            <Link href="/assets/transfer">{a("transfer")}</Link>
           </Button>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <figure className="space-y-1.5">
+        <div role="img" aria-label={t("trendAria")} className="h-20 md:h-24">
+          {series && !hidden ? (
+            <Sparkline
+              // Cents to numbers for drawing only; exact for any total below 2^53 cents.
+              values={series.map((p) => Number(p.cents))}
+              xs={series.map((p) => p.t)}
+              width={300}
+              height={80}
+              svgClassName="size-full"
+              className={first !== undefined && last !== undefined && last < first ? "stroke-down" : "stroke-up"}
+            />
+          ) : (
+            <div className="size-full rounded-lg bg-muted/50" />
+          )}
+        </div>
+        <figcaption className="text-xs text-muted-foreground">{t("trendLabel")}</figcaption>
+      </figure>
+    </section>
   );
 }
