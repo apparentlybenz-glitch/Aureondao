@@ -150,7 +150,7 @@ function BookView({
           aria-label={t("group.label")}
           value={group}
           onChange={(e) => setGroup(Number(e.target.value))}
-          className="h-6 rounded-md bg-muted px-2 text-[11px] tabular-nums text-foreground"
+          className="h-6 rounded-md bg-muted px-2 text-[11px] pointer-coarse:text-base tabular-nums text-foreground"
         >
           {GROUPS.map((g) => (
             <option key={g} value={g}>
@@ -289,7 +289,7 @@ function FillBookView({
           aria-label={t("group.label")}
           value={group}
           onChange={(e) => setGroup(Number(e.target.value))}
-          className="h-6 rounded-md bg-muted px-2 text-[11px] tabular-nums text-foreground"
+          className="h-6 rounded-md bg-muted px-2 text-[11px] pointer-coarse:text-base tabular-nums text-foreground"
         >
           {GROUPS.map((g) => (
             <option key={g} value={g}>

@@ -11,7 +11,7 @@ import type { Market } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
 const sheet =
-  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
+  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80dvh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
 
 const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
 
@@ -56,7 +56,7 @@ export function OptionsMarketPicker({
         <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content aria-describedby={undefined} className={sheet}>
           <SheetHeader title={t("marketsTitle")} />
-          <ul className="px-2">
+          <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
             {markets.map((m) => (
               <li key={m.id}>
                 <button
@@ -96,7 +96,7 @@ export function OptionsInfo({ periods }: { periods: OptionPeriod[] | null }) {
         <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content aria-describedby={undefined} className={sheet}>
           <SheetHeader title={t("infoTitle")} />
-          <div className="space-y-3 px-4 text-sm">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 text-sm">
             {enabled.length === 0 ? (
               <p className="text-muted-foreground">{t("infoEmpty")}</p>
             ) : (

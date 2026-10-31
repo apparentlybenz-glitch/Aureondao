@@ -108,7 +108,7 @@ export function MarketTable({
         <select
           aria-label={t("types.label")}
           defaultValue="spot"
-          className="h-8 w-[4.5rem] shrink-0 rounded-md bg-muted px-2 text-xs text-foreground"
+          className="h-8 w-[4.5rem] shrink-0 rounded-md bg-muted px-2 text-xs pointer-coarse:text-base text-foreground"
         >
           {TYPES.map((key) => (
             <option key={key} value={key} disabled={key !== "spot"}>
