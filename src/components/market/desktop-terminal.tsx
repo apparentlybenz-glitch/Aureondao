@@ -34,7 +34,7 @@ export function DesktopTerminal({
       >
         {chartShown ? <div className="min-w-0 overflow-hidden rounded-xl border bg-card">{chart}</div> : null}
         <section aria-label={t("book")} className={card}>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">{book}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">{book}</div>
         </section>
         <section aria-label={t("trading")} className={card}>
           <h2 className="border-b px-3 py-2.5 text-sm font-semibold">{t("trading")}</h2>

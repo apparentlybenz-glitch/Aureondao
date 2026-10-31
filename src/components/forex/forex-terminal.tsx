@@ -28,8 +28,9 @@ export function ForexTerminal() {
   const wide = useMediaQuery(LG);
   const desktop = useMediaQuery(XL);
   const [base, quote] = pair.display.split("/");
-  const depth = (
+  const depthFor = (fill: boolean) => (
     <DepthTabs
+      fill={fill}
       book={
         <OrderBook
           mode="generated"
@@ -39,10 +40,12 @@ export function ForexTerminal() {
           quote={quote}
           priceDecimals={pair.priceDecimals}
           qtyDecimals={QTY_DECIMALS}
+          fill={fill}
         />
       }
     />
   );
+  const depth = depthFor(false);
 
   // From xl the shared desktop layout replaces everything below. No stat cells until pricing lands.
   if (desktop) {
@@ -56,7 +59,7 @@ export function ForexTerminal() {
             />
           }
           chart={<TradingViewChart key={pair.symbol} symbol={pair.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
-          book={depth}
+          book={depthFor(true)}
           trading={<ForexTicket key={pair.symbol} pair={pair} mid={formatPrice(pair.mid, pair.priceDecimals)} />}
           bottom={<ForexPositions />}
         />

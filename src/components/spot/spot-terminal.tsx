@@ -65,7 +65,7 @@ export function SpotTerminal() {
     return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{m("loading")}</p>;
   }
 
-  const book = (
+  const bookFor = (fill: boolean) => (
     <OrderBook
       mode="real"
       market={market}
@@ -73,8 +73,10 @@ export function SpotTerminal() {
       quote={market.quote}
       priceDecimals={market.priceDecimals}
       qtyDecimals={market.qtyDecimals}
+      fill={fill}
     />
   );
+  const book = bookFor(false);
 
   const orderForm = (
     <OrderForm
@@ -105,7 +107,7 @@ export function SpotTerminal() {
             />
           }
           chart={<TradingViewChart key={market.id} symbol={market.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
-          book={<DepthTabs book={book} trades={<TradesPanel market={market} />} />}
+          book={<DepthTabs fill book={bookFor(true)} trades={<TradesPanel market={market} />} />}
           trading={orderForm}
           bottom={
             <section>

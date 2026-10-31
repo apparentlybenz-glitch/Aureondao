@@ -55,8 +55,9 @@ export function OptionsTerminal() {
       ? midPrice(ticker.bid, ticker.ask)
       : null;
   const options = wallets?.find((w) => w.account === "options") ?? null;
-  const depth = (
+  const depthFor = (fill: boolean) => (
     <DepthTabs
+      fill={fill}
       book={
         <OrderBook
           mode="real"
@@ -65,11 +66,13 @@ export function OptionsTerminal() {
           quote={market.quote}
           priceDecimals={market.priceDecimals}
           qtyDecimals={market.qtyDecimals}
+          fill={fill}
         />
       }
       trades={<TradesPanel market={market} />}
     />
   );
+  const depth = depthFor(false);
 
   const ticket = (
     <OptionTicket
@@ -106,7 +109,7 @@ export function OptionsTerminal() {
             />
           }
           chart={<TradingViewChart key={market.id} symbol={market.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
-          book={depth}
+          book={depthFor(true)}
           trading={ticket}
           bottom={positionsPanel}
         />
