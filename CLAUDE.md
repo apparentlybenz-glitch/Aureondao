@@ -250,3 +250,9 @@ Measure the Worker size with `pnpm exec wrangler deploy --dry-run --outdir <tmp>
 - PR bodies are a one to three sentence summary of what was done, with no other text.
 - Docs only record what a future agent needs to read. Do not write docs for the owner.
 - After any `shadcn add`, revert the `cn` package from `package.json` and the lockfile and point the component's import at `@/lib/utils`; the cn guard test (`src/lib/cn-guard.test.mjs`) enforces this.
+- **UI changes need a picture.** When a pass changes what a user sees (layout, styling, components, on-screen copy), capture a still picture of the result before reporting done. Skip it for passes with no visible change (backend, migrations, docs).
+  - Start the app locally with the dev server, capture, then stop the server. Use the Playwright already in the environment; add no package and change no config for this.
+  - Viewport 390 by 844 first. Add 1280 by 800 only if a `md:` or `xl:` layout changed.
+  - One picture per changed screen or state, saved to `/tmp`. Never put it in the repo and never commit it. Stills only, no animation capture.
+  - Show the picture in the final report with the route it shows. If the surface cannot render images, give the path and say so.
+  - If a screen needs a signed-in session and no test account exists, capture what is reachable and list what was not captured. Never use real credentials and never create accounts to get a picture.
