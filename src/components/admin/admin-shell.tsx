@@ -86,10 +86,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Menu className="size-5" />
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+            <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
             <Dialog.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 border-r bg-background px-3 pt-[calc(0.5rem+var(--safe-t))] pb-[calc(1rem+var(--safe-b))]"
+              className="slide-panel slide-panel-left fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 border-r bg-background px-3 pt-[calc(0.5rem+var(--safe-t))] pb-[calc(1rem+var(--safe-b))]"
             >
               <div className="flex items-center justify-between pl-3">
                 <Dialog.Title className="text-base font-semibold">{t("title")}</Dialog.Title>

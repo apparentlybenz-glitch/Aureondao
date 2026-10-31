@@ -177,6 +177,39 @@
 .toast[data-swipe="cancel"] { animation: none; transform: translateY(0); transition: transform var(--duration-moderate) var(--ease-out-strong); }
 .toast[data-swipe="end"] { animation: toast-swipe-out var(--duration-base) var(--ease-out-strong) forwards; }
 
+/* Slide-in panels on Radix Dialog: the admin drawer (left) and the symbol sheets (bottom).
+   Enter and exit are CSS transitions on data-state, so a close or reopen mid-motion re-targets
+   from the current position with no jump (@starting-style supplies the enter's start). Radix
+   unmounts a closed Dialog when its CSS animation ends and ignores transitions, so the closed
+   state also runs slide-hold, which changes only an unregistered custom property and lasts as
+   long as the exit. Exit is shorter than enter and travels back along the same path. */
+@keyframes slide-hold { from { --slide-hold: 0; } to { --slide-hold: 1; } }
+.slide-panel { --slide-from: translateY(100%); }
+.slide-panel-left { --slide-from: translateX(-100%); }
+.slide-panel[data-state="open"] { transform: none; transition: transform var(--duration-slow) var(--ease-drawer); }
+.slide-panel[data-state="closed"] {
+  transform: var(--slide-from);
+  transition: transform var(--duration-moderate) var(--ease-drawer);
+  animation: slide-hold var(--duration-moderate);
+}
+.slide-overlay[data-state="open"] { opacity: 1; transition: opacity var(--duration-moderate) var(--ease-out-strong); }
+.slide-overlay[data-state="closed"] {
+  opacity: 0;
+  transition: opacity var(--duration-moderate) var(--ease-out-strong);
+  animation: slide-hold var(--duration-moderate);
+}
+@starting-style {
+  .slide-panel[data-state="open"] { transform: var(--slide-from); }
+  .slide-overlay[data-state="open"] { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide-panel { --slide-from: none; }
+  .slide-panel[data-state="open"], .slide-panel[data-state="closed"] { transition-property: opacity; transition-timing-function: var(--ease-out-strong); }
+  .slide-panel[data-state="open"] { opacity: 1; }
+  .slide-panel[data-state="closed"] { opacity: 0; }
+  @starting-style { .slide-panel[data-state="open"] { opacity: 0; } }
+}
+
 /* Trade confirm dialog (trade-confirm.tsx): the arrow floats in its direction and the
    badge ring pulses in the badge's own color (currentColor), on the same rhythm. */
 @keyframes trade-confirm-float-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }

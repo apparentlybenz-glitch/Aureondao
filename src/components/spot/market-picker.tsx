@@ -54,10 +54,10 @@ export function MarketPicker({
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="fixed inset-x-0 top-[8vh] bottom-0 z-50 mx-auto flex max-w-[880px] flex-col rounded-t-2xl border-t bg-background"
+          className="slide-panel fixed inset-x-0 top-[8vh] bottom-0 z-50 mx-auto flex max-w-[880px] flex-col rounded-t-2xl border-t bg-background"
         >
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Dialog.Title className="text-base font-semibold">{t("marketsTitle")}</Dialog.Title>
