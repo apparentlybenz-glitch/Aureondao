@@ -18,7 +18,7 @@ export function LanguageMenu({ className }: { className?: string }) {
           align="end"
           sideOffset={8}
           collisionPadding={8}
-          className="z-50 w-40 rounded-lg border bg-popover p-1 shadow-lg"
+          className="z-50 w-40 rounded-lg border bg-popover p-1 shadow-lg origin-(--radix-dropdown-menu-content-transform-origin) ease-out-strong data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:duration-180 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:duration-120 motion-reduce:data-[state=open]:zoom-in-100 motion-reduce:data-[state=closed]:zoom-out-100"
         >
           <DropdownMenu.RadioGroup value="en">
             <DropdownMenu.RadioItem
