@@ -1,0 +1,1 @@
+public/icons/crypto/xlm.svg is the library's branded stellar network icon, used for XLM (the library has no branded XLM token icon).

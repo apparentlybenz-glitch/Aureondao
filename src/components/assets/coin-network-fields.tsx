@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Select } from "radix-ui";
 import { useTranslations } from "next-intl";
-import { CoinBadge } from "@/components/market/coin-badge";
+import { CoinIcon } from "@/components/market/coin-icon";
 import { COINS, type CoinSymbol } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +37,7 @@ export function CoinNetworkFields() {
           >
             <Select.Value>
               <span className="flex items-center gap-3">
-                <CoinBadge symbol={coin.symbol} className="size-8 text-xs" />
+                <CoinIcon symbol={coin.symbol} size={32} />
                 <span className="font-semibold">{coin.symbol}</span>
                 <span className="text-sm text-muted-foreground">{t(`coins.${coin.symbol}`)}</span>
               </span>
@@ -59,7 +59,7 @@ export function CoinNetworkFields() {
                     value={c.symbol}
                     className="flex h-12 cursor-pointer items-center gap-3 rounded-lg px-2 outline-none data-highlighted:bg-muted"
                   >
-                    <CoinBadge symbol={c.symbol} className="size-8 text-xs" />
+                    <CoinIcon symbol={c.symbol} size={24} />
                     <span className="font-semibold">
                       <Select.ItemText>{c.symbol}</Select.ItemText>
                     </span>
@@ -88,10 +88,11 @@ export function CoinNetworkFields() {
               aria-checked={network === n}
               onClick={() => setNetwork(n)}
               className={cn(
-                "h-10 rounded-lg border px-4 text-sm font-medium",
+                "flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium",
                 network === n ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
               )}
             >
+              <CoinIcon symbol={n} kind="network" size={20} />
               {t(`networks.${n}`)}
             </button>
           ))}
