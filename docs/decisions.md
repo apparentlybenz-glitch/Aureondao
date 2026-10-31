@@ -132,6 +132,14 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 - **The terms checkbox is client-side only.** It gates the submit button's handler, and no acceptance is stored (no column, no timestamp, no version).
 - Security Center loses the Email verification row (D2 = remove).
 
+## Part 1h: Decisions locked by the owner (account Overview and Profile, 2026-10-31)
+
+- **Account tabs at every width, in this order:** Overview `/account`, Profile `/account/profile`, Security, Verification, Preferences. Below `md` the row scrolls sideways and never wraps.
+- **Overview at `/account` has a balance sparkline.** This reverses the earlier "no profit chart" call (ui-map §4 Assets) for this screen only; Assets still has none. It is built from `ledger` rows only (no snapshot table, no cron, no server valuation): a fixed 7 day window with no range toggle; per wallet the latest row before the window is the start, then every row inside it; each point is the sum over wallets of `balance_after_cents + held_after_cents` carried forward; rows sharing `created_at` (one transaction) are one step; a final point at now is the current wallet total. With no rows it is a flat line at the current total. Every query filters `user_id` explicitly (admin RLS reads every ledger row).
+- **The total is wallet cents only** (`totalCents`: available plus held over the 4 wallets), the same as Home and Assets. Spot coin holdings are not valued in it or in the sparkline.
+- **Default avatar only:** no upload and no storage. No Today's Profit line.
+- **Profile has no phone row.** `profiles.phone` stays in the database; `update_profile` always writes phone, so the Profile page reads it and passes the stored value back unchanged when saving the nickname.
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.

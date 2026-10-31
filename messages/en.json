@@ -360,23 +360,34 @@
     "linkInvalid": "This link is invalid or has expired. Please request a new one."
   },
   "Account": {
+    "overviewTitle": "Account overview",
     "profileTitle": "Profile",
     "nickname": "Nickname",
     "uid": "UID",
     "email": "Email",
-    "phone": "Phone",
-    "country": "Country",
+    "country": "Country/Region",
+    "copy": "Copy",
     "copyUid": "Copy UID",
+    "copyEmail": "Copy email",
     "copied": "Copied",
     "countryEmpty": "--",
+    "viewProfile": "View profile",
+    "viewDetails": "View details",
+    "edit": "Edit",
+    "accountInfo": "Account info",
+    "kycDetails": "KYC details",
+    "trendLabel": "Last 7 days",
+    "trendAria": "Total balance over the last 7 days",
     "tabsLabel": "Account sections",
     "tabs": {
+      "overview": "Overview",
       "profile": "Profile",
-      "verification": "Verification",
       "security": "Security",
+      "verification": "Verification",
       "preferences": "Preferences"
     }
   },
+
   "Security": {
     "title": "Security Center",
     "totpTitle": "Authenticator app",
