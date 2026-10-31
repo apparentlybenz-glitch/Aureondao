@@ -220,8 +220,6 @@
     }
   },
   "Common": {
-    "virtualFundsBadge": "VIRTUAL FUNDS",
-    "virtualFundsNote": "AureonX runs on virtual funds. No real money is deposited, traded or paid out.",
     "email": "Email",
     "password": "Password",
     "save": "Save",
