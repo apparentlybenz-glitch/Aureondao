@@ -19,6 +19,7 @@ export const DEPOSIT_MINIMUMS = [
   { id: "btc", symbol: "BTC", network: "bitcoin", min: "0.0005" },
   { id: "sol", symbol: "SOL", network: "solana", min: "0.1" },
   { id: "eth", symbol: "ETH", network: "erc20", min: "0.01" },
+  { id: "usdcErc20", symbol: "USDC", network: "erc20", min: "50" },
 ] as const satisfies readonly { id: string; symbol: CoinSymbol; network: NetworkKey; min: string }[];
 
 export type DepositMinimumId = (typeof DEPOSIT_MINIMUMS)[number]["id"];
