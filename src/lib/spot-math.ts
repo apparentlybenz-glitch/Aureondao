@@ -39,6 +39,17 @@ export function checkQty(input: string, qtyDecimals: number): QtyCheck {
   return { ok: true, qty };
 }
 
+export type PriceCheck =
+  | { ok: true; price: string }
+  | { ok: false; reason: "empty" | "format" | "decimals" | "zero" };
+
+// A limit price follows the same shape as a quantity: digits with at most
+// priceDecimals places (the server checks `limit = trunc(limit, price_decimals)`).
+export function checkPrice(input: string, priceDecimals: number): PriceCheck {
+  const r = checkQty(input, priceDecimals);
+  return r.ok ? { ok: true, price: r.qty } : r;
+}
+
 // qty x price in cents, rounded up (buy cost) or down (sell proceeds).
 export function valueCents(qty: string, price: string, mode: "ceil" | "floor"): bigint {
   const q = scaled(qty);
@@ -48,6 +59,20 @@ export function valueCents(qty: string, price: string, mode: "ceil" | "floor"): 
 
 export function feeCents(cents: bigint, feeBps: number): bigint {
   return divRound(cents * BigInt(feeBps), BPS, "ceil");
+}
+
+// What a BUY limit order reserves: cost rounded up, plus the fee on that cost rounded up
+// (the server's hold_cents). A sell reserves the quantity itself.
+export function limitReserveCents(qty: string, limitPrice: string, feeBps: number): bigint {
+  const cost = valueCents(qty, limitPrice, "ceil");
+  return cost + feeCents(cost, feeBps);
+}
+
+// True when a limit at `limit` would fill at once against this bid and ask: a buy when the
+// ask is at or below the limit, a sell when the bid is at or above it. The server decides
+// from its own snapshot; this only drives a hint.
+export function isMarketable(side: "buy" | "sell", limit: string, bid: string, ask: string): boolean {
+  return side === "buy" ? compareDecimal(ask, limit) <= 0 : compareDecimal(bid, limit) >= 0;
 }
 
 // The minimum is checked on the unrounded order value, as the server does.

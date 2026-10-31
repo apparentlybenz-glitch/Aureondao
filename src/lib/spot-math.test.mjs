@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_BUY_BUFFER_BPS, buyQtyFor, midPrice, checkQty, compareDecimal, feeCents, meetsMinimum, sellQtyFor, trimDecimal, valueCents } from "./spot-math.ts";
+import { MAX_BUY_BUFFER_BPS, buyQtyFor, checkPrice, isMarketable, limitReserveCents, midPrice, checkQty, compareDecimal, feeCents, meetsMinimum, sellQtyFor, trimDecimal, valueCents } from "./spot-math.ts";
 
 test("checkQty accepts plain decimals within the allowed places", () => {
   assert.deepEqual(checkQty("0.001", 5), { ok: true, qty: "0.001" });
@@ -102,4 +102,40 @@ test("midPrice is exact", () => {
   assert.equal(midPrice("80410.00", "80410.01"), "80410.005");
   assert.equal(midPrice("0.00000440", "0.00000441"), "0.000004405");
   assert.equal(midPrice("2", "4"), "3");
+});
+
+test("checkPrice follows the price tick (spot_limit.sh INVALID_PRICE cases)", () => {
+  assert.deepEqual(checkPrice("99.99", 2), { ok: true, price: "99.99" });
+  assert.deepEqual(checkPrice("100.500", 2), { ok: true, price: "100.5" });
+  assert.deepEqual(checkPrice("99.999", 2), { ok: false, reason: "decimals" });
+  assert.deepEqual(checkPrice("0", 2), { ok: false, reason: "zero" });
+  assert.deepEqual(checkPrice("1e2", 2), { ok: false, reason: "format" });
+  assert.deepEqual(checkPrice("", 2), { ok: false, reason: "empty" });
+});
+
+test("limitReserveCents matches the server hold (spot_limit.sh t1)", () => {
+  // buy 0.333 at 99.99: cost ceil(3329.667) = 3330, fee ceil(3.33) = 4, hold 3334
+  assert.equal(valueCents("0.333", "99.99", "ceil"), 3330n);
+  assert.equal(limitReserveCents("0.333", "99.99", 10), 3330n + feeCents(3330n, 10));
+  assert.equal(limitReserveCents("0.333", "99.99", 10), 3334n);
+  // buy 1 at 99.99 needs 10009 (cost 9999 + fee 10), at 99.89 it needs 9999 (cost 9989 + fee 10)
+  assert.equal(limitReserveCents("1", "99.99", 10), 10009n);
+  assert.equal(limitReserveCents("1", "99.89", 10), 9999n);
+});
+
+test("the 100 % buy slider at the limit price reserves no more than the budget", () => {
+  const budget = 1000000n; // 10,000.00 USD
+  for (const limit of ["99.99", "100.10", "83123.45"]) {
+    const qty = buyQtyFor(budget, limit, 10, 3, 0);
+    assert.ok(limitReserveCents(qty, limit, 10) <= budget, limit);
+  }
+});
+
+test("isMarketable: a buy at or above the ask, a sell at or below the bid", () => {
+  assert.equal(isMarketable("buy", "100.10", "99.97", "100.10"), true);
+  assert.equal(isMarketable("buy", "100.09", "99.97", "100.10"), false);
+  assert.equal(isMarketable("buy", "101", "99.97", "100.10"), true);
+  assert.equal(isMarketable("sell", "99.97", "99.97", "100.10"), true);
+  assert.equal(isMarketable("sell", "99.98", "99.97", "100.10"), false);
+  assert.equal(isMarketable("sell", "99.50", "99.97", "100.10"), true);
 });

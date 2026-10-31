@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
@@ -27,30 +28,49 @@ import {
 } from "@/lib/spot-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LimitOrderForm } from "./limit-order-form";
+import { OrderTypeTabs } from "./order-type-tabs";
+import type { OrderType } from "./order-type-tabs";
 
 const STEPS = [0, 25, 50, 75, 100] as const;
 type Side = "buy" | "sell";
 
-// Market order ticket. Every number shown before the fill is an estimate from
-// the browser's ticker; the RPC takes no price and fills at the server snapshot.
-// After a fill the order row (read back as text) is shown instead.
-export function OrderForm({
-  market,
-  ticker,
-  available,
-  holding,
-  feeBps,
-  onFilled,
-}: {
+export type OrderFormProps = {
   market: Market;
   ticker: Ticker | undefined;
   available: bigint | null; // Spot wallet available cents
   holding: string; // available quantity of the base asset
   feeBps: number | null;
   onFilled: () => void;
-}) {
+  // A limit order that rested (nothing filled yet).
+  onRested: () => void;
+};
+
+// The Spot ticket: Market or Limit. Each is its own form, so each renders one root <form>
+// (the desktop Trading card styles its direct <form> child).
+export function OrderForm({ onRested, ...props }: OrderFormProps) {
+  const [type, setType] = useState<OrderType>("market");
+  const tabs = <OrderTypeTabs type={type} onChange={setType} />;
+  return type === "market" ? (
+    <MarketTicket {...props} typeTabs={tabs} />
+  ) : (
+    <LimitOrderForm {...props} onRested={onRested} typeTabs={tabs} />
+  );
+}
+
+// Market order ticket. Every number shown before the fill is an estimate from
+// the browser's ticker; the RPC takes no price and fills at the server snapshot.
+// After a fill the order row (read back as text) is shown instead.
+function MarketTicket({
+  market,
+  ticker,
+  available,
+  holding,
+  feeBps,
+  onFilled,
+  typeTabs,
+}: Omit<OrderFormProps, "onRested"> & { typeTabs: ReactNode }) {
   const t = useTranslations("Spot");
-  const c = useTranslations("Common");
   const rpcMessage = useRpcMessage();
   const attempt = useAttemptKey();
   const [side, setSide] = useState<Side>("buy");
@@ -188,22 +208,7 @@ export function OrderForm({
         {sideButton("sell")}
       </div>
 
-      <div role="tablist" className="flex gap-4 text-sm">
-        <button type="button" role="tab" aria-selected="true" className="border-b-2 border-primary py-1 font-semibold">
-          {t("market")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected="false"
-          aria-disabled="true"
-          disabled
-          className="flex items-center gap-1 py-1 text-muted-foreground opacity-60"
-        >
-          {t("limit")}
-          <span className="rounded-full bg-secondary px-1.5 text-[9px] font-semibold ring-1 ring-border">{c("soon")}</span>
-        </button>
-      </div>
+      {typeTabs}
 
       <p className="flex justify-between text-xs text-muted-foreground">
         <span>{t("available")}</span>
