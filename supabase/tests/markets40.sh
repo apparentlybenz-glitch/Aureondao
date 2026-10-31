@@ -1,6 +1,6 @@
 #!/bin/bash
-# Tests for 20261030120000_markets_40: the 40 markets, Options on 38 of them (not SHIB or
-# PEPE), an Options position on a coarse-tick pair (OP), and Spot on SHIB. Prints PASS/FAIL lines (no keys) and exits non-zero if any
+# Tests for 20261030120000_markets_40 and 20261031170000_disable_ena_wld_ondo: the 40 market rows, 37
+# enabled (ENA, WLD and ONDO disabled), Options on 35 of those (not SHIB or PEPE), an Options position on a coarse-tick pair (OP), and Spot on SHIB. Prints PASS/FAIL lines (no keys) and exits non-zero if any
 # check fails.
 # Usage: supabase/tests/markets40.sh [t1 ... t3]  (Management API, write token required;
 # run it only after the migration is applied)
@@ -62,16 +62,19 @@ select private.wallet_apply((select id from public.wallets where user_id='$A' an
 select 1 ok;
 SQL
     job aureonx-price-tick false; job aureonx-options-void false;;
-t1) echo "T1 catalog: 40 enabled markets, Options on 38 (not SHIB or PEPE), complete metadata, unique sort order"
-    out=$(echo "select count(*) filter (where enabled) enabled, count(*) filter (where enabled and options_enabled) options,
+t1) echo "T1 catalog: 40 rows, 37 enabled (not ENA, WLD, ONDO), Options on 35 (not SHIB or PEPE), complete metadata, unique sort order"
+    out=$(echo "select count(*) total, count(*) filter (where enabled) enabled, count(*) filter (where enabled and options_enabled) options,
       count(distinct sort_order) sorts, count(*) filter (where qty_decimals is null or min_notional_cents is null or price_decimals is null) missing,
       count(*) filter (where vision_symbol <> base || 'USDT' or kucoin_symbol <> base || '-USDT' or display_symbol <> base || 'USD') naming
       from public.markets;" | run)
-    expect "40 enabled markets" '"enabled":40' "$out"
-    expect "Options on 38" '"options":38' "$out"
+    expect "40 market rows" '"total":40' "$out"
+    expect "37 enabled markets" '"enabled":37' "$out"
+    expect "Options on 35" '"options":35' "$out"
     expect "40 distinct sort orders" '"sorts":40' "$out"
     expect "no missing metadata" '"missing":0' "$out"
     expect "symbol naming follows the seeded rows" '"naming":0' "$out"
+    out=$(echo "select count(*) off from public.markets where not enabled and base in ('ENA','WLD','ONDO');" | run)
+    expect "ENA, WLD and ONDO are disabled" '"off":3' "$out"
     out=$(echo "select id, options_enabled from public.markets where id in ('SHIB-USDT','PEPE-USDT','OP-USDT') order by id;" | run)
     expect "OP has Options" '"id":"OP-USDT","options_enabled":true' "$out"
     expect "SHIB has no Options" '"id":"SHIB-USDT","options_enabled":false' "$out"
@@ -90,7 +93,7 @@ t2) echo "T2 Options on OP (coarse tick): entry is the exact half-tick mid, a ri
     ingest OP-USDT 0.0984 0.0986 > /dev/null
     out=$(position "$(key 1)")
     expect "entry mid is 0.0984 exactly" '"entry":"0.0984' "$out"
-    expect "rise wins at settle mid 0.0985" '"result":"win","settle":"0.0985' "$out"
+    expect "rise wins at settle mid 0.0985" '"result":"win","entry":"[0-9.]+","settle":"0.0985' "$out"
     expect "win pays 4900 + 294" '"payout_cents":5194' "$out"
     out=$(position "$(key 2)")
     expect "fall loses" '"result":"loss"' "$out"
