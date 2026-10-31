@@ -2,7 +2,6 @@
 // not listed falls back to the generic message; error.message is never shown.
 const CODE_KEYS = {
   invalid_credentials: "invalidCredentials",
-  email_not_confirmed: "emailNotConfirmed",
   user_already_exists: "userExists",
   email_exists: "userExists",
   weak_password: "weakPassword",

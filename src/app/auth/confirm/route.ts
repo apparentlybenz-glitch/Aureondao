@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
 
-// Email links (signup confirmation, password recovery) land here with a
+// Email links (password recovery; older signup confirmations) land here with a
 // token_hash. verifyOtp sets the session cookies, then we redirect.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;

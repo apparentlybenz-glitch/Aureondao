@@ -125,6 +125,13 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 - **No CSP.** If one is added later it must allow the script from `s3.tradingview.com` and the widget frames.
 - **Symbols:** `BINANCE:<BASE>USDT` for crypto, `FX:<PAIR>` for currency pairs, `OANDA:XAUUSD` and `OANDA:XAGUSD` for gold and silver with `TVC:GOLD` and `TVC:SILVER` as alternates.
 
+## Part 1g: Decisions locked by the owner (sign-up without email, 2026-10-31)
+
+- **Sign-up sends no email.** The Dashboard Confirm email setting is OFF, so `signUp` returns a session and the user lands on `/home`. The Confirm signup template is unused; `/auth/confirm` stays for password recovery.
+- **Email ownership is not verified at sign-up.** Anyone can create an account with an address they do not own. Accepted while funds are virtual; revisit before any real value is involved.
+- **The terms checkbox is client-side only.** It gates the submit button's handler, and no acceptance is stored (no column, no timestamp, no version).
+- Security Center loses the Email verification row (D2 = remove).
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.

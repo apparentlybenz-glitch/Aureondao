@@ -18,41 +18,36 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const hydrated = useHydrated();
-  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
-    const email = String(form.get("email"));
+    const password = String(form.get("password"));
+    if (password !== String(form.get("confirm-password"))) {
+      setError(t("passwordMismatch"));
+      return;
+    }
+    if (!form.get("terms")) {
+      setError(t("termsRequired"));
+      return;
+    }
+    setPending(true);
     const nickname = String(form.get("nickname") ?? "").trim();
     const { data, error } = await createClient().auth.signUp({
-      email,
-      password: String(form.get("password")),
-      options: {
-        // The signup trigger reads raw_user_meta_data.nickname.
-        data: nickname ? { nickname } : {},
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-      },
+      email: String(form.get("email")),
+      password,
+      // The signup trigger reads raw_user_meta_data.nickname.
+      options: { data: nickname ? { nickname } : {} },
     });
     setPending(false);
     if (error) {
       setError(authMessage(error));
       return;
     }
-    // With email confirmation off, signUp returns a session right away.
+    // No session means the project still requires email confirmation.
     if (data.session) router.replace("/home");
-    else setSentTo(email);
-  }
-
-  if (sentTo) {
-    return (
-      <div className="space-y-2">
-        <h1 className="text-lg font-semibold">{t("checkEmailTitle")}</h1>
-        <p className="text-sm text-muted-foreground">{t("checkEmailBody", { email: sentTo })}</p>
-      </div>
-    );
+    else setError(c("genericError"));
   }
 
   return (
@@ -60,7 +55,31 @@ export default function SignUpPage() {
       <h1 className="text-lg font-semibold">{t("signUpTitle")}</h1>
       <Field id="email" type="email" label={c("email")} autoComplete="email" required />
       <Field id="password" type="password" label={c("password")} autoComplete="new-password" required />
-      <Field id="nickname" label={t("nickname")} maxLength={32} autoComplete="nickname" />
+      <Field
+        id="confirm-password"
+        type="password"
+        label={t("confirmPassword")}
+        autoComplete="new-password"
+        required
+      />
+      <Field id="nickname" label={t("nickname")} maxLength={8} autoComplete="nickname" />
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="terms" required className="mt-0.5 size-4 shrink-0 accent-primary" />
+        <span>
+          {t.rich("termsLabel", {
+            terms: (chunks) => (
+              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+                {chunks}
+              </Link>
+            ),
+            privacy: (chunks) => (
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </span>
+      </label>
       <FormError message={error} />
       <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("signUpSubmit")}

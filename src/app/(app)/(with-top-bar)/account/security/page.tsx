@@ -25,7 +25,6 @@ export default function SecurityPage() {
   const t = useTranslations("Security");
   const c = useTranslations("Common");
   const authMessage = useAuthMessage();
-  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [totpError, setTotpError] = useState<string | null>(null);
@@ -39,9 +38,6 @@ export default function SecurityPage() {
   }, []);
 
   useEffect(() => {
-    createClient()
-      .auth.getUser()
-      .then(({ data }) => setEmailVerified(Boolean(data.user?.email_confirmed_at)));
     // Fetch, then set state in the promise callback (not synchronously in the effect).
     createClient()
       .auth.mfa.listFactors()
@@ -111,16 +107,6 @@ export default function SecurityPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
-
-      <Row title={t("emailVerification")}>
-        {emailVerified === null ? (
-          <p className="text-sm">{c("loading")}</p>
-        ) : (
-          <Badge variant={emailVerified ? "default" : "secondary"}>
-            {emailVerified ? t("emailVerified") : t("emailUnverified")}
-          </Badge>
-        )}
-      </Row>
 
       <Row title={t("totpTitle")}>
         <div className="flex items-center justify-between">
