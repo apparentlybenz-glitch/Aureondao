@@ -28,17 +28,9 @@
         "question": "Are there trading fees?",
         "answer": "Yes. Spot orders and Options positions carry a fee. Each fee is a separate row in Bills, so you can always see what you paid. Transfers between your own wallets and deposits have no fee row."
       },
-      "verification": {
-        "question": "Do I need to verify my account and what is required?",
-        "answer": "Verification is optional for now and it does not block trading or transfers. To start it, open Profile and choose Verification. You enter your country, document type, name, date of birth and city, then upload one photo. You must be at least 18. Your status shows as Not verified, Pending review, Verified or Rejected."
-      },
       "security": {
         "question": "How do I keep my account secure?",
         "answer": "Open Profile and then Security. Use a strong password and change it there at any time. You can also turn on an authenticator app, which is optional. Once it is on, you enter a code from the app each time you sign in. Passkeys and phone verification are not available yet."
-      },
-      "prices": {
-        "question": "How often do prices and charts update?",
-        "answer": "Prices on Home and Market refresh about every 5 seconds. If a price is more than a minute old it is marked Delayed. Charts come from the TradingView widget, which has its own feed. It can differ slightly from the price your order fills at."
       },
       "support": {
         "question": "How do I contact support?",

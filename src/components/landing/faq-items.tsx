@@ -11,9 +11,7 @@ export const FAQ_KEYS = [
   "withdrawTime",
   "start",
   "fees",
-  "verification",
   "security",
-  "prices",
   "support",
 ] as const;
 
