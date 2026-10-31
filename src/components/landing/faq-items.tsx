@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Mail, TriangleAlert } from "lucide-react";
 import type { useTranslations } from "next-intl";
+import { CoinIcon } from "@/components/market/coin-icon";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DEPOSIT_MINIMUMS } from "@/lib/coins";
@@ -80,7 +81,12 @@ function depositAnswer(t: FaqTranslate): ReactNode {
           <tbody>
             {DEPOSIT_MINIMUMS.map((row) => (
               <tr key={row.id} className="border-t">
-                <td className="px-3 py-2.5 font-medium text-foreground">{t(`items.deposit.rows.${row.id}.asset`)}</td>
+                <td className="px-3 py-2.5 font-medium text-foreground">
+                  <span className="flex items-center gap-2">
+                    <CoinIcon symbol={row.symbol} size={20} />
+                    {t(`items.deposit.rows.${row.id}.asset`)}
+                  </span>
+                </td>
                 <td className="px-3 py-2.5">{t(`items.deposit.rows.${row.id}.network`)}</td>
                 <td className="px-3 py-2.5 whitespace-nowrap text-foreground">{`${row.min} ${row.symbol}`}</td>
               </tr>
