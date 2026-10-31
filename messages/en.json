@@ -125,8 +125,10 @@
     "showAmounts": "Show amounts",
     "hideAmounts": "Hide amounts",
     "hidden": "••••••",
+    "addFunds": "Add funds",
     "actions": {
       "deposit": "Deposit",
+      "withdraw": "Withdraw",
       "options": "Options",
       "forex": "Forex",
       "spot": "Spot",
