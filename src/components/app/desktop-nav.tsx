@@ -11,6 +11,7 @@ import { TopBarSearch } from "@/components/app/top-bar-search";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
 import { NAV_ITEMS } from "@/lib/nav";
+import { useAccount } from "@/lib/use-account";
 import { cn } from "@/lib/utils";
 
 // Desktop top bar (md and up), on every (app) page including Spot and Options.
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 export function DesktopNav() {
   const t = useTranslations("Shell");
   const pathname = usePathname();
+  const { isAdmin } = useAccount();
   const [searching, setSearching] = useState(false);
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground";
 
@@ -45,6 +47,15 @@ export function DesktopNav() {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+            className="rounded-md px-3 py-1.5 text-sm font-bold text-orange-500"
+          >
+            {t("menu.admin")}
+          </Link>
+        )}
       </nav>
       <div className="ml-auto flex items-center gap-1">
         <span className="mr-2 shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">

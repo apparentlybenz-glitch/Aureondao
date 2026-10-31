@@ -6,6 +6,7 @@ import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { bpsToPercent } from "@/lib/options-math";
 import type { OptionPeriod } from "@/lib/options";
+import { CoinIcon } from "@/components/market/coin-icon";
 import type { Market } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ export function OptionsHeader({
               aria-label={t("chooseMarket", { symbol: market.displaySymbol })}
               className="flex min-w-0 items-center gap-1.5"
             >
+              <CoinIcon symbol={market.base} size={28} />
               <span className="text-lg font-semibold">{market.displaySymbol}</span>
               <ChevronDown className="size-4 text-muted-foreground" />
             </button>
@@ -75,10 +77,11 @@ export function OptionsHeader({
                         setPickerOpen(false);
                       }}
                       className={cn(
-                        "flex h-12 w-full items-center rounded-lg px-3 text-left font-medium",
+                        "flex h-12 w-full items-center gap-2.5 rounded-lg px-3 text-left font-medium",
                         m.id === market.id ? "bg-muted text-primary" : "",
                       )}
                     >
+                      <CoinIcon symbol={m.base} size={24} />
                       {m.displaySymbol}
                     </button>
                   </li>

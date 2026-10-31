@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/market/decimal";
+import { CoinIcon } from "@/components/market/coin-icon";
 import type { Market } from "@/lib/market/types";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
 import type { Holding, SpotOrder } from "@/lib/spot";
@@ -61,7 +62,8 @@ export function AccountPanel({
               return (
                 <li key={o.id} className="rounded-xl border bg-card p-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium">
+                    <p className="flex items-center gap-1.5 font-medium">
+                      {m ? <CoinIcon symbol={m.base} size={20} /> : null}
                       <span className={o.side === "buy" ? "text-up" : "text-down"}>{t(o.side)}</span>{" "}
                       {m ? `${m.base}/${m.quote}` : o.marketId}
                       <span className="ml-1.5 text-xs text-muted-foreground">{t("market")}</span>
@@ -108,9 +110,7 @@ export function AccountPanel({
           {holdings.map((h) => (
             <li key={h.asset} className="flex items-center justify-between rounded-xl border bg-card p-3 text-sm">
               <span className="flex items-center gap-2">
-                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-muted text-[10px] font-semibold">
-                  {h.asset.slice(0, 2)}
-                </span>
+                <CoinIcon symbol={h.asset} size={24} />
                 <span>
                   <span className="block font-medium">{h.asset}</span>
                   <span className="block text-xs text-muted-foreground">{w("spot")}</span>

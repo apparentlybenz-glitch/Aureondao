@@ -6,6 +6,7 @@ import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { MarketTable } from "@/components/market/market-table";
 import { formatChange } from "@/lib/market/decimal";
+import { CoinIcon } from "@/components/market/coin-icon";
 import type { Market, Ticker } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ export function MarketPicker({
           aria-label={t("chooseMarket", { symbol: market.displaySymbol })}
           className="flex min-w-0 items-center gap-1.5 text-left"
         >
+          <CoinIcon symbol={market.base} size={28} />
           <span className="text-lg font-semibold">{market.displaySymbol}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
           {change ? (

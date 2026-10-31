@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { formatMid } from "@/lib/market/decimal";
+import { CoinIcon } from "@/components/market/coin-icon";
 import type { Market } from "@/lib/market/types";
 import { formatCents } from "@/lib/money";
 import { formatCountdown } from "@/lib/options-math";
@@ -37,7 +38,8 @@ function PositionCard({ p, market }: { p: OptionPosition; market: Market | undef
   return (
     <li className="rounded-xl border bg-card p-3 text-sm">
       <div className="flex items-center justify-between">
-        <p className="font-medium">
+        <p className="flex items-center gap-1.5 font-medium">
+          {market ? <CoinIcon symbol={market.base} size={20} /> : null}
           {market?.displaySymbol ?? p.marketId}{" "}
           <span className={rise ? "text-up" : "text-down"}>{t(p.direction)}</span>
         </p>
