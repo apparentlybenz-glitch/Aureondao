@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Dialog } from "radix-ui";
+import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
 import { Button } from "@/components/ui/button";
@@ -25,19 +26,65 @@ type Props = {
   onCancel: () => void;
 };
 
+// Mirrors --ease-out-strong in globals.css (motion takes the curve as numbers).
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+// Enter: a critically damped spring (no overshoot) on the card, a quick fade on the scrim.
+// Exit is shorter. Only opacity and transform animate; the card starts near full size.
+const backdropMotion = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.2, ease: EASE_OUT } },
+  exit: { opacity: 0, transition: { duration: 0.12, ease: EASE_OUT } },
+};
+const cardMotion = {
+  initial: { opacity: 0, transform: "scale(0.96)" },
+  animate: {
+    opacity: 1,
+    transform: "scale(1)",
+    transition: {
+      opacity: { duration: 0.2, ease: EASE_OUT },
+      transform: { type: "spring" as const, bounce: 0, duration: 0.3 },
+    },
+  },
+  exit: {
+    opacity: 0,
+    transform: "scale(0.98)",
+    transition: { duration: 0.15, ease: EASE_OUT },
+  },
+};
+
 // The confirmation shown before a Spot or Options order is sent (when the confirmTrades
-// preference is on). It only displays values the ticket already computed.
+// preference is on). It only displays values the ticket already computed. The parent sets
+// `open` false and AnimatePresence keeps the node until the exit finishes; nothing in the
+// order path waits on it. Reduced motion falls back to a fade (opacity only).
 export function TradeConfirm({ open, onCancel, ...props }: Props) {
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => (next ? undefined : onCancel())}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-popover text-popover-foreground">
-          {/* Mounted only while open, so the checkbox starts unticked every time. */}
-          <Body {...props} onCancel={onCancel} />
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <MotionConfig reducedMotion="user">
+      <Dialog.Root open={open} onOpenChange={(next) => (next || !open ? undefined : onCancel())}>
+        <AnimatePresence>
+          {open ? (
+            <Dialog.Portal forceMount>
+              <Dialog.Overlay forceMount asChild>
+                <motion.div className="fixed inset-0 z-50 bg-black/60" {...backdropMotion} />
+              </Dialog.Overlay>
+              <Dialog.Content
+                forceMount
+                asChild
+              >
+                <motion.div
+                  className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-popover text-popover-foreground"
+                  style={{ transformOrigin: "center" }}
+                  {...cardMotion}
+                >
+                  {/* Mounted only while open, so the checkbox starts unticked every time. */}
+                  <Body {...props} onCancel={onCancel} />
+                </motion.div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          ) : null}
+        </AnimatePresence>
+      </Dialog.Root>
+    </MotionConfig>
   );
 }
 
@@ -55,13 +102,15 @@ function Body({
 }: Omit<Props, "open">) {
   const t = useTranslations("TradeConfirm");
   const [dontShow, setDontShow] = useState(false);
+  // False while the exit plays: the card ignores taps so Confirm cannot fire twice.
+  const present = useIsPresent();
   const up = direction === "up";
   const Arrow = up ? ArrowUp : ArrowDown;
 
   return (
     <>
       <Dialog.Title className="border-b px-4 py-3 text-center text-base font-semibold">{title}</Dialog.Title>
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-4" inert={!present}>
         <div className="flex items-center justify-center gap-3">
           <CoinIcon symbol={base} size={56} />
           <span
@@ -121,13 +170,14 @@ function Body({
               onConfirm();
             }}
             className={cn(
-              "h-11 w-full text-base font-semibold",
+              "h-11 w-full text-base font-semibold duration-150 ease-out-strong active:scale-[0.97]",
               up ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
             )}
           >
             {confirmLabel}
           </Button>
-          <button type="button" onClick={onCancel} className="h-10 w-full text-sm text-muted-foreground">
+          <button type="button" onClick={onCancel} className="h-10 w-full text-sm text-muted-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
+          >
             {t("cancel")}
           </button>
         </div>
