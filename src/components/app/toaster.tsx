@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { X } from "lucide-react";
 import { Toast } from "radix-ui";
 import { useTranslations } from "next-intl";
@@ -12,15 +12,24 @@ import { dismissToast, getServerToasts, getToasts, subscribeToasts } from "@/lib
 export function Toaster() {
   const t = useTranslations("Common");
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getServerToasts);
+  // A closed toast stays in the queue until its exit animation ends (Radix keeps the node mounted
+  // for it); the timer is a fallback so a missed animationend never strands it.
+  const [closing, setClosing] = useState<ReadonlySet<number>>(new Set());
   return (
     <Toast.Provider duration={6000} swipeDirection="down">
       {toasts.map((toast) => (
         <Toast.Root
           key={toast.id}
+          open={!closing.has(toast.id)}
           onOpenChange={(open) => {
-            if (!open) dismissToast(toast.id);
+            if (open) return;
+            setClosing((prev) => new Set(prev).add(toast.id));
+            setTimeout(() => dismissToast(toast.id), 400);
           }}
-          className="flex items-start gap-3 rounded-xl border bg-popover p-3 text-popover-foreground shadow-lg"
+          onAnimationEnd={(e) => {
+            if (e.currentTarget.dataset.state === "closed") dismissToast(toast.id);
+          }}
+          className="toast flex items-start gap-3 rounded-xl border bg-popover p-3 text-popover-foreground shadow-lg"
         >
           <div className="min-w-0 flex-1 space-y-0.5">
             <Toast.Title className="text-sm font-semibold">{toast.title}</Toast.Title>

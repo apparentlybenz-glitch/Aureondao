@@ -158,6 +158,25 @@
   --sidebar-ring: #0fa644;
 }
 
+/* Toasts (toaster.tsx, Radix Toast). Radix keeps a toast mounted until its closed-state CSS
+   animation ends, so enter and exit are keyframes keyed on data-state. The swipe states are plain
+   transforms and transitions: move follows the finger 1:1, cancel springs back, end leaves
+   downward from where the finger let go. Transform and opacity only; the enter animation fills
+   backwards so it never holds the transform the swipe sets. */
+@keyframes toast-in { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(100%); } }
+@keyframes toast-swipe-out {
+  from { opacity: 1; transform: translateY(var(--radix-toast-swipe-end-y)); }
+  to { opacity: 0; transform: translateY(calc(var(--radix-toast-swipe-end-y) + 100%)); }
+}
+@keyframes toast-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toast-fade-out { from { opacity: 1; } to { opacity: 0; } }
+.toast[data-state="open"] { animation: toast-in var(--duration-moderate) var(--ease-out-strong) backwards; }
+.toast[data-state="closed"] { animation: toast-out var(--duration-base) var(--ease-out-strong) forwards; }
+.toast[data-swipe="move"] { animation: none; transform: translateY(var(--radix-toast-swipe-move-y)); transition: none; }
+.toast[data-swipe="cancel"] { animation: none; transform: translateY(0); transition: transform var(--duration-moderate) var(--ease-out-strong); }
+.toast[data-swipe="end"] { animation: toast-swipe-out var(--duration-base) var(--ease-out-strong) forwards; }
+
 /* Trade confirm dialog (trade-confirm.tsx): the arrow floats in its direction and the
    badge ring pulses in the badge's own color (currentColor), on the same rhythm. */
 @keyframes trade-confirm-float-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
@@ -179,6 +198,9 @@
 @media (prefers-reduced-motion: reduce) {
   .auth-bg-drift, .auth-bg-orbit { animation: none; will-change: auto; }
   .trade-confirm-badge, .trade-confirm-badge[data-direction] svg { animation: none; }
+  .toast[data-state="open"] { animation-name: toast-fade-in; }
+  .toast[data-state="closed"] { animation-name: toast-fade-out; }
+  .toast[data-swipe="end"] { animation-name: toast-fade-out; transform: translateY(var(--radix-toast-swipe-end-y)); }
 }
 
 @layer base {

@@ -32,7 +32,7 @@ export function AccountMenu({ align = "start" }: { align?: "start" | "end" }) {
           align={align}
           sideOffset={8}
           collisionPadding={8}
-          className="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-lg border bg-popover p-1 shadow-lg"
+          className="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-lg border bg-popover p-1 shadow-lg origin-(--radix-dropdown-menu-content-transform-origin) ease-out-strong data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:duration-180 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:duration-120 motion-reduce:data-[state=open]:zoom-in-100 motion-reduce:data-[state=closed]:zoom-out-100"
         >
           <DropdownMenu.Label className="truncate px-3 py-2 text-xs text-muted-foreground">
             {email ?? "--"}

@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
 import { Button } from "@/components/ui/button";
 import { saveConfirmTrades } from "@/lib/preferences";
+import { EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type TradeConfirmRow = { label: string; value: string; tone?: "up" };
@@ -25,9 +26,6 @@ type Props = {
   onConfirm: () => void;
   onCancel: () => void;
 };
-
-// Mirrors --ease-out-strong in globals.css (motion takes the curve as numbers).
-const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 // Enter: a critically damped spring (no overshoot) on the card, a quick fade on the scrim.
 // Exit is shorter. Only opacity and transform animate; the card starts near full size.
