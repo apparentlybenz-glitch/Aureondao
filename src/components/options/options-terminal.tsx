@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
@@ -34,7 +34,7 @@ export function OptionsTerminal() {
   const m = useTranslations("Market");
   const w = useTranslations("Wallets");
   const { markets, tickers, now } = useMarketData();
-  const { wallets } = useWallets();
+  const { wallets, reload: reloadWallets } = useWallets();
   const periods = useOptionPeriods();
   const positions = useOptionPositions();
   const [symbol, setSymbol] = useState(DEFAULT_MARKET);
@@ -44,6 +44,20 @@ export function OptionsTerminal() {
   useServerClockSync();
   const wide = useMediaQuery(LG);
   const desktop = useMediaQuery(XL);
+
+  // Settle and void change a wallet in the same transaction as the position row,
+  // so every positions update after the first load reloads the wallets too. This
+  // also covers a missed wallet event (the positions reload at expires_at + 12 s).
+  const { open, fills } = positions;
+  const positionsLoaded = useRef(false);
+  useEffect(() => {
+    if (open === null || fills === null) return;
+    if (!positionsLoaded.current) {
+      positionsLoaded.current = true;
+      return;
+    }
+    void reloadWallets();
+  }, [open, fills, reloadWallets]);
 
   const optionMarkets = markets?.filter((x) => x.optionsEnabled) ?? [];
   const market = optionMarkets.find((x) => x.id === symbol) ?? optionMarkets[0] ?? null;
@@ -89,6 +103,7 @@ export function OptionsTerminal() {
       available={options ? options.available : null}
       onOpened={() => {
         void positions.reload();
+        void reloadWallets();
         setDepthTab(tabAfterOrder(depthTab));
       }}
     />

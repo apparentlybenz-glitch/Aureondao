@@ -42,7 +42,7 @@ export function SpotTerminal() {
   // The one tab state: below lg it drives Book / Trades / Orders, from lg the depth panel shows it.
   const depthTab = tab === "trades" ? "trades" : "book";
   const { markets, tickers, now } = useMarketData();
-  const { wallets } = useWallets();
+  const { wallets, reload: reloadWallets } = useWallets();
   const spot = wallets?.find((x) => x.account === "spot") ?? null;
   const account = useSpotAccount(spot ? spot.available.toString() : null);
   const feeBps = useSpotFeeBps();
@@ -91,6 +91,7 @@ export function SpotTerminal() {
       feeBps={feeBps}
       onFilled={() => {
         void account.reload();
+        void reloadWallets();
         // What the user sees: from lg the depth panel shows Book unless the tab is Trades.
         const visible = wide ? depthTab : tab;
         setTab(tabAfterOrder(visible));

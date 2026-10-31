@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { centsFromText } from "@/lib/money";
 import { onVisible } from "@/lib/on-visible";
 import { serverNowMs } from "@/lib/server-clock";
@@ -155,13 +155,18 @@ async function fetchPositions(): Promise<PositionsData | null> {
 }
 
 // The user's open positions and newest settled or void ones, reloaded on every
-// change to their rows (open, settle, void).
+// change to their rows (open, settle, void). reload is latest-wins: only the
+// newest reload may write state.
 export function useOptionPositions() {
   const [data, setData] = useState<PositionsData | null>(null);
   const [error, setError] = useState(false);
 
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
+    const ticket = ++latest.current;
     const result = await fetchPositions();
+    if (ticket !== latest.current) return;
     setError(result === null);
     if (result) setData(result);
   }, []);
