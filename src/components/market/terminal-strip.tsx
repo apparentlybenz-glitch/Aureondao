@@ -82,6 +82,7 @@ export function CryptoStrip({
   const t = useTranslations("Terminal");
   const spot = useTranslations("Spot");
   const m = useTranslations("Market");
+  const w = useTranslations("Wallets");
   const dp = market.priceDecimals;
   const change = ticker ? formatChange(ticker.changePct) : null;
   const tone = change?.startsWith("+") ? "up" : change?.startsWith("-") ? "down" : undefined;
@@ -104,7 +105,7 @@ export function CryptoStrip({
         { label: spot("stats.high"), value: fmt(ticker?.high) },
         { label: spot("stats.low"), value: fmt(ticker?.low) },
         {
-          label: spot("stats.volume", { quote: market.quote }),
+          label: spot("stats.volume", { quote: w("currency") }),
           value: ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "--",
         },
       ]}

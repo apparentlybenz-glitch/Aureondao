@@ -163,7 +163,7 @@ export function SpotTerminal() {
           <dd>{ticker ? formatPrice(ticker.low, market.priceDecimals) : "--"}</dd>
         </div>
         <div className="text-right">
-          <dt className="text-muted-foreground">{t("stats.volume", { quote: market.quote })}</dt>
+          <dt className="text-muted-foreground">{t("stats.volume", { quote: walletsT("currency") })}</dt>
           <dd>{ticker ? compact.format(toSortNumber(ticker.quoteVolume)) : "--"}</dd>
         </div>
       </dl>
