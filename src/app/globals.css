@@ -181,8 +181,11 @@
    Enter and exit are CSS transitions on data-state, so a close or reopen mid-motion re-targets
    from the current position with no jump (@starting-style supplies the enter's start). Radix
    unmounts a closed Dialog when its CSS animation ends and ignores transitions, so the closed
-   state also runs slide-hold, which changes only an unregistered custom property and lasts as
-   long as the exit. Exit is shorter than enter and travels back along the same path. */
+   state also runs slide-hold, which changes only a registered, non-inheriting custom property
+   and lasts 20 ms longer than the exit transition, so it can never end before it. The closed states ignore pointer events (!important, because Radix
+   sets pointer-events inline on the overlay) so the page underneath stays reachable during the exit.
+   Exit is shorter than enter and travels back along the same path. */
+@property --slide-hold { syntax: "<number>"; inherits: false; initial-value: 0; }
 @keyframes slide-hold { from { --slide-hold: 0; } to { --slide-hold: 1; } }
 .slide-panel { --slide-from: translateY(100%); }
 .slide-panel-left { --slide-from: translateX(-100%); }
@@ -190,13 +193,15 @@
 .slide-panel[data-state="closed"] {
   transform: var(--slide-from);
   transition: transform var(--duration-moderate) var(--ease-drawer);
-  animation: slide-hold var(--duration-moderate);
+  animation: slide-hold calc(var(--duration-moderate) + 20ms);
+  pointer-events: none !important;
 }
 .slide-overlay[data-state="open"] { opacity: 1; transition: opacity var(--duration-moderate) var(--ease-out-strong); }
 .slide-overlay[data-state="closed"] {
   opacity: 0;
   transition: opacity var(--duration-moderate) var(--ease-out-strong);
-  animation: slide-hold var(--duration-moderate);
+  animation: slide-hold calc(var(--duration-moderate) + 20ms);
+  pointer-events: none !important;
 }
 @starting-style {
   .slide-panel[data-state="open"] { transform: var(--slide-from); }
