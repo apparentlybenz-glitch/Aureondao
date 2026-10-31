@@ -23,6 +23,7 @@ function Note() {
 
 export function TradesPanel({ market }: { market: Market }) {
   const t = useTranslations("Spot");
+  const w = useTranslations("Wallets");
   const trades = usePoll(
     `trades|${market.id}`,
     async () => normalizeVisionTrades(await getJson(browserFetch, visionTradesUrl(market), BOOK_TIMEOUT_MS)),
@@ -33,7 +34,7 @@ export function TradesPanel({ market }: { market: Market }) {
     <div>
       <div className="grid grid-cols-3 pb-1 text-xs text-muted-foreground">
         <span>{t("columns.time")}</span>
-        <span className="text-right">{t("columns.price", { quote: market.quote })}</span>
+        <span className="text-right">{t("columns.price", { quote: w("currency") })}</span>
         <span className="text-right">{t("columns.amount", { base: market.base })}</span>
       </div>
       {trades.data ? (

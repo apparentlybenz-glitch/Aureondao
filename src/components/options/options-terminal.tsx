@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
+import type { DepthTab } from "@/components/market/depth-tabs";
 import { DesktopTerminal } from "@/components/market/desktop-terminal";
 import { OrderBook } from "@/components/market/order-book";
 import { CryptoStrip } from "@/components/market/terminal-strip";
 import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { TradesPanel } from "@/components/spot/book-panels";
+import { tabAfterOrder } from "@/lib/depth-tab";
 import { isPositiveDecimal } from "@/lib/market/decimal";
 import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
@@ -37,6 +39,7 @@ export function OptionsTerminal() {
   const positions = useOptionPositions();
   const [symbol, setSymbol] = useState(DEFAULT_MARKET);
   const [bookShown, setBookShown] = useState(false);
+  const [depthTab, setDepthTab] = useState<DepthTab>("book");
   usePriceFeedDemand();
   useServerClockSync();
   const wide = useMediaQuery(LG);
@@ -59,6 +62,8 @@ export function OptionsTerminal() {
   const depthFor = (fill: boolean) => (
     <DepthTabs
       fill={fill}
+      tab={depthTab}
+      onTabChange={setDepthTab}
       book={
         <OrderBook
           mode="real"
@@ -82,7 +87,10 @@ export function OptionsTerminal() {
       mid={mid}
       periods={periods}
       available={options ? options.available : null}
-      onOpened={() => void positions.reload()}
+      onOpened={() => {
+        void positions.reload();
+        setDepthTab(tabAfterOrder(depthTab));
+      }}
     />
   );
   const positionsPanel = (

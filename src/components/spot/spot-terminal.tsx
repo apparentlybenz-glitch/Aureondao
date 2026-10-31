@@ -8,6 +8,7 @@ import { formatPrice, toSortNumber } from "@/lib/market/decimal";
 import { DEFAULT_MARKET, readLastMarket, saveLastMarket } from "@/lib/market/last-symbol";
 import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
+import { tabAfterOrder } from "@/lib/depth-tab";
 import { trimDecimal } from "@/lib/spot-math";
 import { usePriceFeedDemand, useSpotAccount, useSpotFeeBps } from "@/lib/spot";
 import { LG, XL, useMediaQuery } from "@/lib/use-media-query";
@@ -39,6 +40,8 @@ export function SpotTerminal() {
   const params = useSearchParams();
   const [symbol, setSymbol] = useState(() => params.get("symbol") ?? readLastMarket());
   const [tab, setTab] = useState<Tab>("book");
+  // The one tab state: below lg it drives Book / Trades / Orders, from lg the depth panel shows it.
+  const depthTab = tab === "trades" ? "trades" : "book";
   const { markets, tickers, now } = useMarketData();
   const { wallets } = useWallets();
   const spot = wallets?.find((x) => x.account === "spot") ?? null;
@@ -87,7 +90,12 @@ export function SpotTerminal() {
       available={spot ? spot.available : null}
       holding={trimDecimal(holding)}
       feeBps={feeBps}
-      onFilled={() => void account.reload()}
+      onFilled={() => {
+        void account.reload();
+        // What the user sees: from lg the depth panel shows Book unless the tab is Trades.
+        const visible = wide ? depthTab : tab;
+        setTab(tabAfterOrder(visible));
+      }}
     />
   );
   const accountPanel = (
@@ -108,7 +116,13 @@ export function SpotTerminal() {
             />
           }
           chart={<TradingViewChart key={market.id} symbol={market.tvSymbol} className="h-full rounded-none border-0 lg:h-full" />}
-          book={<DepthTabs fill book={bookFor(true)} trades={<TradesPanel market={market} />} />}
+          book={<DepthTabs
+              fill
+              tab={depthTab}
+              onTabChange={setTab}
+              book={bookFor(true)}
+              trades={<TradesPanel market={market} />}
+            />}
           trading={orderForm}
           bottom={
             <section>
@@ -164,7 +178,7 @@ export function SpotTerminal() {
         </div>
         {wide ? (
           <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-            <DepthTabs book={book} trades={<TradesPanel market={market} />} />
+            <DepthTabs tab={depthTab} onTabChange={setTab} book={book} trades={<TradesPanel market={market} />} />
           </aside>
         ) : null}
       </div>

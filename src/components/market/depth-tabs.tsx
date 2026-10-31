@@ -9,9 +9,27 @@ import { cn } from "@/lib/utils";
 // Used for the right-hand column from lg up and for the section below the form otherwise.
 // `fill` is for the desktop book card: the section takes the card height and the book fills it
 // (the trades list scrolls inside it). Off everywhere else.
-export function DepthTabs({ book, trades, fill = false }: { book: ReactNode; trades?: ReactNode; fill?: boolean }) {
+// The tab is optionally controlled (`tab` with `onTabChange`): a terminal that holds it can switch
+// it after an order. Without them the panel keeps its own state and starts on Book.
+export type DepthTab = "book" | "trades";
+
+export function DepthTabs({
+  book,
+  trades,
+  fill = false,
+  tab: controlled,
+  onTabChange,
+}: {
+  book: ReactNode;
+  trades?: ReactNode;
+  fill?: boolean;
+  tab?: DepthTab;
+  onTabChange?: (tab: DepthTab) => void;
+}) {
   const t = useTranslations("Spot");
-  const [tab, setTab] = useState<"book" | "trades">("book");
+  const [own, setOwn] = useState<DepthTab>("book");
+  const tab = controlled ?? own;
+  const setTab = onTabChange ?? setOwn;
   const section = fill ? "flex h-full min-h-0 flex-col" : undefined;
   if (!trades) {
     return (
