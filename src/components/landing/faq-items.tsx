@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { COINS } from "@/lib/coins";
+import type { useTranslations } from "next-intl";
+import { COINS, type CoinSymbol } from "@/lib/coins";
 
 export type FaqItem = { id: string; question: string; answer: ReactNode };
 
@@ -17,7 +18,7 @@ export const FAQ_KEYS = [
   "support",
 ] as const;
 
-type Translate = (key: string, values?: Record<string, string>) => string;
+type FaqTranslate = ReturnType<typeof useTranslations<"Faq">>;
 
 function joinList(names: readonly string[]): string {
   return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
@@ -25,7 +26,7 @@ function joinList(names: readonly string[]): string {
 
 // Item 1 names the deposit coins from the shared config (src/lib/coins.ts).
 // No minimum amounts exist in the app, so it is a plain explanation, not a table.
-export function buildFaqItems(t: Translate, coinName: (symbol: string) => string): FaqItem[] {
+export function buildFaqItems(t: FaqTranslate, coinName: (symbol: CoinSymbol) => string): FaqItem[] {
   const coins = joinList(COINS.map((c) => coinName(c.symbol)));
   return FAQ_KEYS.map((key) => ({
     id: key,

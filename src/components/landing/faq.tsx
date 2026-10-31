@@ -10,10 +10,7 @@ export function Faq() {
   const t = useTranslations("Faq");
   const tDeposit = useTranslations("Deposit");
   const base = useId();
-  const items = buildFaqItems(
-    (key, values) => t(key as never, values as never),
-    (symbol) => tDeposit(`coins.${symbol}` as never),
-  );
+  const items = buildFaqItems(t, (symbol) => tDeposit(`coins.${symbol}`));
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set([items[0].id]));
 
   function toggle(id: string) {
