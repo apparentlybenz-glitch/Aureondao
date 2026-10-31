@@ -9,7 +9,6 @@ export const FAQ_KEYS = [
   "deposit",
   "depositTime",
   "withdrawTime",
-  "trade",
   "start",
   "fees",
   "verification",
@@ -31,6 +30,22 @@ export function buildFaqItems(t: FaqTranslate, coinName: (symbol: CoinSymbol) =>
   return FAQ_KEYS.map((key) => ({
     id: key,
     question: t(`items.${key}.question`),
-    answer: <p>{t(`items.${key}.answer`, { coins })}</p>,
+    answer: key === "withdrawTime" ? withdrawAnswer(t) : <p>{t(`items.${key}.answer`, { coins })}</p>,
   }));
+}
+
+const WITHDRAW_ROWS = ["trc20", "erc20", "btc", "sol"] as const;
+
+function withdrawAnswer(t: FaqTranslate): ReactNode {
+  return (
+    <div className="space-y-3">
+      <p>{t("items.withdrawTime.answer")}</p>
+      <ul className="list-disc space-y-1.5 pl-5 marker:text-primary">
+        {WITHDRAW_ROWS.map((row) => (
+          <li key={row}>{t(`items.withdrawTime.${row}`)}</li>
+        ))}
+      </ul>
+      <p>{t("items.withdrawTime.closing")}</p>
+    </div>
+  );
 }
