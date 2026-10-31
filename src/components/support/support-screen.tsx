@@ -158,7 +158,7 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
             <Select.Content
               position="popper"
               sideOffset={6}
-              className="z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg"
+              className="z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg origin-(--radix-select-content-transform-origin) ease-out-strong data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:duration-180 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:duration-120 motion-reduce:data-[state=open]:zoom-in-100 motion-reduce:data-[state=closed]:zoom-out-100"
             >
               <Select.Viewport className="p-1">
                 {SUPPORT_TOPICS.map((value) => (
