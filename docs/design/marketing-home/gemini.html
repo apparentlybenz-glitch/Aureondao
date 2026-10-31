@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AureonX | Next-Gen Multi-Asset & Crypto Options Platform</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            darker: '#05070B',
+                            dark: '#0B0E14',
+                            card: '#121722',
+                            border: '#1E2638',
+                            emerald: '#10B981',
+                            neon: '#00FF9D',
+                            accent: '#059669',
+                            glow: 'rgba(0, 255, 157, 0.15)',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow-line': 'glowLine 3s ease-in-out infinite alternate',
+                        'ticker': 'ticker 25s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-12px)' },
+                        },
+                        glowLine: {
+                            '0%': { opacity: '0.4', strokeDashoffset: '100' },
+                            '100%': { opacity: '1', strokeDashoffset: '0' },
+                        },
+                        ticker: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Modern Glassmorphism & Custom Aesthetic Styles */
+        body {
+            background-color: #05070B;
+            color: #F3F4F6;
+            overflow-x: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Subtle Background Grid Overlay */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Ambient Glow Shadows */
+        .neon-shadow {
+            box-shadow: 0 0 35px -5px rgba(0, 255, 157, 0.25);
+        }
+        .neon-shadow-sm {
+            box-shadow: 0 0 15px -3px rgba(0, 255, 157, 0.3);
+        }
+
+        .glass-card {
+            background: rgba(18, 23, 34, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-hover:hover {
+            border-color: rgba(0, 255, 157, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 255, 157, 0.12);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #FFFFFF 30%, #00FF9D 80%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gradient-text-subtle {
+            background: linear-gradient(135deg, #E5E7EB 0%, #9CA3AF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #05070B;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E2638;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10B981;
+        }
+
+        /* Custom Accordion Transition */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="antialiased relative selection:bg-brand-neon selection:text-black">
+
+    <!-- Ambient Glowing Orbs Background -->
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none z-0 opacity-40 overflow-hidden">
+        <div class="absolute top-[-100px] left-[15%] w-[500px] h-[500px] bg-brand-neon/20 rounded-full blur-[140px]"></div>
+        <div class="absolute top-[100px] right-[10%] w-[400px] h-[400px] bg-emerald-600/15 rounded-full blur-[120px]"></div>
+    </div>
+
+    <!-- 1. LIVE CRYPTO TICKER TOP BAR -->
+    <div class="w-full bg-[#080B10] border-b border-brand-border/60 text-xs font-mono py-2 overflow-hidden relative z-50">
+        <div class="flex items-center space-x-8 whitespace-nowrap animate-ticker inline-block">
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">BTC/USD</span>
+                <span id="ticker-btc-price" class="text-white font-mono">$77,430.50</span>
+                <span class="text-brand-neon flex items-center text-[11px]"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> +4.25%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">ETH/USD</span>
+                <span id="ticker-eth-price" class="text-white font-mono">$2,840.10</span>
+                <span class="text-brand-neon flex items-center text-[11px]"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> +2.18%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">SOL/USD</span>
+                <span id="ticker-sol-price" class="text-white font-mono">$188.45</span>
+                <span class="text-red-400 flex items-center text-[11px]"><i data-lucide="trending-down" class="w-3 h-3 mr-0.5"></i> -0.85%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">USDT/USD</span>
+                <span class="text-white font-mono">$1.00</span>
+                <span class="text-gray-400 text-[11px]">0.00%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <!-- Duplicate for continuous scroll loop -->
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">BTC/USD</span>
+                <span class="text-white font-mono">$77,430.50</span>
+                <span class="text-brand-neon flex items-center text-[11px]"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> +4.25%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">ETH/USD</span>
+                <span class="text-white font-mono">$2,840.10</span>
+                <span class="text-brand-neon flex items-center text-[11px]"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> +2.18%</span>
+            </span>
+            <span class="text-gray-700">•</span>
+            <span class="inline-flex items-center space-x-2">
+                <span class="text-gray-400 font-sans font-semibold">SOL/USD</span>
+                <span class="text-white font-mono">$188.45</span>
+                <span class="text-red-400 flex items-center text-[11px]"><i data-lucide="trending-down" class="w-3 h-3 mr-0.5"></i> -0.85%</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- 2. NAVIGATION BAR -->
+    <header class="sticky top-0 z-40 w-full glass-card border-b border-brand-border/80 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            
+            <!-- Logo Mark -->
+            <a href="#" class="flex items-center space-x-3 group">
+                <div class="relative w-10 h-10 rounded-xl bg-gradient-to-br from-brand-neon via-brand-emerald to-emerald-900 p-0.5 shadow-lg group-hover:shadow-brand-neon/40 transition-all duration-300">
+                    <div class="w-full h-full bg-brand-dark rounded-[10px] flex items-center justify-center">
+                        <i data-lucide="layers" class="w-5 h-5 text-brand-neon group-hover:scale-110 transition-transform"></i>
+                    </div>
+                </div>
+                <span class="text-2xl font-extrabold tracking-tight text-white">
+                    Aureon<span class="text-brand-neon">X</span>
+                </span>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-300">
+                <a href="#markets" class="hover:text-brand-neon transition-colors flex items-center space-x-1">
+                    <span>Markets</span>
+                </a>
+                <a href="#features" class="hover:text-brand-neon transition-colors flex items-center space-x-1">
+                    <span>Spot & Options</span>
+                </a>
+                <a href="#faq" class="hover:text-brand-neon transition-colors">FAQ</a>
+                <a href="#security" class="hover:text-brand-neon transition-colors">Security</a>
+            </nav>
+
+            <!-- Actions -->
+            <div class="hidden md:flex items-center space-x-4">
+                <button class="px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-colors">
+                    Log in
+                </button>
+                <button class="relative group overflow-hidden rounded-xl p-px font-semibold text-sm">
+                    <span class="absolute inset-0 bg-gradient-to-r from-brand-neon via-emerald-400 to-teal-400 rounded-xl transition-all duration-300 group-hover:opacity-90"></span>
+                    <span class="relative block px-5 py-2.5 bg-brand-dark rounded-[11px] text-brand-neon font-bold group-hover:bg-transparent group-hover:text-black transition-all duration-300">
+                        Create Account
+                    </span>
+                </button>
+            </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button id="mobile-menu-btn" class="md:hidden p-2 text-gray-400 hover:text-white focus:outline-none">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Drawer Menu -->
+        <div id="mobile-menu" class="hidden md:hidden glass-card border-t border-brand-border px-6 py-6 space-y-4">
+            <a href="#markets" class="block text-base font-medium text-gray-200 hover:text-brand-neon">Markets</a>
+            <a href="#features" class="block text-base font-medium text-gray-200 hover:text-brand-neon">Spot & Options</a>
+            <a href="#faq" class="block text-base font-medium text-gray-200 hover:text-brand-neon">FAQ</a>
+            <div class="pt-4 border-t border-brand-border flex flex-col space-y-3">
+                <button class="w-full py-3 text-center font-semibold text-gray-300 bg-brand-card rounded-xl border border-brand-border">Log in</button>
+                <button class="w-full py-3 text-center font-bold text-black bg-brand-neon rounded-xl neon-shadow-sm">Create Account</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. HERO SECTION WITH INTERACTIVE TRADING PREVIEW -->
+    <section class="relative pt-12 pb-24 md:pt-20 md:pb-32 bg-grid-pattern z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+                
+                <!-- Left Hero Content -->
+                <div class="lg:col-span-7 space-y-8 text-center lg:text-left">
+                    <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full glass-card border-brand-neon/30 text-xs font-semibold text-brand-neon">
+                        <span class="w-2 h-2 rounded-full bg-brand-neon animate-ping"></span>
+                        <span>Institutional-Grade Liquidity Engine</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08]">
+                        Spot & Options on <br class="hidden sm:inline" />
+                        <span class="gradient-text">Live Crypto Markets</span>
+                    </h1>
+
+                    <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                        Trade <span class="text-white font-medium">BTC, ETH, SOL</span> and more with zero-slippage execution, order book depth, or structured fixed-return options in one unified platform.
+                    </p>
+
+                    <!-- Hero Call to Action Buttons -->
+                    <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+                        <a href="#create" class="w-full sm:w-auto px-8 py-4 bg-brand-neon hover:bg-emerald-400 text-black font-extrabold rounded-xl text-base shadow-lg hover:shadow-brand-neon/40 transition-all transform hover:-translate-y-0.5 text-center flex items-center justify-center space-x-2">
+                            <span>Create Free Account</span>
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </a>
+                        <a href="#demo" class="w-full sm:w-auto px-8 py-4 glass-card hover:bg-brand-card/90 text-white font-bold rounded-xl text-base border border-brand-border hover:border-gray-500 transition-all text-center flex items-center justify-center space-x-2">
+                            <i data-lucide="play-circle" class="w-5 h-5 text-brand-neon"></i>
+                            <span>View Live Orderbook</span>
+                        </a>
+                    </div>
+
+                    <!-- Key Metrics Strip -->
+                    <div class="pt-8 border-t border-brand-border/60 grid grid-cols-3 gap-4 text-center lg:text-left">
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">$4.8B+</div>
+                            <div class="text-xs text-gray-400 mt-0.5">24h Trading Vol</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">&lt;20ms</div>
+                            <div class="text-xs text-gray-400 mt-0.5">Execution Speed</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">100%</div>
+                            <div class="text-xs text-gray-400 mt-0.5">Proof of Reserves</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Interactive Trading Engine Card Graphic -->
+                <div class="lg:col-span-5 relative">
+                    <!-- Subtle Floating Graphic Decorative Orbs -->
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-brand-neon/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-600/20 rounded-full blur-2xl pointer-events-none"></div>
+
+                    <!-- Interactive Mock Trading Card -->
+                    <div class="glass-card rounded-2xl p-6 border border-brand-border/80 shadow-2xl relative overflow-hidden">
+                        
+                        <!-- Header / Mode Selector -->
+                        <div class="flex items-center justify-between border-b border-brand-border pb-4 mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
+                                    <span class="text-yellow-500 font-bold text-xs">₿</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">BTC / USDT</h3>
+                                    <span class="text-xs text-brand-neon font-mono">+4.25% Spot Live</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle Spot vs Options -->
+                            <div class="bg-brand-dark/90 p-1 rounded-lg border border-brand-border flex text-xs font-semibold">
+                                <button id="mode-spot" onclick="toggleTradingMode('spot')" class="px-3 py-1 rounded-md bg-brand-neon text-black font-bold transition-all">Spot</button>
+                                <button id="mode-options" onclick="toggleTradingMode('options')" class="px-3 py-1 rounded-md text-gray-400 hover:text-white transition-all">Options</button>
+                            </div>
+                        </div>
+
+                        <!-- Live Price Display & Mini Chart Mock -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-baseline">
+                                <div>
+                                    <div class="text-xs text-gray-400 uppercase font-mono">Current Index Price</div>
+                                    <div class="text-3xl font-bold font-mono text-white tracking-tight">$77,430.50</div>
+                                </div>
+                                <span class="px-2.5 py-1 rounded bg-brand-neon/10 text-brand-neon text-xs font-mono font-semibold border border-brand-neon/20">
+                                    24h High: $78,120
+                                </span>
+                            </div>
+
+                            <!-- Interactive Canvas SVG Chart Graphic -->
+                            <div class="w-full h-36 relative bg-brand-dark/40 rounded-xl p-2 border border-brand-border/40 overflow-hidden">
+                                <svg class="w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#00FF9D" stop-opacity="0.35"/>
+                                            <stop offset="100%" stop-color="#00FF9D" stop-opacity="0.0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Dynamic SVG Chart Line -->
+                                    <path d="M 0 80 Q 40 70, 70 45 T 140 50 T 210 25 T 300 15 L 300 100 L 0 100 Z" fill="url(#chartGradient)" />
+                                    <path d="M 0 80 Q 40 70, 70 45 T 140 50 T 210 25 T 300 15" fill="none" stroke="#00FF9D" stroke-width="2.5" stroke-linecap="round" />
+                                    <!-- Animated Glowing Price Point Marker -->
+                                    <circle cx="300" cy="15" r="4" fill="#00FF9D" class="animate-ping" />
+                                    <circle cx="300" cy="15" r="4" fill="#FFFFFF" />
+                                </svg>
+                            </div>
+
+                            <!-- Execution Input Controls Mock -->
+                            <div id="trading-controls" class="space-y-3 pt-2">
+                                <div class="flex items-center justify-between bg-brand-dark/80 px-4 py-2.5 rounded-xl border border-brand-border">
+                                    <span class="text-xs text-gray-400">Amount (BTC)</span>
+                                    <span class="text-sm font-mono font-bold text-white">0.50</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button class="w-full py-3 bg-brand-neon hover:bg-emerald-400 text-black font-extrabold rounded-xl text-sm transition-all shadow-md shadow-brand-neon/20 flex items-center justify-center space-x-1">
+                                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                                        <span id="buy-btn-text">Buy / Long</span>
+                                    </button>
+                                    <button class="w-full py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold rounded-xl text-sm transition-all flex items-center justify-center space-x-1">
+                                        <i data-lucide="trending-down" class="w-4 h-4"></i>
+                                        <span id="sell-btn-text">Sell / Short</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Floating Live Order Widget Badge -->
+                        <div class="mt-4 pt-3 border-t border-brand-border/60 flex items-center justify-between text-[11px] text-gray-400">
+                            <span class="flex items-center space-x-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-brand-neon"></span>
+                                <span>Orderbook Synced</span>
+                            </span>
+                            <span class="font-mono text-gray-400">Latency: <span class="text-brand-neon">4ms</span></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. CORE PLATFORM PRODUCTS (SPOT, OPTIONS, ASSETS) -->
+    <section id="features" class="py-20 relative bg-brand-dark/40 border-t border-brand-border/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center max-w-3xl mx-auto space-y-4 mb-16">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-brand-neon">Engineered for Traders</h2>
+                <p class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+                    Three Pillars of Multi-Asset Trading
+                </p>
+                <p class="text-gray-400 text-base sm:text-lg">
+                    Whether you execute high-frequency spot arbitrage or structured fixed-return options options, AureonX delivers absolute performance.
+                </p>
+            </div>
+
+            <!-- Product Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Product Card 1: Spot -->
+                <div class="glass-card glass-card-hover p-8 rounded-2xl transition-all duration-300 relative group flex flex-col justify-between">
+                    <div class="space-y-6">
+                        <div class="w-14 h-14 rounded-2xl bg-brand-neon/10 border border-brand-neon/30 flex items-center justify-center text-brand-neon group-hover:scale-110 transition-transform">
+                            <i data-lucide="bar-chart-2" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white group-hover:text-brand-neon transition-colors">Spot Trading</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Buy and sell at true live market prices with deep liquidity depth, real-time depth order books, and sub-second engine settlement.
+                        </p>
+                        
+                        <ul class="space-y-2.5 pt-2 text-xs font-medium text-gray-300">
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>100+ Spot Pairs (BTC, ETH, SOL)</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>0.01% Low Maker/Taker Fees</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Institutional FIX API support</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-8">
+                        <a href="#spot" class="inline-flex items-center text-sm font-bold text-brand-neon group-hover:translate-x-1 transition-transform">
+                            <span>Explore Spot Market</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Product Card 2: Options -->
+                <div class="glass-card glass-card-hover p-8 rounded-2xl transition-all duration-300 relative group flex flex-col justify-between border-brand-neon/30">
+                    <div class="space-y-6">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                            <i data-lucide="clock" class="w-7 h-7"></i>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold text-white group-hover:text-brand-neon transition-colors">Crypto Options</h3>
+                            <span class="px-2.5 py-0.5 rounded-full bg-brand-neon/20 text-brand-neon text-[10px] font-bold uppercase tracking-wider">High Yield</span>
+                        </div>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Choose strike prices and contract expiry times (60s to 24h) to pre-determine potential upside payout before execution.
+                        </p>
+                        
+                        <ul class="space-y-2.5 pt-2 text-xs font-medium text-gray-300">
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Fixed Risk & Clear Payouts</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Ultra-short 60-second expiries</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Up to 92% profit return potential</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-8">
+                        <a href="#options" class="inline-flex items-center text-sm font-bold text-brand-neon group-hover:translate-x-1 transition-transform">
+                            <span>Trade Fixed Options</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Product Card 3: Multi-Asset Wallets -->
+                <div class="glass-card glass-card-hover p-8 rounded-2xl transition-all duration-300 relative group flex flex-col justify-between">
+                    <div class="space-y-6">
+                        <div class="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
+                            <i data-lucide="arrow-right-left" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white group-hover:text-brand-neon transition-colors">Unified Assets</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Seamlessly move capital between Capital, Spot, and Options balances instantaneously without internal transfer delays or extra gas fees.
+                        </p>
+                        
+                        <ul class="space-y-2.5 pt-2 text-xs font-medium text-gray-300">
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Instant Internal Balance Swap</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Multi-chain deposit support</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-neon"></i>
+                                <span>Automated Risk Shield Vaults</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-8">
+                        <a href="#assets" class="inline-flex items-center text-sm font-bold text-brand-neon group-hover:translate-x-1 transition-transform">
+                            <span>Manage Assets</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. INTERACTIVE FAQ SECTION WITH DEPOSIT DETAILS TABLE -->
+    <section id="faq" class="py-24 relative bg-brand-dark">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center space-y-4 mb-16">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-brand-neon">Transparency First</h2>
+                <p class="text-3xl sm:text-4xl font-extrabold text-white">Frequently Asked Questions</p>
+                <p class="text-gray-400 text-sm sm:text-base">Everything you need to know before funding your account & trading live.</p>
+            </div>
+
+            <!-- Accordions Container -->
+            <div class="space-y-4">
+                
+                <!-- FAQ 1 (Default Open: Deposit Minimums Table) -->
+                <div class="glass-card rounded-2xl border border-brand-border/80 overflow-hidden">
+                    <button onclick="toggleAccordion('faq-1')" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-lg font-bold text-white flex items-center space-x-3">
+                            <i data-lucide="wallet" class="w-5 h-5 text-brand-neon"></i>
+                            <span>What is the minimum deposit amount?</span>
+                        </span>
+                        <i id="icon-faq-1" data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300 transform rotate-180"></i>
+                    </button>
+                    
+                    <div id="faq-1" class="accordion-content px-6 pb-6" style="max-height: 1000px;">
+                        <p class="text-sm text-gray-300 leading-relaxed mb-4">
+                            Some networks require a minimum deposit threshold. We accept deposits in major assets only: <span class="text-white font-semibold">USDT (TRC-20, ERC-20, BEP-20), Bitcoin, Ethereum, Solana, and USDC</span>. Please do not send unsupported assets as they cannot be recovered.
+                        </p>
+
+                        <!-- Deposit Table -->
+                        <div class="overflow-x-auto rounded-xl border border-brand-border/60 bg-brand-darker/60">
+                            <table class="w-full text-left text-xs sm:text-sm font-mono">
+                                <thead>
+                                    <tr class="border-b border-brand-border/80 bg-brand-card/80 text-gray-400 font-sans">
+                                        <th class="py-3 px-4 font-semibold">Asset</th>
+                                        <th class="py-3 px-4 font-semibold">Network</th>
+                                        <th class="py-3 px-4 font-semibold text-right">Minimum Deposit</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border/40 text-gray-200">
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="py-3 px-4 flex items-center space-x-2 font-sans font-medium">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                            <span>USDT</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-400">TRC-20 (TRON)</td>
+                                        <td class="py-3 px-4 text-right font-bold text-brand-neon">10 USDT</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="py-3 px-4 flex items-center space-x-2 font-sans font-medium">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                            <span>USDT</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-400">ERC-20 (ETH)</td>
+                                        <td class="py-3 px-4 text-right font-bold text-white">50 USDT</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="py-3 px-4 flex items-center space-x-2 font-sans font-medium">
+                                            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                                            <span>Bitcoin</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-400">BTC Native</td>
+                                        <td class="py-3 px-4 text-right font-bold text-white">0.00025 BTC</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="py-3 px-4 flex items-center space-x-2 font-sans font-medium">
+                                            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                            <span>Solana</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-400">SOL Native</td>
+                                        <td class="py-3 px-4 text-right font-bold text-white">0.1 SOL</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="py-3 px-4 flex items-center space-x-2 font-sans font-medium">
+                                            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                            <span>Ethereum</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-400">ERC-20 (ETH)</td>
+                                        <td class="py-3 px-4 text-right font-bold text-white">0.01 ETH</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Important Warning Notice Box -->
+                        <div class="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3 text-xs text-amber-300">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                            <span>
+                                <strong>Important:</strong> Deposits sent below the minimum threshold or to an incorrect network address cannot be credited or recovered. Always double-check contract details prior to transferring.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 2 -->
+                <div class="glass-card rounded-2xl border border-brand-border/80 overflow-hidden">
+                    <button onclick="toggleAccordion('faq-2')" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-lg font-bold text-white flex items-center space-x-3">
+                            <i data-lucide="clock" class="w-5 h-5 text-brand-neon"></i>
+                            <span>How long do deposits take to show in my balance?</span>
+                        </span>
+                        <i id="icon-faq-2" data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    
+                    <div id="faq-2" class="accordion-content px-6">
+                        <div class="pb-6 text-sm text-gray-300 space-y-3">
+                            <p>All incoming crypto transactions are credited automatically as soon as they achieve required blockchain network confirmations:</p>
+                            <ul class="list-disc list-inside space-y-1 font-mono text-xs text-gray-400">
+                                <li>USDT (TRC-20): &lt; 3 minutes (19 confirmations)</li>
+                                <li>Bitcoin: ~10 - 20 minutes (2 confirmations)</li>
+                                <li>Solana: &lt; 30 seconds (Finalized state)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 3 -->
+                <div class="glass-card rounded-2xl border border-brand-border/80 overflow-hidden">
+                    <button onclick="toggleAccordion('faq-3')" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-lg font-bold text-white flex items-center space-x-3">
+                            <i data-lucide="arrow-up-right" class="w-5 h-5 text-brand-neon"></i>
+                            <span>How long do withdrawals take to process?</span>
+                        </span>
+                        <i id="icon-faq-3" data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    
+                    <div id="faq-3" class="accordion-content px-6">
+                        <div class="pb-6 text-sm text-gray-300 space-y-2">
+                            <p>Automated hot wallet withdrawals process instantaneously (within 5 minutes). Security checks for high-volume transactions are audited within 1-2 hours.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 4 -->
+                <div class="glass-card rounded-2xl border border-brand-border/80 overflow-hidden" id="security">
+                    <button onclick="toggleAccordion('faq-4')" class="w-full px-6 py-5 text-left flex items-center justify-between focus:outline-none">
+                        <span class="text-lg font-bold text-white flex items-center space-x-3">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-brand-neon"></i>
+                            <span>How do I keep my account secure?</span>
+                        </span>
+                        <i id="icon-faq-4" data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    
+                    <div id="faq-4" class="accordion-content px-6">
+                        <div class="pb-6 text-sm text-gray-300 space-y-2">
+                            <p>We mandate Two-Factor Authentication (2FA via Google Authenticator or WebAuthn keys). 98% of user funds are stored in offline multi-signature cold vaults.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. HIGH-CONVERTING BOTTOM CTA BANNER -->
+    <section class="py-20 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="glass-card rounded-3xl p-10 sm:p-16 border border-brand-neon/30 text-center relative overflow-hidden bg-gradient-to-b from-brand-card/90 to-brand-dark">
+                <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-brand-neon/15 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight max-w-2xl mx-auto">
+                    Ready to trade crypto with institution-level power?
+                </h2>
+                <p class="mt-4 text-gray-400 max-w-xl mx-auto text-base">
+                    Join thousands of traders worldwide on AureonX. Setup your account in under 60 seconds.
+                </p>
+
+                <div class="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <button class="w-full sm:w-auto px-8 py-4 bg-brand-neon hover:bg-emerald-400 text-black font-extrabold rounded-xl text-base shadow-xl neon-shadow transition-all transform hover:-translate-y-0.5">
+                        Create Account Now
+                    </button>
+                    <button class="w-full sm:w-auto px-8 py-4 glass-card hover:bg-white/10 text-white font-bold rounded-xl text-base border border-brand-border">
+                        Talk to Support
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. FOOTER -->
+    <footer class="bg-[#05070B] border-t border-brand-border/60 py-16 text-sm text-gray-400">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+                
+                <!-- Logo & Disclaimer Column -->
+                <div class="col-span-2 space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-lg bg-brand-neon/20 flex items-center justify-center">
+                            <i data-lucide="layers" class="w-4 h-4 text-brand-neon"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">Aureon<span class="text-brand-neon">X</span></span>
+                    </div>
+                    <p class="text-xs text-gray-400 max-w-sm leading-relaxed">
+                        AureonX is an advanced multi-asset crypto spot and options platform delivering ultra-low latency execution and deep market liquidity.
+                    </p>
+                </div>
+
+                <!-- Nav Column 1 -->
+                <div>
+                    <h4 class="font-bold text-white text-xs uppercase tracking-wider mb-4">Products</h4>
+                    <ul class="space-y-2.5 text-xs">
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Spot Trading</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Crypto Options</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Unified Vaults</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">API Documentation</a></li>
+                    </ul>
+                </div>
+
+                <!-- Nav Column 2 -->
+                <div>
+                    <h4 class="font-bold text-white text-xs uppercase tracking-wider mb-4">Legal & Risk</h4>
+                    <ul class="space-y-2.5 text-xs">
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Risk Disclosure</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Licenses & Audits</a></li>
+                    </ul>
+                </div>
+
+                <!-- Nav Column 3 -->
+                <div>
+                    <h4 class="font-bold text-white text-xs uppercase tracking-wider mb-4">Company</h4>
+                    <ul class="space-y-2.5 text-xs">
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Support Desk</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">System Status</a></li>
+                        <li><a href="#" class="hover:text-brand-neon transition-colors">Create Account</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-brand-border/40 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 space-y-4 md:space-y-0">
+                <div>© 2026 AureonX Inc. All rights reserved.</div>
+                <div class="flex space-x-6">
+                    <a href="#" class="hover:text-brand-neon"><i data-lucide="twitter" class="w-4 h-4"></i></a>
+                    <a href="#" class="hover:text-brand-neon"><i data-lucide="github" class="w-4 h-4"></i></a>
+                    <a href="#" class="hover:text-brand-neon"><i data-lucide="send" class="w-4 h-4"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 8. FLOATING GLASSMORPHIC COOKIE CONSENT BANNER -->
+    <div id="cookie-banner" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4 transition-all duration-500">
+        <div class="glass-card border border-brand-neon/30 p-5 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-start space-x-3 text-xs text-gray-300">
+                <i data-lucide="cookie" class="w-5 h-5 text-brand-neon flex-shrink-0 mt-0.5"></i>
+                <p>
+                    We use cookies and telemetry to optimize market response times and security. Read our <a href="#" class="text-brand-neon underline">Privacy Policy</a>.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button onclick="dismissCookieBanner()" class="w-1/2 sm:w-auto px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white bg-brand-dark rounded-xl border border-brand-border">
+                    Decline
+                </button>
+                <button onclick="dismissCookieBanner()" class="w-1/2 sm:w-auto px-4 py-2 text-xs font-bold text-black bg-brand-neon rounded-xl hover:bg-emerald-400 transition-colors">
+                    Accept
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. JAVASCRIPT FOR INTERACTIVITY & ANIMATIONS -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // FAQ Accordion Interactivity
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            
+            // Check if open
+            if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                content.style.maxHeight = '0px';
+                if(icon) icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                if(icon) icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Trading Mode Switcher (Spot vs Options)
+        function toggleTradingMode(mode) {
+            const spotBtn = document.getElementById('mode-spot');
+            const optionsBtn = document.getElementById('mode-options');
+            const buyText = document.getElementById('buy-btn-text');
+            const sellText = document.getElementById('sell-btn-text');
+
+            if (mode === 'spot') {
+                spotBtn.className = 'px-3 py-1 rounded-md bg-brand-neon text-black font-bold transition-all';
+                optionsBtn.className = 'px-3 py-1 rounded-md text-gray-400 hover:text-white transition-all';
+                buyText.innerText = 'Buy / Long';
+                sellText.innerText = 'Sell / Short';
+            } else {
+                optionsBtn.className = 'px-3 py-1 rounded-md bg-brand-neon text-black font-bold transition-all';
+                spotBtn.className = 'px-3 py-1 rounded-md text-gray-400 hover:text-white transition-all';
+                buyText.innerText = 'Call Option (Above)';
+                sellText.innerText = 'Put Option (Below)';
+            }
+        }
+
+        // Cookie Banner Dismissal
+        function dismissCookieBanner() {
+            const banner = document.getElementById('cookie-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translate(-50%, 20px)';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 500);
+        }
+
+        // Mobile Menu Toggle
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Micro Live Ticker Simulation Updates
+        setInterval(() => {
+            const btcTicker = document.getElementById('ticker-btc-price');
+            if(btcTicker) {
+                const randomOffset = (Math.random() - 0.48) * 15;
+                const currentPrice = 77430.50 + randomOffset;
+                btcTicker.innerText = '$' + currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }, 2500);
+    </script>
+</body>
+</html>

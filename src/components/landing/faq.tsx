@@ -21,7 +21,7 @@ export function Faq() {
   }
 
   return (
-    <section aria-labelledby={`${base}-title`} className="mx-auto w-full max-w-3xl space-y-6">
+    <section id="faq" aria-labelledby={`${base}-title`} className="mx-auto w-full max-w-3xl scroll-mt-6 space-y-6">
       <div className="space-y-2 text-center">
         <h2 id={`${base}-title`} className="text-2xl font-semibold tracking-tight md:text-3xl">
           {t("title")}

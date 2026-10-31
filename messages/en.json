@@ -70,7 +70,9 @@
     "nav": {
       "label": "Main",
       "logIn": "Log in",
-      "createAccount": "Create account"
+      "createAccount": "Create account",
+      "products": "Products",
+      "faq": "FAQ"
     },
     "prices": {
       "label": "Live prices",
@@ -82,24 +84,44 @@
       }
     },
     "hero": {
-      "title": "Spot and options on live crypto prices",
-      "subtitle": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options.",
+      "title": "Trade crypto on live prices",
+      "subtitle": "Open Spot orders or timed Rise and Fall options on BTC, ETH, SOL and 34 more markets.",
       "createAccount": "Create account",
       "logIn": "Log in"
     },
     "features": {
-      "label": "What you can do",
+      "eyebrow": "Products",
+      "title": "Three ways to use your balance",
+      "subtitle": "Trade Spot, call timed options or move funds between wallets, all from one account.",
       "spot": {
         "title": "Spot",
-        "body": "Buy and sell at the live market price, with depth and recent trades on one screen."
+        "body": "Buy and sell at the live market price, with depth and recent trades on one screen.",
+        "points": {
+          "one": "37 markets, from BTC to the long tail",
+          "two": "Market and limit orders",
+          "three": "Live order book and trade list"
+        },
+        "cta": "Open Spot"
       },
       "options": {
         "title": "Options",
-        "body": "Choose Rise or Fall and a period, then see your return before you call."
+        "body": "Choose Rise or Fall and a period, then see your return before you call.",
+        "points": {
+          "one": "Rise or Fall on a short timer",
+          "two": "Premium, fee and return shown up front",
+          "three": "Settled automatically at expiry"
+        },
+        "cta": "Open Options"
       },
       "assets": {
         "title": "Assets",
-        "body": "Move funds between your Capital, Spot and Options wallets and see every change in Bills."
+        "body": "Move funds between your wallets and see every change in Bills.",
+        "points": {
+          "one": "Capital, Spot, Forex and Options wallets",
+          "two": "Transfers between wallets in one step",
+          "three": "Every change listed in Bills"
+        },
+        "cta": "View Assets"
       }
     },
     "footer": {
@@ -118,6 +140,21 @@
       "signIn": "Log in",
       "signUp": "Create account",
       "copyright": "© 2026 AureonX"
+    },
+    "preview": {
+      "spot": "Spot",
+      "options": "Options",
+      "price": "Last price",
+      "high": "24h high",
+      "amount": "Amount (BTC)",
+      "buy": "Buy",
+      "sell": "Sell"
+    },
+    "cta": {
+      "title": "Ready to start trading?",
+      "body": "Create an account in a minute. An admin credits your virtual balance and you can trade right away.",
+      "createAccount": "Create account",
+      "logIn": "Log in"
     }
   },
   "Home": {
@@ -732,8 +769,7 @@
     "delayed": "Delayed",
     "addFavorite": "Add {symbol} to favorites",
     "removeFavorite": "Remove {symbol} from favorites",
-    "seeAll": "See all markets",
-    "footnote": "Prices are for reference and refresh about every 5 seconds."
+    "seeAll": "See all markets"
   },
   "Chart": {
     "unlock": "Tap to use the chart",

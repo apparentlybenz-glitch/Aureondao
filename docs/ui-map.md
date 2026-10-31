@@ -636,7 +636,7 @@ Assumptions:
 - **Market tab:** search matches the display symbol, the base asset, the id and `BASE/QUOTE`, case-insensitively, inside whichever tab is active. A star on each row adds or removes a favorite at once and undoes itself if the save fails. The top bar search form sends `/market?q=text`; the page field follows the URL when it changes and can then be edited freely.
 - **Coin icons:** a circle with the first two letters of the base asset. No third-party logos are downloaded or bundled.
 - **Row tap:** saves the symbol id under `aureonx.lastMarket` in `localStorage` (inside try/catch) and does not navigate. The Trade tab opens `/spot`, which is "Coming soon" until slice 4 (O24).
-- **States:** "Loading markets", an amber "Prices are temporarily unavailable. Retrying." when every provider has failed and nothing was loaded, and a one-line footnote that prices refresh about every 5 seconds.
+- **States:** "Loading markets", an amber "Prices are temporarily unavailable. Retrying." when every provider has failed and nothing was loaded.
 - **Layout:** built at 390 px. Prices use 13 px tabular numbers, and the symbol column keeps a minimum width so `NEARUSD` does not truncate next to the star. Scrolling pages keep the tab bar plus safe-area padding from the group layout.
 
 ### 4.12 Slice 4 screens as shipped (Spot terminal)
