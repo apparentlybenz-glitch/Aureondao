@@ -62,7 +62,6 @@ export default function HomePage() {
           {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : c("loading")}
           <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
         </p>
-        <p className="text-xs font-medium text-primary">{t("virtualBalance")}</p>
       </section>
 
       <section className="grid grid-cols-4 gap-y-4">
