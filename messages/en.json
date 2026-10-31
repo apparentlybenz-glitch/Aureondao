@@ -1,4 +1,50 @@
 {
+  "Faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know before getting started.",
+    "items": {
+      "deposit": {
+        "question": "What is the minimum deposit amount?",
+        "answer": "You can fund your balance in {coins}. AureonX does not publish a minimum deposit amount. There is no wallet address on the Deposit page and you do not send anything. AureonX credits your balance and the credit appears in Bills."
+      },
+      "depositTime": {
+        "question": "How long do deposits take to show in my balance?",
+        "answer": "AureonX does not publish a deposit time. A credit shows in your Assets total and in Bills as soon as it is applied to your account. If you are waiting on one, open a ticket from the support icon."
+      },
+      "withdrawTime": {
+        "question": "How long do withdrawals take?",
+        "answer": "Withdrawals are not open. The Withdraw page shows the coins and networks but it is view only and takes no request. Your balance stays on AureonX."
+      },
+      "trade": {
+        "question": "What can I trade on AureonX?",
+        "answer": "Spot lets you buy and sell USDT pairs at the live best price. Pick a pair from the Market tab or the picker on the Spot screen. Options lets you call Rise or Fall on a pair for the period shown. Forex has its own screen under Trade and its order form is not open yet. Transfer moves money between your own wallets. There is no Perpetual product."
+      },
+      "start": {
+        "question": "How do I get started?",
+        "answer": "Create an account with your email and a password. Add a nickname if you want one and accept the terms. You land on Home. Your balance starts at zero until AureonX credits it. Then open Trade, choose Spot or Options and place your first order."
+      },
+      "fees": {
+        "question": "Are there trading fees?",
+        "answer": "Yes. Spot orders and Options positions carry a fee. Each fee is a separate row in Bills, so you can always see what you paid. Transfers between your own wallets and deposits have no fee row."
+      },
+      "verification": {
+        "question": "Do I need to verify my account and what is required?",
+        "answer": "Verification is optional for now and it does not block trading or transfers. To start it, open Profile and choose Verification. You enter your country, document type, name, date of birth and city, then upload one photo. You must be at least 18. Your status shows as Not verified, Pending review, Verified or Rejected."
+      },
+      "security": {
+        "question": "How do I keep my account secure?",
+        "answer": "Open Profile and then Security. Use a strong password and change it there at any time. You can also turn on an authenticator app, which is optional. Once it is on, you enter a code from the app each time you sign in. Passkeys and phone verification are not available yet."
+      },
+      "prices": {
+        "question": "How often do prices and charts update?",
+        "answer": "Prices on Home and Market refresh about every 5 seconds. If a price is more than a minute old it is marked Delayed. Charts come from the TradingView widget, which has its own feed. It can differ slightly from the price your order fills at."
+      },
+      "support": {
+        "question": "How do I contact support?",
+        "answer": "Tap the support icon in the top bar, then choose a topic and write your subject and message. Messages can be up to 2,000 characters. Your ticket stays under Your tickets and AureonX Support replies in the same thread. You also get a notice when a reply arrives. There is no live chat."
+      }
+    }
+  },
   "Metadata": {
     "title": "AureonX",
     "description": "Multi-asset trading on a virtual balance. No real money."
