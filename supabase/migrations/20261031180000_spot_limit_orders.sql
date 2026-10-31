@@ -779,8 +779,9 @@ revoke all on function private.fill_spot_orders(uuid[])                         
 revoke all on function public.spot_limit_order(text, public.order_side, text, text, uuid)      from public, anon;
 revoke all on function public.spot_cancel_order(uuid)                                          from public, anon;
 
-grant execute on function public.spot_limit_order(text, public.order_side, text, text, uuid) to authenticated;
-grant execute on function public.spot_cancel_order(uuid) to authenticated;
+-- spot_limit_order and spot_cancel_order are NOT granted to authenticated here (owner decision):
+-- the client still reads every orders row as a fill, so a limit order created early would break
+-- the caller's own Spot panel. The migration that ships the Limit screen grants both.
 
 -- -----------------------------------------------------------------------------
 -- 13. Safety net: fills any order a snapshot crossed but ingest_prices did not

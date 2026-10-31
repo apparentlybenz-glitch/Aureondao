@@ -98,6 +98,10 @@ create function pg_temp.reconcile() returns void language sql as $f$
     from public.spot_holdings h where h.user_id in (pg_temp.u('A'), pg_temp.u('B'), pg_temp.u('C'));
 $f$;
 
+-- The two RPCs are not granted to authenticated until the Limit screen ships. A GRANT is
+-- transactional, so this one rolls back with the step and the live grants stay as they are.
+grant execute on function public.spot_limit_order(text, public.order_side, text, text, uuid) to authenticated;
+grant execute on function public.spot_cancel_order(uuid) to authenticated;
 update public.spot_config set fee_bps = 10, max_price_age_s = 60;
 insert into public.markets (id, base, quote, display_symbol, vision_symbol, kucoin_symbol, price_decimals, sort_order,
                             enabled, qty_decimals, min_notional_cents, options_enabled)
