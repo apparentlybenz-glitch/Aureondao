@@ -5,7 +5,7 @@
     "items": {
       "deposit": {
         "question": "What is the minimum deposit amount?",
-        "answer": "AureonX accepts deposits in four assets only: USDT (TRC-20), USDT (ERC-20 / ETH), Bitcoin (BTC) and Solana (SOL). No other currencies or tokens are accepted. Please do not send unsupported assets as they cannot be recovered.",
+        "answer": "AureonX accepts deposits in these assets only: USDT (TRC-20), USDT (ERC-20 / ETH), Bitcoin (BTC), Solana (SOL) and Ethereum (ETH). No other currencies or tokens are accepted. Please do not send unsupported assets as they cannot be recovered.",
         "colAsset": "ASSET",
         "colNetwork": "NETWORK",
         "colMinimum": "MINIMUM DEPOSIT",
@@ -14,7 +14,8 @@
           "usdtTrc20": { "asset": "USDT", "network": "TRC-20 (Tron)" },
           "usdtErc20": { "asset": "USDT", "network": "ERC-20 (ETH)" },
           "btc": { "asset": "Bitcoin", "network": "BTC" },
-          "sol": { "asset": "Solana", "network": "SOL" }
+          "sol": { "asset": "Solana", "network": "SOL" },
+          "eth": { "asset": "Ethereum", "network": "ERC-20 (ETH)" }
         }
       },
       "depositTime": {
