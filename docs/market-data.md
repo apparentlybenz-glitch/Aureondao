@@ -13,7 +13,7 @@
 | Data type | Crypto (BTC/USDT, ETH/USDT, …) | Forex + metals (XAU/USD, EUR/USD, AUD/*, CAD/JPY) |
 |---|---|---|
 | **Tickers** | Browser-direct REST from **one leader tab** per browser, 5 s. Browser chain is **`data-api.binance.vision` → OKX only**: these are the only hosts that sent `Access-Control-Allow-Origin` to our origin. Then the shared Worker route | One **shared, edge-cached Worker route** (Workers Cache), 60 s client poll |
-| **Klines** | Browser-direct (same two hosts) on mount + on interval close; live candle patched from ticker | Shared Worker route; **no free official intraday source** → open decision |
+| **Klines** *(not shipped; TradingView widget)* | Browser-direct (same two hosts) on mount + on interval close; live candle patched from ticker | Shared Worker route; **no free official intraday source** → open decision |
 | **Depth** | Browser-direct (same two hosts), 2 s, **only for the visible terminal's symbol** | **No free forex depth exists** → display-only synthetic/indicative book is an open decision |
 | **Settlement price** | Server-side (`price-ingest` Edge Function, region-pinned): **median of ≥2 fresh exchange prices**. From the sandbox's US-geolocated egress, Vision, OKX and KuCoin answered; `api.binance.com` returned 451 and Bybit returned 403 | **XAU only via tokenized-gold proxy** (PAXG/XAUT, measured live on 3 exchanges); **FX and XAG options not viable in v1** with free data |
 
@@ -292,7 +292,7 @@ The owner's DevTools check (no `OPTIONS` request to `data-api.binance.vision`) i
 | **XAU/USD** | **PAXG/USDT, XAUT/USDT, measured live on Vision, OKX and KuCoin** (§1.2a; 24/7 proxy; 1 token ≈ 1 troy oz; PAXG ≈ +25 bp vs XAUT; median ≈ +10 bp vs the daily reference). gold-api (claimed real-time, still blocked/unverified). TwelveData (key, 800/day) | currency-api (measured), Frankfurter (XAU not expected; `.dev` unmeasured) | Tokenized gold ≠ spot XAU; label "Indicative" |
 | **XAG/USD** | None reliable for free (gold-api claimed, unverified; no liquid tokenized silver on the four exchanges, to verify) | currency-api (measured) | |
 | EUR/USD, AUD/USD, AUD/JPY, AUD/CAD, CAD/JPY | None official for free. Yahoo `EURUSD=X` (unofficial). TwelveData (key, 800/day cap = ~1 refresh / 14 min for 8 pairs) | Frankfurter, currency-api (measured, all pairs directly or via cross) | Crosses: compute from USD legs with decimal math, or read `aud.json` directly |
-| Forex klines (intraday) | Yahoo chart 1m/5m/15m/30m/60m (unofficial). TwelveData (key, budget-limited) | Frankfurter daily series (close-only) | No free *official* intraday candles |
+| Forex klines (intraday) *(not shipped; TradingView widget)* | Yahoo chart 1m/5m/15m/30m/60m (unofficial). TwelveData (key, budget-limited) | Frankfurter daily series (close-only) | No free *official* intraday candles |
 | Forex depth | **None** | -- | Forex is OTC; no public free L2. See Open decision D2 |
 
 ---
@@ -336,6 +336,8 @@ Supabase (settlement; owned by the settlement agent)
 * **Never** feed browser-fetched prices into a money path. The server re-fetches its own prices.
 
 ### 3.3 Klines
+
+> **Superseded (as shipped):** the app has no kline fetch. The one chart is the TradingView Advanced Chart widget (own feed), and `klines.ts` and `/md/v1/klines` were deleted (`docs/decisions.md`, TradingView chart decision). This section is the original proposal; it applies to nothing in the code today.
 
 * **Crypto: browser-direct** via Vision (`ACAO: *` on klines, measured) or OKX (origin reflected on candles, measured). KuCoin klines go through the Worker fallback only.
   * On terminal mount or symbol/interval change: one fetch with limit 500 (Vision) or 300 (OKX), normalized to oldest→newest.
@@ -431,6 +433,9 @@ Recommendation: **default to polling REST**. Consider leader-tab websockets for 
 ---
 
 ## 6. Provider interface (design, not a source file)
+
+> **Not shipped:** `Candle`, `KlineSeries` and `getKlines` below were never built. The app has no kline provider: the chart is the TradingView widget and the Home card sparkline uses ticker polls (§11).
+
 
 ```ts
 // ---------- Canonical identifiers ----------
@@ -546,6 +551,9 @@ Rule: `binance/bybit = base+quote`, `okx/kucoin = base-quote`. Listings are veri
 
 ### 6.2 Interval mapping
 
+> **Not shipped:** No kline fetch exists, so no interval mapping is used.
+
+
 | Ours | Binance | OKX `bar` | Bybit `interval` | KuCoin `type` | Yahoo `interval` | TwelveData |
 |---|---|---|---|---|---|---|
 | 1m | `1m` | `1m` | `1` | `1min` | `1m` | `1min` |
@@ -565,6 +573,9 @@ Normalization:
 * Max `limit`: Binance 1000, OKX 300, Bybit 1000, KuCoin 1500. The router clamps.
 
 ### 6.3 Staleness rules
+
+> **Not shipped:** The Crypto klines and Forex candle rows do not apply (no kline fetch). Ticker, depth and trade rows do.
+
 
 | Data | Fresh (`live`) | `delayed` badge | Switch provider | Money path |
 |---|---|---|---|---|
@@ -609,6 +620,9 @@ UI copy, which the UI agent owns: "Live", "Delayed", "Indicative", "Daily refere
 
 ### 6.6 Polling cadences and the cross-tab model
 
+> **Not shipped:** The Crypto klines and FX klines rows, and the `klines` field of the follower interest message, were never built. The shipped model is one ticker store per tab with no leader election (`CLAUDE.md` rule 5).
+
+
 | Stream | Cadence | Runs when |
 |---|---|---|
 | Crypto tickers (watchlist + terminal) | 5 s | any AureonX tab visible |
@@ -629,6 +643,9 @@ UI copy, which the UI agent owns: "Live", "Delayed", "Indicative", "Daily refere
 ---
 
 ## 7. Budget (10 users, terminals open 4 h/day, 30 days)
+
+> **Not shipped:** The kline and FX kline lines in the tables below are not spent: no kline request exists.
+
 
 Assumptions (upper bound):
 * One leader tab per user.
@@ -704,7 +721,7 @@ Bandwidth (measured payload sizes, sandbox egress):
 - (b) Hide the depth panel for FX; show bid/ask/spread only: *good:* honest and simple · *bad:* layout differs from crypto terminals.
 - (c) Show a "price ladder" of recent mid ticks instead of a book: *good:* real data · *bad:* sparse with 60 s/daily data; new component.
 
-**D3: Forex intraday klines**
+**D3: Forex intraday klines** *(moot: the Forex chart is the TradingView widget, which has its own feed)*
 - (a) Yahoo chart endpoint, server-side via md Worker with max-age ≥ 60 s: *good:* free 1m–1mo candles, no key · *bad:* unofficial, ToS risk, may break or block datacenter IPs.
 - (b) TwelveData free key: *good:* official · *bad:* 800 credits/day cannot cover 8 pairs × 9 intervals; needs aggressive caching.
 - (c) Daily-only FX charts in v1 (close-only from Frankfurter): *good:* official, free, stable · *bad:* no intraday charts for FX.
@@ -738,6 +755,9 @@ Round-2 context (sandbox egress, US datacenter IP): Vision, OKX and KuCoin answe
 ---
 
 ## 9. Anticipated conflicts with other agents
+
+> **Not shipped:** The kline and live-candle bullets below are moot; the chart is the TradingView widget.
+
 
 * **Data-model agent:**
   * Prices and quantities must be `numeric` in Postgres and strings on the wire. JS floats must never be used.
@@ -812,12 +832,12 @@ Display only, like §10: the order RPC reads only `price_snapshots`.
 
 | Stream | Source | Cadence | When it runs | On failure |
 |---|---|---|---|---|
-| Klines | Vision `klines` (limit 300, weight 2), then `GET /md/v1/klines?symbol=&interval=` (KuCoin `market/candles` through the Worker) | On open and on symbol/interval change, then just after each candle closes (1 to 2 s later), at least once a minute | Terminal mounted and page visible | Fallback route; "Chart unavailable. Retrying." when both fail |
-| Live candle | The ticker store's `last` (5 s) | Each ticker update | While the ticker's time falls inside the open candle | Nothing is drawn |
+| Chart | TradingView Advanced Chart widget (loads its own data, no request from our code) | Its own | Terminal mounted | The widget shows its own state; no `/md/v1/klines` exists |
 | Depth | Vision `depth?limit=20` (weight 5) | 5 s | Book tab open, page visible, selected symbol only | "Order book unavailable. Retrying." (no fallback, by decision) |
 | Trades | Vision `aggTrades?limit=30` (weight 4) | 5 s | Trades tab open, page visible, selected symbol only | "Latest trades unavailable. Retrying." (no fallback) |
 
-- Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout (5 s for `/md/v1/klines`). No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.
-- `/md/v1/klines` uses the same `createStaleCache` rules as `/md/v1/tickers`: fresh 5 s, negative 10 s, stale answers (`stale: true`) up to 60 s, then 502. One cache per (market, interval); only enabled markets and the 8 intervals are accepted (400 otherwise), so the number of caches is bounded. Failed refreshes log `md_klines_refresh_failed` and go to Sentry like the ticker route. KuCoin candle rows are `[time s, open, close, high, low, volume, turnover]`, newest first; they are reordered and sorted oldest first. KuCoin interval names: `1min 5min 15min 30min 1hour 4hour 1day 1week`.
-- Weight per open terminal: tickers 24/min (shared store), Book or Trades 60 or 48/min, klines about 2/min. Well under the 6,000/min IP limit.
-- Browser run with Vision blocked: `/md/v1/klines` and `/md/v1/tickers` answered 200, the chart and prices kept working, Book and Trades showed "unavailable". With `/md/v1` also failing: the chart showed "Chart unavailable" and Confirm read "Prices unavailable" (disabled).
+- Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout. No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.
+- Weight per open terminal: tickers 24/min (shared store), Book or Trades 60 or 48/min. Well under the 6,000/min IP limit.
+- Browser run with Vision blocked: `/md/v1/tickers` answered 200 and prices kept working, Book and Trades showed "unavailable". With `/md/v1` also failing, Confirm read "Prices unavailable" (disabled). The chart is the TradingView widget and depends on neither.
+
+**Home cards sparkline:** the three Home cards (`MarketCards`) draw their sparkline from the last prices the shared ticker store's 5 s poll delivered in the current page view (in memory, at most 60 points, no request of their own). It is not a kline series and not a 24 h shape.
