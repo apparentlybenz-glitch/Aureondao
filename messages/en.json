@@ -477,6 +477,7 @@
   "Assets": {
     "title": "Assets",
     "total": "Total balance",
+    "wallets": "Wallets",
     "transfer": "Transfer",
     "bills": "Bills",
     "deposit": "Deposit",
@@ -532,7 +533,8 @@
     "success": "Moved {amount} USD from {from} to {to}.",
     "invalidAmount": "Enter an amount with up to 2 decimals.",
     "overBalance": "The amount is more than the available balance.",
-    "note": "Moves funds between your own wallets."
+    "note": "Moves funds between your own wallets.",
+    "details": "Transfer details"
   },
   "Bills": {
     "title": "Bills",
