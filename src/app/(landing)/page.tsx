@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeftRight, ChartCandlestick, Timer } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { useTranslations } from "next-intl";
+import { Faq } from "@/components/landing/faq";
 import { HeroVisual } from "@/components/landing/hero-visual";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,8 @@ export default function LandingPage() {
           ))}
         </ol>
       </section>
+
+      <Faq />
     </main>
   );
 }

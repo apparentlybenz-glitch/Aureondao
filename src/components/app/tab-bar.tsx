@@ -44,6 +44,11 @@ export function TabBar() {
   // The close twist runs only after a first open, never on page load.
   const [wasOpened, setWasOpened] = useState(false);
   const firstItem = useRef<HTMLAnchorElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  // While the menu is open Radix treats a press on the Trade button as an outside press and
+  // closes the menu; the click that follows would then reopen it. This flag marks that press so
+  // its click is ignored, which makes a second tap on the button close the menu.
+  const closedByButtonPress = useRef(false);
   // Focus moves to the first pill on open; Radix returns it to the button on close.
   useEffect(() => {
     if (!open) return;
@@ -69,17 +74,23 @@ export function TabBar() {
                   onOpenChange={(next) => {
                     setOpenedOn(next ? pathname : null);
                     if (next) {
+                      closedByButtonPress.current = false;
                       setPicked(null);
                       setWasOpened(true);
                     }
                   }}
                 >
                   <DropdownMenu.Trigger
+                    ref={trigger}
                     aria-label={t("tradeMenu")}
                     // Open on click, not pointerdown: the pills spring out from under the finger,
                     // and a pointerup on one would select it. Keyboard opening is Radix's own.
                     onPointerDown={(e) => e.preventDefault()}
                     onClick={() => {
+                      if (closedByButtonPress.current) {
+                        closedByButtonPress.current = false;
+                        return;
+                      }
                       setOpenedOn(open ? null : pathname);
                       if (!open) {
                         setPicked(null);
@@ -108,6 +119,16 @@ export function TabBar() {
                       align="center"
                       sideOffset={MENU_OFFSET}
                       collisionPadding={8}
+                      onPointerDownOutside={(e) => {
+                        const press = e.detail.originalEvent;
+                        const box = trigger.current?.getBoundingClientRect();
+                        closedByButtonPress.current =
+                          !!box &&
+                          press.clientX >= box.left &&
+                          press.clientX <= box.right &&
+                          press.clientY >= box.top &&
+                          press.clientY <= box.bottom;
+                      }}
                       aria-label={t("tradeMenu")}
                       className="trade-menu z-50 flex flex-col-reverse gap-3 outline-none"
                     >
