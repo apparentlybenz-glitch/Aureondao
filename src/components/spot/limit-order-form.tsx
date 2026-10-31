@@ -6,11 +6,13 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
+import { TradeConfirm } from "@/components/market/trade-confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { formatPrice } from "@/lib/market/decimal";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
+import { useConfirmTrades } from "@/lib/preferences";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { fetchOrder } from "@/lib/spot";
 import type { SpotOrder } from "@/lib/spot";
@@ -51,6 +53,7 @@ export function LimitOrderForm({
   typeTabs,
 }: OrderFormProps & { typeTabs: ReactNode }) {
   const t = useTranslations("Spot");
+  const tc = useTranslations("TradeConfirm");
   const rpcMessage = useRpcMessage();
   const attempt = useAttemptKey();
   const [side, setSide] = useState<Side>("buy");
@@ -64,6 +67,8 @@ export function LimitOrderForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const confirmTrades = useConfirmTrades().value;
 
   const asset = market.base;
   const best = ticker ? trimDecimal(side === "buy" ? ticker.bid : ticker.ask) : null;
@@ -169,8 +174,16 @@ export function LimitOrderForm({
     }
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!canSubmit || !priceCheck.ok || !qtyCheck.ok) return;
+    // Not loaded yet (null) counts as on.
+    if (confirmTrades !== false) setConfirming(true);
+    else void place();
+  }
+
+  // The guard runs again here so a form that changed while the dialog was open sends nothing.
+  async function place() {
     if (!canSubmit || !priceCheck.ok || !qtyCheck.ok) return;
     setPending(true);
     clearMessages();
@@ -396,6 +409,34 @@ export function LimitOrderForm({
       >
         {pending ? t("sending") : t(side === "buy" ? "placeBuy" : "placeSell")}
       </Button>
+
+      <TradeConfirm
+        open={confirming}
+        title={tc("title")}
+        base={asset}
+        direction={side === "buy" ? "up" : "down"}
+        symbolLabel={market.displaySymbol}
+        badge={t(side === "buy" ? "confirmBuyLimitBadge" : "confirmSellLimitBadge")}
+        rows={[
+          { label: t("limitPrice"), value: priceCheck.ok ? formatPrice(priceCheck.price, market.priceDecimals) : "--" },
+          { label: t("quantity", { asset }), value: qtyCheck.ok ? qtyCheck.qty : "--" },
+          {
+            label: side === "buy" ? t("confirmEstCost") : t("confirmEstProceeds"),
+            value: est ? t("usd", { amount: formatCents(est.cents) }) : "--",
+          },
+          {
+            label: t("confirmEstFee", { rate: feeBps === null ? "--" : `${feeBps / 100}%` }),
+            value: est ? t("usd", { amount: formatCents(est.fee) }) : "--",
+          },
+        ]}
+        note={marketable ? t("estimateNote") : t("estReservedNote")}
+        confirmLabel={tc("confirm")}
+        onConfirm={() => {
+          setConfirming(false);
+          void place();
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </form>
   );
 }

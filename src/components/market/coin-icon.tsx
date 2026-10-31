@@ -28,7 +28,7 @@ export function CoinIcon({
 }: {
   symbol: string;
   kind?: "coin" | "network";
-  size?: 16 | 20 | 24 | 28 | 32;
+  size?: 16 | 20 | 24 | 28 | 32 | 56;
   className?: string;
 }) {
   const file = kind === "network" ? NETWORKS[symbol] : COINS.has(symbol) ? symbol.toLowerCase() : undefined;

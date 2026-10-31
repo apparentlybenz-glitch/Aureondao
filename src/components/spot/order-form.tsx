@@ -6,12 +6,14 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
+import { TradeConfirm } from "@/components/market/trade-confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAttemptKey } from "@/lib/attempt-key";
 import { formatPrice } from "@/lib/market/decimal";
 import type { Market, Ticker } from "@/lib/market/types";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
+import { useConfirmTrades } from "@/lib/preferences";
 import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { fetchOrder } from "@/lib/spot";
 import type { SpotOrder } from "@/lib/spot";
@@ -71,6 +73,7 @@ function MarketTicket({
   typeTabs,
 }: Omit<OrderFormProps, "onRested"> & { typeTabs: ReactNode }) {
   const t = useTranslations("Spot");
+  const tc = useTranslations("TradeConfirm");
   const rpcMessage = useRpcMessage();
   const attempt = useAttemptKey();
   const [side, setSide] = useState<Side>("buy");
@@ -79,6 +82,8 @@ function MarketTicket({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fill, setFill] = useState<SpotOrder | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const confirmTrades = useConfirmTrades().value;
 
   const asset = market.base;
   const price = ticker ? (side === "buy" ? ticker.ask : ticker.bid) : null;
@@ -156,8 +161,16 @@ function MarketTicket({
     }
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!canSubmit || !check.ok) return;
+    // Not loaded yet (null) counts as on.
+    if (confirmTrades !== false) setConfirming(true);
+    else void place();
+  }
+
+  // The guard runs again here so a form that changed while the dialog was open sends nothing.
+  async function place() {
     if (!canSubmit || !check.ok) return;
     setPending(true);
     setError(null);
@@ -323,6 +336,34 @@ function MarketTicket({
       >
         {!ticker ? t("pricesUnavailable") : pending ? t("sending") : t(side === "buy" ? "confirmBuy" : "confirmSell", { asset })}
       </Button>
+
+      <TradeConfirm
+        open={confirming}
+        title={tc("title")}
+        base={asset}
+        direction={side === "buy" ? "up" : "down"}
+        symbolLabel={market.displaySymbol}
+        badge={t(side === "buy" ? "confirmBuyBadge" : "confirmSellBadge")}
+        rows={[
+          { label: t("confirmEstPrice"), value: price ? formatPrice(price, market.priceDecimals) : "--" },
+          { label: t("quantity", { asset }), value: check.ok ? check.qty : "--" },
+          {
+            label: side === "buy" ? t("confirmEstCost") : t("confirmEstProceeds"),
+            value: est ? t("usd", { amount: formatCents(est.cents) }) : "--",
+          },
+          {
+            label: t("confirmEstFee", { rate: feeBps === null ? "--" : `${feeBps / 100}%` }),
+            value: est?.fee != null ? t("usd", { amount: formatCents(est.fee) }) : "--",
+          },
+        ]}
+        note={t("estimateNote")}
+        confirmLabel={tc("confirm")}
+        onConfirm={() => {
+          setConfirming(false);
+          void place();
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </form>
   );
 }
