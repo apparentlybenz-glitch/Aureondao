@@ -337,6 +337,8 @@ Supabase (settlement; owned by the settlement agent)
 
 ### 3.3 Klines
 
+> **Superseded (as shipped):** the app has no kline fetch. The one chart is the TradingView Advanced Chart widget (own feed), and `klines.ts` and `/md/v1/klines` were deleted (`docs/decisions.md`, TradingView chart decision). This section is the original proposal; it applies to nothing in the code today.
+
 * **Crypto: browser-direct** via Vision (`ACAO: *` on klines, measured) or OKX (origin reflected on candles, measured). KuCoin klines go through the Worker fallback only.
   * On terminal mount or symbol/interval change: one fetch with limit 500 (Vision) or 300 (OKX), normalized to oldest→newest.
   * At each interval close + 1–2 s jitter: re-fetch only the last 2 candles (`limit=2`).
@@ -812,12 +814,12 @@ Display only, like §10: the order RPC reads only `price_snapshots`.
 
 | Stream | Source | Cadence | When it runs | On failure |
 |---|---|---|---|---|
-| Klines | Vision `klines` (limit 300, weight 2), then `GET /md/v1/klines?symbol=&interval=` (KuCoin `market/candles` through the Worker) | On open and on symbol/interval change, then just after each candle closes (1 to 2 s later), at least once a minute | Terminal mounted and page visible | Fallback route; "Chart unavailable. Retrying." when both fail |
-| Live candle | The ticker store's `last` (5 s) | Each ticker update | While the ticker's time falls inside the open candle | Nothing is drawn |
+| Chart | TradingView Advanced Chart widget (loads its own data, no request from our code) | Its own | Terminal mounted | The widget shows its own state; no `/md/v1/klines` exists |
 | Depth | Vision `depth?limit=20` (weight 5) | 5 s | Book tab open, page visible, selected symbol only | "Order book unavailable. Retrying." (no fallback, by decision) |
 | Trades | Vision `aggTrades?limit=30` (weight 4) | 5 s | Trades tab open, page visible, selected symbol only | "Latest trades unavailable. Retrying." (no fallback) |
 
-- Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout (5 s for `/md/v1/klines`). No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.
-- `/md/v1/klines` uses the same `createStaleCache` rules as `/md/v1/tickers`: fresh 5 s, negative 10 s, stale answers (`stale: true`) up to 60 s, then 502. One cache per (market, interval); only enabled markets and the 8 intervals are accepted (400 otherwise), so the number of caches is bounded. Failed refreshes log `md_klines_refresh_failed` and go to Sentry like the ticker route. KuCoin candle rows are `[time s, open, close, high, low, volume, turnover]`, newest first; they are reordered and sorted oldest first. KuCoin interval names: `1min 5min 15min 30min 1hour 4hour 1day 1week`.
-- Weight per open terminal: tickers 24/min (shared store), Book or Trades 60 or 48/min, klines about 2/min. Well under the 6,000/min IP limit.
-- Browser run with Vision blocked: `/md/v1/klines` and `/md/v1/tickers` answered 200, the chart and prices kept working, Book and Trades showed "unavailable". With `/md/v1` also failing: the chart showed "Chart unavailable" and Confirm read "Prices unavailable" (disabled).
+- Every browser call is `getJson`: `fetch(url, { signal })` with a 4 s timeout. No headers, so no preflight; a Playwright run at 390 px recorded only `GET` requests to `data-api.binance.vision` with no custom headers and no `OPTIONS`.
+- Weight per open terminal: tickers 24/min (shared store), Book or Trades 60 or 48/min. Well under the 6,000/min IP limit.
+- Browser run with Vision blocked: `/md/v1/tickers` answered 200 and prices kept working, Book and Trades showed "unavailable". With `/md/v1` also failing, Confirm read "Prices unavailable" (disabled). The chart is the TradingView widget and depends on neither.
+
+**Home cards sparkline:** the three Home cards (`MarketCards`) draw their sparkline from the last prices the shared ticker store's 5 s poll delivered in the current page view (in memory, at most 60 points, no request of their own). It is not a kline series and not a 24 h shape.

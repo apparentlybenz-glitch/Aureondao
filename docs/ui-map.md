@@ -641,6 +641,8 @@ Assumptions:
 
 ### 4.12 Slice 4 screens as shipped (Spot terminal)
 
+> The `PriceChart`, `ChartTimeframeBar`, `ChartModeToggle`, `DepthChart` and `DrawingToolbar` rows in the component table and the chart rows of the data table are the original proposal. They did not ship: the chart is the TradingView widget and Lightweight Charts is not installed.
+
 | Screen | Path | Evidence |
 |---|---|---|
 | Spot terminal (header, chart, order form, Book / Trades / Orders) | `/spot?symbol=BTC-USDT` | Designed |
@@ -651,7 +653,7 @@ Assumptions:
 - **Placement:** the page sits directly in `(app)`, so it keeps the tab bar but has its own header instead of the top bar: the display symbol with a chevron (opens the picker), the 24 h change, the last price (with "Delayed" after 60 s) and the VIRTUAL pill. The page keeps the tab bar plus safe-area bottom padding.
 - **Phone order (390 px):** header, chart (280 px), order form, then the Book / Trades / Orders tabs. From `md:` the chart and the form sit side by side (form 340 px) and the tabs run full width below. This replaces §4.1's sticky Buy/Sell bar and drawer: the brief asked for an inline Buy/Sell toggle, which is simpler on a phone.
 - **Symbol:** `?symbol=` wins; without it the last viewed market (`aureonx.lastMarket`) opens, else BTC-USDT. An unknown or disabled symbol falls back to BTC-USDT. Viewing a market saves it as the last viewed. Picking a market updates the URL with `history.replaceState` (no navigation, no Worker request). The Trade tab and the Home Spot tile link to `/spot`.
-- **Chart:** default timeframe 15m. Buttons 1m 5m 15m 30m 1h 4h and a More menu with 1D and 1W. Candles only (no volume or indicators yet). "Loading chart…" until the first candles, and "Chart unavailable. Retrying." over the chart while both sources fail. Price axis uses the market's `price_decimals`.
+- **Chart:** the TradingView Advanced Chart widget (`TradingViewChart`), the one chart on Spot, Options and Forex; timeframes, drawing tools and indicators are the widget's own. It replaced the Lightweight Charts candles, so no kline fetch and no "Loading chart…" or "Chart unavailable" state exists in our code.
 - **Order form:** Buy / Sell toggle (switching clears the quantity and any result). Market and Limit tabs (below the Buy and Sell buttons; each tab is its own form, so switching resets the form to Buy). Available shows USD for Buy and the base asset for Sell. Quantity is a decimal field checked as you type: allowed decimals per market (`qty_decimals`), minimum order value, the available USD (Buy, cost plus fee) or the holding (Sell). The slider has stops at 0, 25, 50, 75 and 100 %: Buy uses that share of the available USD at the shown ask including the fee, and 100 % prices at the ask plus 0.5 % (`MAX_BUY_BUFFER_BPS`) so a slightly higher server ask still fits; 100 % Sell is the full holding; Sell uses that share of the holding, rounded down to the allowed decimals.
 - **Estimate:** a block labelled "Estimate" with the shown price (ask for Buy, bid for Sell), cost or proceeds and the fee at `spot_config.fee_bps`, rounded like the server (cost and fee up, proceeds down). A note says the order fills at the server's latest price.
 - **Confirm:** "Buy BTC" / "Sell BTC", disabled while a request is in flight, while the form has a problem, and with the label "Prices unavailable" when the browser has no ticker for the market. One idempotency key per confirm attempt, reused when the request got no answer.
@@ -697,7 +699,7 @@ Assumptions:
 - **Support button:** hides while the Spot percentage labels, the Options period labels, the premium input, the fee row or a confirm button are under it.
 - **Spot and Options headers:** top padding 0.75 rem plus `--safe-t` (no top bar on these screens).
 - **Options price:** the "current price" shows `--` when the ticker is delayed, as the Spot header does.
-- **Chart:** keyed by market; after candles load once, a poll failure keeps them with a "Delayed" label.
+- **Chart:** the TradingView widget, re-created when the market changes; it has no "Delayed" label.
 - **Top bar globe:** stays disabled until the internationalization slice.
 
 ### 4.15 Slice 7 screens as shipped (Deposit, Withdraw, Admin panel)
@@ -757,3 +759,14 @@ KYC Review assumptions:
 - **Sidebar:** "KYC Review" sits after Restrictions (icon `IdCard`), in the sidebar and the drawer.
 - **List:** `kyc_submissions` (admin RLS), pending first (enum order), then newest; latest 100; a Status filter (All, Pending review, Verified, Rejected). Each row: email, country · document type, submitted time, badge.
 - **Detail:** email and UID, the badge, the text fields, submitted and decided times, the rejection reason, and the photo through a 60-second signed URL created when the detail opens (one line says so). Each open first calls `admin_log_kyc_photo_view`, which writes one `kyc_photo_view` audit row; if it fails no URL is created and the photo shows the error state. The list never calls it. The detail is in-page state, not a route, so no link prefetch can write a row. Pending only: a reason field (3 to 200 characters, required to reject), Reject (red) and Approve. Success shows a line and reloads the list. Approve and reject write `kyc_approve` / `kyc_reject` audit rows; the Audit Log filter lists both.
+
+### 4.17 Home market cards as shipped
+
+| Screen | Path | Evidence |
+|---|---|---|
+| Home cards: BTC, ETH, SOL | `/home` | Designed |
+
+Assumptions:
+- One row of three cards (`grid-cols-3`) between the quick actions and the market table, checked at 360 px with no overflow. Each card: ticker (base only, no coin name or category) top left, sparkline top right, last price and 24 h change below (the change wraps under the price when narrow). Price uses `formatPrice` at the market's `price_decimals`, change uses `formatChange`, colors are the `up` / `down` tokens. A card links to `/spot?symbol=<id>`.
+- **Sparkline source:** an inline SVG polyline of the last prices the shared ticker store has delivered in this page view (in memory, at most 60). It starts empty and fills over the first minute, so it is not a 24 h series. No kline fetch exists. The stroke follows the sign of the 24 h change, not the line's own direction.
+- **States:** a skeleton card until the market and ticker are known; a delayed ticker shows `--` and no sparkline; fewer than two points shows no sparkline.
