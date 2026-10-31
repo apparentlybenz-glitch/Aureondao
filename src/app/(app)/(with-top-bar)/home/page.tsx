@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowDownToLine,
+  ArrowUpFromLine,
   ArrowRightLeft,
   CandlestickChart,
   Coins,
@@ -20,9 +21,12 @@ import { formatCents } from "@/lib/money";
 import { useSuspension } from "@/lib/suspension";
 import { totalCents, useWallets } from "@/lib/wallets";
 
+const DEPOSIT_HREF = "/assets/deposit";
+
 // Tiles without an href are not built yet; they show "Soon".
 const ACTIONS = [
-  { key: "deposit", Icon: ArrowDownToLine, href: "/assets/deposit" },
+  { key: "deposit", Icon: ArrowDownToLine, href: DEPOSIT_HREF },
+  { key: "withdraw", Icon: ArrowUpFromLine, href: "/assets/withdraw" },
   { key: "options", Icon: Timer, href: "/options" },
   { key: "forex", Icon: Coins, href: "/forex" },
   { key: "spot", Icon: CandlestickChart, href: "/spot" },
@@ -59,13 +63,21 @@ export default function HomePage() {
             {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
-        <p className="text-3xl font-semibold tabular-nums">
-          {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : c("loading")}
-          <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
+            {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : c("loading")}
+            <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
+          </p>
+          <Link
+            href={DEPOSIT_HREF}
+            className="inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black transition-[background-color,transform] duration-150 active:scale-[0.97] active:bg-primary motion-reduce:active:scale-100"
+          >
+            {t("addFunds")}
+          </Link>
+        </div>
       </section>
 
-      <section className="grid grid-cols-4 gap-y-4">
+      <section className="grid grid-cols-[repeat(4,auto)] justify-between gap-y-4">
         {ACTIONS.map((action) => {
           const { key, Icon } = action;
           const body = (
@@ -78,15 +90,15 @@ export default function HomePage() {
                   </span>
                 )}
               </span>
-              <span className="text-xs">{t(`actions.${key}`)}</span>
+              <span className="text-xs whitespace-nowrap">{t(`actions.${key}`)}</span>
             </>
           );
           return "href" in action ? (
-            <Link key={key} href={action.href} className="flex flex-col items-center gap-1.5">
+            <Link key={key} href={action.href} className="flex w-12 flex-col items-center gap-1.5">
               {body}
             </Link>
           ) : (
-            <div key={key} aria-disabled="true" className="flex flex-col items-center gap-1.5 opacity-50">
+            <div key={key} aria-disabled="true" className="flex w-12 flex-col items-center gap-1.5 opacity-50">
               {body}
             </div>
           );
