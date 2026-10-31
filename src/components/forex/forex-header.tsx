@@ -8,7 +8,7 @@ import type { ForexPair } from "@/lib/forex-pairs";
 import { cn } from "@/lib/utils";
 
 const sheet =
-  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
+  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80dvh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
 
 // Placeholder icon: a plain circle with the pair's initials.
 export function PairIcon({ icon, className }: { icon: string; className?: string }) {
@@ -59,7 +59,7 @@ export function ForexPairPicker({
               <X className="size-5" />
             </Dialog.Close>
           </div>
-          <ul className="px-2">
+          <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
             {pairs.map((p) => (
               <li key={p.symbol}>
                 <button

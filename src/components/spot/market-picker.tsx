@@ -57,7 +57,7 @@ export function MarketPicker({
         <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="slide-panel fixed inset-x-0 top-[8vh] bottom-0 z-50 mx-auto flex max-w-[880px] flex-col rounded-t-2xl border-t bg-background"
+          className="slide-panel fixed inset-x-0 top-[8dvh] bottom-0 z-50 mx-auto flex max-w-[880px] flex-col rounded-t-2xl border-t bg-background"
         >
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Dialog.Title className="text-base font-semibold">{t("marketsTitle")}</Dialog.Title>
@@ -65,7 +65,7 @@ export function MarketPicker({
               <X className="size-5" />
             </Dialog.Close>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 pb-[calc(1rem+var(--safe-b))]">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+var(--safe-b))]">
             <MarketTable
               variant="market"
               query={query}
