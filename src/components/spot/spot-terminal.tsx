@@ -37,7 +37,7 @@ export function SpotTerminal() {
   const [symbol, setSymbol] = useState(() => params.get("symbol") ?? readLastMarket());
   const [tab, setTab] = useState<Tab>("book");
   const { markets, tickers, now } = useMarketData();
-  const { wallets } = useWallets();
+  const { wallets, reload: reloadWallets } = useWallets();
   const spot = wallets?.find((x) => x.account === "spot") ?? null;
   const account = useSpotAccount(spot ? spot.available.toString() : null);
   const feeBps = useSpotFeeBps();
@@ -118,7 +118,10 @@ export function SpotTerminal() {
             available={spot ? spot.available : null}
             holding={trimDecimal(holding)}
             feeBps={feeBps}
-            onFilled={() => void account.reload()}
+            onFilled={() => {
+              void account.reload();
+              void reloadWallets();
+            }}
           />
         </div>
         {wide ? (

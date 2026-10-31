@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { centsFromText, ZERO_CENTS } from "@/lib/money";
 import { onVisible } from "@/lib/on-visible";
 import { createClient } from "@/lib/supabase/client";
@@ -29,12 +29,17 @@ export function totalCents(wallets: Wallet[]): bigint {
 }
 
 // The signed-in user's 4 wallets, kept live through Realtime. The channel name
-// gets a random suffix per mount (hard rule 7).
+// gets a random suffix per mount (hard rule 7). reload is latest-wins: one
+// money RPC can emit several wallet events, so overlapping reloads are common
+// and only the newest one may write state.
 export function useWallets() {
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
+    const ticket = ++latest.current;
     const supabase = createClient();
     const { data: session } = await supabase.auth.getSession();
     const uid = session.session?.user.id;
@@ -44,6 +49,7 @@ export function useWallets() {
       .select(WALLET_SELECT)
       .eq("user_id", uid)
       .overrideTypes<WalletRow[], { merge: false }>();
+    if (ticket !== latest.current) return;
     if (error) setError(error.message);
     else setWallets(toWallets(data));
   }, []);

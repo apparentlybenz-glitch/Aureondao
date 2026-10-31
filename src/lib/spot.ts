@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { centsFromText } from "@/lib/money";
 import { createClient } from "@/lib/supabase/client";
 
@@ -95,6 +95,9 @@ export function useSpotAccount(refreshOn: string | null) {
   const [data, setData] = useState<AccountData | null>(null);
   const [error, setError] = useState(false);
 
+  // Latest-wins: the balance-driven load and an explicit reload can overlap.
+  const latest = useRef(0);
+
   const apply = useCallback((result: AccountData | null) => {
     setError(result === null);
     if (result) setData(result);
@@ -102,16 +105,18 @@ export function useSpotAccount(refreshOn: string | null) {
 
   useEffect(() => {
     if (refreshOn === null) return;
-    let active = true;
+    const ticket = ++latest.current;
     void fetchAccount().then((result) => {
-      if (active) apply(result);
+      if (ticket === latest.current) apply(result);
     });
-    return () => {
-      active = false;
-    };
   }, [refreshOn, apply]);
 
-  const reload = useCallback(() => fetchAccount().then(apply), [apply]);
+  const reload = useCallback(() => {
+    const ticket = ++latest.current;
+    return fetchAccount().then((result) => {
+      if (ticket === latest.current) apply(result);
+    });
+  }, [apply]);
 
   return { holdings: data?.holdings ?? null, orders: data?.orders ?? null, error, reload };
 }
