@@ -122,7 +122,7 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
           >
             <span
               className={cn(
-                "absolute top-0.5 left-0.5 size-5 rounded-full bg-white transition-transform",
+                "absolute top-0.5 left-0.5 size-5 rounded-full bg-white transition-transform motion-reduce:transition-none",
                 enabled ? "translate-x-5" : "",
               )}
             />
