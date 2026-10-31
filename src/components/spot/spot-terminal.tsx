@@ -10,7 +10,7 @@ import { isDelayed } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
 import { tabAfterOrder } from "@/lib/depth-tab";
 import { trimDecimal } from "@/lib/spot-math";
-import { usePriceFeedDemand, useSpotAccount, useSpotFeeBps } from "@/lib/spot";
+import { cancelOrder, usePriceFeedDemand, useSpotAccount, useSpotFeeBps } from "@/lib/spot";
 import { LG, XL, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { useWallets } from "@/lib/wallets";
@@ -44,7 +44,8 @@ export function SpotTerminal() {
   const { markets, tickers, now } = useMarketData();
   const { wallets, reload: reloadWallets } = useWallets();
   const spot = wallets?.find((x) => x.account === "spot") ?? null;
-  const account = useSpotAccount(spot ? spot.available.toString() : null);
+  // Available and held both: a resting sell or a buy fill changes held funds or holdings, not available.
+  const account = useSpotAccount(spot ? `${spot.available}|${spot.held}` : null);
   const feeBps = useSpotFeeBps();
   usePriceFeedDemand();
   const wide = useMediaQuery(LG);
@@ -96,10 +97,27 @@ export function SpotTerminal() {
         const visible = wide ? depthTab : tab;
         setTab(tabAfterOrder(visible));
       }}
+      // A resting limit order filled nothing: refresh the lists, leave the tabs where they are.
+      onRested={() => {
+        void account.reload();
+        void reloadWallets();
+      }}
     />
   );
   const accountPanel = (
-    <AccountPanel markets={markets} orders={account.orders} holdings={account.holdings} error={account.error} />
+    <AccountPanel
+      markets={markets}
+      orders={account.orders}
+      holdings={account.holdings}
+      openOrders={account.openOrders}
+      onCancel={async (id) => {
+        const failure = await cancelOrder(id);
+        void account.reload();
+        void reloadWallets();
+        return failure;
+      }}
+      error={account.error}
+    />
   );
 
   // From xl the shared desktop layout replaces everything below (the <dl> included).

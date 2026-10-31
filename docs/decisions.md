@@ -92,7 +92,7 @@ The OKX host does not resolve from Lagos and the failure takes about 22 s, so OK
 
 | Decision | Locked choice |
 |---|---|
-| Spot execution | Market orders fill at the latest server snapshot: buy at the ask, sell at the bid. `spot_market_order` takes no price. Limit orders are Part C, after the owner says go; until then the Limit tab shows Soon |
+| Spot execution | Market orders fill at the latest server snapshot: buy at the ask, sell at the bid. `spot_market_order` takes no price. Limit orders (Part C) shipped in the database and the Spot Limit ticket: see docs/data-model.md §16.4 and CLAUDE.md |
 | Fill freshness | A snapshot older than 60 s is refused (`spot_config.max_price_age_s`, CHECK ≤ 60). Supersedes C6's 15 s for Spot fills |
 | Price pipeline | One Edge Function, `price-ingest`, fired by pg_cron every 10 s through pg_net while demand exists (C5). Vision first, KuCoin as the fallback source. O12 (multi-source median) is decided in slice 5 and may tighten the same table |
 | Fee | 0.1% of order value (`spot_config.fee_bps = 10`), an assumption because the Spot fee was not captured. Stored in a config row, never in code |
