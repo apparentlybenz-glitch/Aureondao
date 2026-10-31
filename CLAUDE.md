@@ -9,6 +9,7 @@ This file is the single source of truth. It describes **what has shipped**, and 
 ## Shipped state (slice 1: auth, profile, Security Center; slice 2: wallets, transfer, Bills, admin, app shell; slice 3: market data, Home market table, Market tab; slice 4: server price feed, Spot market orders and the Spot terminal; slice 5: Options database, settlement and the Options screen; slice 7: Deposit, Withdraw, account suspension and the Admin panel; slice 8: KYC with one photo, Verification and KYC Review; Forex money path and price feed: database and Edge Function only, no screen; Spot limit orders: database and the Spot Limit ticket; the trade confirm dialog and the Preferences tab; account Overview and Profile tabs)
 
 - Next.js 16.4.3, App Router, `src/` dir, TypeScript strict, Tailwind v4 through the Turbopack loader (`@tailwindcss/turbopack`), React 19.3.
+- Animation: `motion` (import from `motion/react`) is the animation library, and overlays animate in and out through it with `AnimatePresence` (first user: `trade-confirm.tsx`).
 - Built for Cloudflare Workers with `@opennextjs/cloudflare` 1.20.13 and wrangler 4.152.0:
   - `wrangler.jsonc` sets `nodejs_compat` and `global_fetch_strictly_public`, with compatibility date 2026-10-15.
   - `wrangler.jsonc` turns on Workers Logs, invocation logs and traces, with `redact_query_string: true` so auth tokens in query strings are never logged.
