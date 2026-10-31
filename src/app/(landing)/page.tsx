@@ -30,8 +30,6 @@ const FEATURES = [
   { key: "assets", Icon: ArrowLeftRight },
 ] as const;
 
-const STEPS = ["step1", "step2", "step3"] as const;
-
 export default function LandingPage() {
   const t = useTranslations("Landing");
   return (
@@ -62,23 +60,6 @@ export default function LandingPage() {
             <p className="text-sm text-muted-foreground">{t(`features.${key}.body`)}</p>
           </article>
         ))}
-      </section>
-
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{t("how.title")}</h2>
-        <ol className="grid gap-4 md:grid-cols-3">
-          {STEPS.map((key, i) => (
-            <li key={key} className="flex gap-4 rounded-xl border bg-card p-5">
-              <span
-                aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-              >
-                {i + 1}
-              </span>
-              <p className="text-sm">{t(`how.${key}`)}</p>
-            </li>
-          ))}
-        </ol>
       </section>
 
       <Faq />

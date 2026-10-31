@@ -11,7 +11,6 @@ export default function AssetsPage() {
   const t = useTranslations("Assets");
   const w = useTranslations("Wallets");
   const c = useTranslations("Common");
-  const h = useTranslations("Home");
   const { wallets, error } = useWallets();
 
   return (
@@ -23,7 +22,6 @@ export default function AssetsPage() {
           {wallets ? formatCents(totalCents(wallets)) : c("loading")}
           <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
         </p>
-        <p className="text-xs font-medium text-primary">{h("virtualBalance")}</p>
       </section>
 
       <div className="grid grid-cols-3 gap-3">
