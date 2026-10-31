@@ -60,7 +60,6 @@ export function LandingFooter() {
           ))}
         </div>
         <div className="space-y-2 border-t pt-6 text-xs text-muted-foreground">
-          <p>{t("disclosure")}</p>
           <p>{t("copyright")}</p>
         </div>
       </div>

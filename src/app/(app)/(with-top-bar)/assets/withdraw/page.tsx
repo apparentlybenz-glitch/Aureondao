@@ -73,7 +73,6 @@ export default function WithdrawPage() {
         </dl>
 
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">{t("note")}</p>
           <Button type="button" disabled className="h-12 w-full">
             {t("submit")}
           </Button>

@@ -61,11 +61,11 @@
   },
   "Metadata": {
     "title": "AureonX",
-    "description": "Multi-asset trading on a virtual balance. No real money."
+    "description": "Multi-asset trading on live crypto prices."
   },
   "Landing": {
     "metaTitle": "AureonX | Spot and options on live crypto prices",
-    "metaDescription": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options. Every account runs on a virtual USD balance.",
+    "metaDescription": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options.",
     "ogAlt": "AureonX logo",
     "nav": {
       "label": "Main",
@@ -83,7 +83,7 @@
     },
     "hero": {
       "title": "Spot and options on live crypto prices",
-      "subtitle": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options. Every account runs on a virtual USD balance.",
+      "subtitle": "Trade BTC, ETH and SOL with a full order book or timed Rise and Fall options.",
       "createAccount": "Create account",
       "logIn": "Log in"
     },
@@ -102,14 +102,8 @@
         "body": "Move funds between your Capital, Spot and Options wallets and see every change in Bills."
       }
     },
-    "how": {
-      "title": "How virtual balances work",
-      "step1": "Your account holds a virtual USD balance.",
-      "step2": "Orders and options use live market prices.",
-      "step3": "Every balance change is recorded in Bills, so your history always adds up."
-    },
     "footer": {
-      "tagline": "Live crypto markets on a virtual balance.",
+      "tagline": "Live crypto markets.",
       "markets": "Markets",
       "spot": "Spot",
       "options": "Options",
@@ -123,13 +117,11 @@
       "support": "Support",
       "signIn": "Log in",
       "signUp": "Create account",
-      "disclosure": "AureonX runs on virtual balances. No real money is deposited, traded or withdrawn.",
       "copyright": "© 2026 AureonX"
     }
   },
   "Home": {
     "totalLabel": "Total asset value",
-    "virtualBalance": "Virtual balance",
     "showAmounts": "Show amounts",
     "hideAmounts": "Hide amounts",
     "hidden": "••••••",
@@ -405,8 +397,7 @@
     "decline": "Decline"
   },
   "Legal": {
-    "title": "Legal and disclosures",
-    "virtualFunds": "All balances on AureonX are virtual funds."
+    "title": "Legal and disclosures"
   },
   "Wallets": {
     "capital": "Capital",
@@ -460,7 +451,6 @@
     "summaryAmount": "Amount",
     "summaryRemoved": "Removed from balance",
     "summaryEmpty": "--",
-    "note": "Virtual balances stay on AureonX and cannot be withdrawn.",
     "submit": "Withdraw"
   },
   "Transfer": {
