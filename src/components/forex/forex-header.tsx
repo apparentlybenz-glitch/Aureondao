@@ -101,7 +101,6 @@ export function ForexHeader({
   onToggleBook: () => void;
 }) {
   const t = useTranslations("Forex");
-  const shell = useTranslations("Shell");
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
 
   return (
@@ -111,9 +110,6 @@ export function ForexHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
-          {shell("virtualPill")}
-        </span>
         <button
           type="button"
           aria-pressed={bookShown}

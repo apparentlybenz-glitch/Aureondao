@@ -35,7 +35,6 @@ const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFra
 export function SpotTerminal() {
   const t = useTranslations("Spot");
   const m = useTranslations("Market");
-  const shell = useTranslations("Shell");
   const walletsT = useTranslations("Wallets");
   const params = useSearchParams();
   const [symbol, setSymbol] = useState(() => params.get("symbol") ?? readLastMarket());
@@ -148,9 +147,6 @@ export function SpotTerminal() {
             {ticker && isDelayed(ticker.ts, now) ? <span className="text-xs text-muted-foreground">{m("delayed")}</span> : null}
           </p>
         </div>
-        <span className="mt-1 shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
-          {shell("virtualPill")}
-        </span>
       </header>
 
       <dl aria-label={t("stats.label")} className="mb-3 grid grid-cols-3 gap-2 text-xs tabular-nums">

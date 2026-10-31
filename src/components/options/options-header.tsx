@@ -135,7 +135,6 @@ export function OptionsHeader({
   onToggleBook: () => void;
 }) {
   const t = useTranslations("Options");
-  const shell = useTranslations("Shell");
 
   return (
     <header className="mb-3 flex items-center justify-between gap-2">
@@ -145,9 +144,6 @@ export function OptionsHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground md:hidden">
-          {shell("virtualPill")}
-        </span>
         <button
           type="button"
           aria-pressed={bookShown}
