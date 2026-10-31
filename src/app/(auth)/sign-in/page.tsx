@@ -47,8 +47,18 @@ export default function SignInPage() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <h1 className="text-lg font-semibold">{t("signInTitle")}</h1>
-      <Field id="email" type="email" label={c("email")} autoComplete="email" required />
-      <Field id="password" type="password" label={c("password")} autoComplete="current-password" required />
+      <Field id="email" type="email" inputMode="email" label={c("email")} autoComplete="email" required />
+      <div className="space-y-1">
+        <Field id="password" type="password" label={c("password")} autoComplete="current-password" required />
+        <div className="flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
+          >
+            {t("forgotPassword")}
+          </Link>
+        </div>
+      </div>
       <Suspense>
         <LinkError />
       </Suspense>
@@ -56,17 +66,12 @@ export default function SignInPage() {
       <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("signInSubmit")}
       </Button>
-      <div className="flex justify-between text-sm">
-        <Link href="/forgot-password" className="text-muted-foreground hover:underline">
-          {t("forgotPassword")}
+      <p className="flex flex-wrap items-center justify-center gap-x-1 text-sm">
+        {t("noAccount")}
+        <Link href="/sign-up" className="inline-flex min-h-11 items-center px-1 underline">
+          {t("toSignUp")}
         </Link>
-        <span>
-          {t("noAccount")}{" "}
-          <Link href="/sign-up" className="underline">
-            {t("toSignUp")}
-          </Link>
-        </span>
-      </div>
+      </p>
     </form>
   );
 }

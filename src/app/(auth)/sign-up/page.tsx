@@ -53,7 +53,7 @@ export default function SignUpPage() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <h1 className="text-lg font-semibold">{t("signUpTitle")}</h1>
-      <Field id="email" type="email" label={c("email")} autoComplete="email" required />
+      <Field id="email" type="email" inputMode="email" label={c("email")} autoComplete="email" required />
       <Field id="password" type="password" label={c("password")} autoComplete="new-password" required />
       <Field
         id="confirm-password"
@@ -84,9 +84,9 @@ export default function SignUpPage() {
       <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("signUpSubmit")}
       </Button>
-      <p className="text-center text-sm">
-        {t("haveAccount")}{" "}
-        <Link href="/sign-in" className="underline">
+      <p className="flex flex-wrap items-center justify-center gap-x-1 text-sm">
+        {t("haveAccount")}
+        <Link href="/sign-in" className="inline-flex min-h-11 items-center px-1 underline">
           {t("toSignIn")}
         </Link>
       </p>

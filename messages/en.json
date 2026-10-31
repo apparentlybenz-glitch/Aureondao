@@ -253,6 +253,8 @@
   "Common": {
     "email": "Email",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "save": "Save",
     "saved": "Saved",
     "cancel": "Cancel",

@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <h1 className="text-lg font-semibold">{t("forgotTitle")}</h1>
-      <Field id="email" type="email" label={c("email")} autoComplete="email" required />
+      <Field id="email" type="email" inputMode="email" label={c("email")} autoComplete="email" required />
       <FormError message={error} />
       <Button type="submit" className="h-10 w-full" disabled={pending || !hydrated}>
         {pending ? c("loading") : t("forgotSubmit")}

@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/auth/password-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -10,7 +11,11 @@ export function Field({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} name={id} className="h-10" {...props} />
+      {props.type === "password" ? (
+        <PasswordInput id={id} name={id} className="h-10" {...props} />
+      ) : (
+        <Input id={id} name={id} className="h-10" {...props} />
+      )}
     </div>
   );
 }
