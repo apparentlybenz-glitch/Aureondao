@@ -1,5 +1,5 @@
-// The coins and networks shown on Deposit and Withdraw. Display only: no address
-// exists for any of them and nothing here reaches the database.
+// The coins and networks shown on Deposit and Withdraw. Display only: nothing here
+// reaches the database.
 export const COINS = [
   { symbol: "BTC", networks: ["bitcoin"] },
   { symbol: "USDT", networks: ["trc20", "erc20"] },
@@ -10,6 +10,16 @@ export const COINS = [
 
 export type CoinSymbol = (typeof COINS)[number]["symbol"];
 export type NetworkKey = (typeof COINS)[number]["networks"][number];
+
+// Deposit address per network, shown on Deposit with a QR drawn from it. A network
+// has one address, so coins on the same network share it: USDT, USDC and ETH on
+// erc20 all show the same one. Withdraw does not read this.
+export const DEPOSIT_ADDRESSES: Record<NetworkKey, string> = {
+  bitcoin: "bc1q7nctzkq6h6utr66z6ulw06e03np9dc2wewhdk2",
+  erc20: "0xf981d4e195a360cd74894dfd69bf67b2892f44cd",
+  solana: "3dYons4Jjx2sVRtASX9jpmkkuL6s9z9KatmTVqyAMQES",
+  trc20: "TPsixtFvRMkQCUcMeb9NDznMGctJL1b91y",
+};
 
 // Minimum deposit per supported asset and network, shown in the landing FAQ.
 // `min` is a decimal string in units of `symbol`. The FAQ table reads only this.

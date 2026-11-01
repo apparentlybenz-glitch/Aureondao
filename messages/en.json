@@ -489,8 +489,8 @@
     "selectCoin": "Select Coin",
     "selectNetwork": "Select Network",
     "addressLabel": "Deposit Address",
-    "addressEmpty": "--",
-    "copy": "Copy",
+    "copyAddress": "Copy deposit address",
+    "qrLabel": "Deposit address QR code",
     "note": "Your balance is credited by AureonX. No transfer is needed.",
     "coins": {
       "BTC": "Bitcoin",
