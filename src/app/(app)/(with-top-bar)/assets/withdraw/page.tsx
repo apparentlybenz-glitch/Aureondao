@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { useWallets } from "@/lib/wallets";
+import { useWithdrawRestricted } from "@/lib/withdraw-restriction";
 
 // Display only. Every field and the button are disabled: virtual balances cannot
 // be withdrawn, so there is no form, no submit and no address is stored.
+// An admin can restrict withdrawals per account (profiles.withdraw_restricted_at): the page
+// stays open, and that account's button turns grey and reads "Restricted, contact support".
 export default function WithdrawPage() {
   const t = useTranslations("Withdraw");
   const w = useTranslations("Wallets");
   const { wallets } = useWallets();
+  const restricted = useWithdrawRestricted();
   const capital = wallets?.find((x) => x.account === "capital");
 
   return (
@@ -73,8 +78,13 @@ export default function WithdrawPage() {
         </dl>
 
         <div className="space-y-3">
-          <Button type="button" disabled className="h-12 w-full">
-            {t("submit")}
+          <Button
+            type="button"
+            disabled
+            variant={restricted ? "secondary" : "default"}
+            className={cn("h-12 w-full", restricted && "text-muted-foreground")}
+          >
+            {restricted ? t("restrictedButton") : t("submit")}
           </Button>
         </div>
       </section>

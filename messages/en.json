@@ -307,6 +307,8 @@
     "HEAD_ADMIN_PROTECTED": "A head admin cannot be changed here.",
     "OWNER_PROTECTED": "The owner cannot be changed here.",
     "NOT_HEAD_ADMIN": "This user is not a head admin.",
+    "CANNOT_DELETE_SELF": "You cannot delete your own account.",
+    "ADMIN_PROTECTED": "An admin account cannot be deleted. Remove their admin access first.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -517,7 +519,8 @@
     "summaryAmount": "Amount",
     "summaryRemoved": "Removed from balance",
     "summaryEmpty": "--",
-    "submit": "Withdraw"
+    "submit": "Withdraw",
+    "restrictedButton": "Restricted, contact support"
   },
   "Transfer": {
     "title": "Transfer",
@@ -580,7 +583,8 @@
       "auditLog": "Audit Log",
       "kyc": "KYC Review",
       "support": "Support tickets",
-      "adminAccess": "Admin access"
+      "adminAccess": "Admin access",
+      "deleteAccount": "Delete account"
     },
     "active": "Active",
     "suspended": "Suspended",
@@ -624,7 +628,24 @@
       "unsuspend": "Unsuspend account",
       "sending": "Saving…",
       "doneSuspended": "{email} is now suspended.",
-      "doneActive": "{email} is now active."
+      "doneActive": "{email} is now active.",
+      "withdrawTitle": "Withdrawals",
+      "withdrawDescription": "Turn the Withdraw button off for this account. It turns grey and reads Restricted, contact support.",
+      "withdrawRestricted": "Restricted",
+      "withdrawAllowed": "Allowed",
+      "withdrawDoneRestricted": "Withdrawals restricted for {email}.",
+      "withdrawDoneAllowed": "Withdrawals allowed for {email}."
+    },
+    "deleteAccount": {
+      "description": "Permanently delete a user account. This cannot be undone.",
+      "pickUser": "Search for the user to delete.",
+      "change": "Change user",
+      "warningTitle": "This deletes everything",
+      "warning": "The account, its wallets and balances, Bills, orders, holdings, options and forex positions, favorites, support tickets and KYC records are erased for good. Uploaded KYC photos are removed by the daily cleanup. The deletion is recorded in the audit log. An admin account cannot be deleted: remove its admin access first.",
+      "confirmLabel": "Type {value} to confirm",
+      "submit": "Delete account permanently",
+      "sending": "Deleting…",
+      "done": "{email} was deleted."
     },
     "access": {
       "description": "Grant or revoke admin access for other users. Only a head admin can do this. Every change is written to the audit log.",
@@ -687,6 +708,9 @@
         "adjust_balance": "Balance adjustment",
         "suspend": "Suspension",
         "unsuspend": "Unsuspension",
+        "withdraw_restrict": "Withdrawals restricted",
+        "withdraw_unrestrict": "Withdrawals restriction removed",
+        "delete_user": "Account deleted",
         "set_option_period": "Option period change",
         "kyc_approve": "KYC approval",
         "kyc_reject": "KYC rejection",
@@ -699,6 +723,7 @@
         "head_remove": "Head admin removed"
       },
       "summary": {
+        "deleteUser": "{email}, UID {uid}",
         "credit": "Credited {amount} USD to {wallet}.",
         "debit": "Debited {amount} USD from {wallet}.",
         "period": "{seconds} s, profit {rate}, fee {fee}, minimum {min} USD, {state}",

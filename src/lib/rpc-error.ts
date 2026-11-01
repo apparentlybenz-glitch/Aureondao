@@ -32,6 +32,8 @@ export const RPC_ERROR_CODES = [
   "HEAD_ADMIN_PROTECTED",
   "OWNER_PROTECTED",
   "NOT_HEAD_ADMIN",
+  "CANNOT_DELETE_SELF",
+  "ADMIN_PROTECTED",
 ] as const;
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number];
 

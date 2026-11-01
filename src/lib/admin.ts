@@ -11,9 +11,10 @@ export type AdminUser = {
   email: string | null;
   nickname: string;
   suspended_at: string | null;
+  withdraw_restricted_at: string | null;
 };
 
-const USER_SELECT = "id, uid::text, email, nickname, suspended_at";
+const USER_SELECT = "id, uid::text, email, nickname, suspended_at, withdraw_restricted_at";
 const SEARCH_LIMIT = 50;
 export const BILLS_LIMIT = 20;
 

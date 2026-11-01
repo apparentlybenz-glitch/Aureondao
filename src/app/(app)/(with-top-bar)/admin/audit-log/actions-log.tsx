@@ -9,7 +9,7 @@ import { formatCents } from "@/lib/money";
 import { ACCOUNTS } from "@/lib/wallets";
 import { loadAdminActions, type ActionEntry } from "./actions";
 
-const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
+const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const dayFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
@@ -80,8 +80,12 @@ export function ActionsLog() {
       case "support_reply":
       case "support_close":
         return t("auditLog.summary.ticket", { subject: str(p.subject) });
+      case "delete_user":
+        return t("auditLog.summary.deleteUser", { email: str(p.email) || "-", uid: str(p.uid) });
       case "suspend":
       case "unsuspend":
+      case "withdraw_restrict":
+      case "withdraw_unrestrict":
       case "kyc_reject":
       case "admin_grant":
       case "admin_revoke":
