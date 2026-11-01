@@ -1,6 +1,6 @@
 # AureonX: UI map (planning)
 
-> **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
+> **Merged 2026-10-25.** Table, column and RPC names follow `docs/data-model.md`.
 
 > AureonX is a multi-asset trading platform on **virtual funds**. This file is the original UI plan and parts of the app now ship. Where this file disagrees with the shipped code, CLAUDE.md or docs/decisions.md, those win.
 >
@@ -115,46 +115,54 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 ### 1.4 Route table
 
 Legend:
-- **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. RH = route handler, run per request.
+- **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. D = dynamic, rendered per request. RH = route handler, run per request.
 - **Auth:** -- = public. U = signed-in user (proxy). A = admin role (admin layout redirect plus RPC check; the proxy checks no role). Admin sections are A only: a live admin row grants every admin feature and no second factor is needed (decisions C21); TOTP stays optional and an enrolled factor still triggers the `SessionGuard` step-up. MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
-| Homepage | `/` | (marketing) | S | -- | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, LiveMarketPreview (client island), CtaBand, SupportWidget, Footer |
-| Legal: terms / privacy / risk | `/legal/*` | (marketing) | S | -- | LegalArticle (MDX or TSX), Footer |
-| Sign in | `/sign-in` | (auth) | S | -- (the proxy redirects a signed-in user to `/home`) | SignInForm (email+password, passkey button), OAuthDivider (optional) |
-| MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP via InputOTP, phone OTP, passkey) |
-| Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, confirm password, optional nickname, required terms checkbox linking `/terms` and `/privacy`; no country, no email step, a session lands on `/home`) |
+| Landing | `/` | (landing) | S | -- (the proxy redirects a signed-in user to `/home`) | Landing nav, live price strip, hero, Products, FAQ, footer |
+| Terms | `/terms` | (legal) | S | -- | LegalDocument |
+| Privacy | `/privacy` | (legal) | S | -- | LegalDocument |
+| Risk disclosure | `/risk-disclosure` | (legal) | S | -- | LegalDocument |
+| Licenses and disclosures | `/licenses-and-disclosures` | (legal) | S | -- | LegalDocument |
+| Sign in | `/sign-in` | (auth) | S | -- (the proxy redirects a signed-in user to `/home`) | SignInForm |
+| MFA challenge | `/sign-in/mfa` | (auth) | S | session at AAL1 | MfaChallenge (TOTP) |
+| Sign up | `/sign-up` | (auth) | S | -- | SignUpForm (email, password, nickname, terms checkbox) |
 | Forgot password | `/forgot-password` | (auth) | S | -- | ResetRequestForm |
 | Update password | `/update-password` | (auth) | S | recovery session | UpdatePasswordForm |
-| Auth callback | `/auth/callback` | -- | RH | -- | `exchangeCodeForSession` and redirect to `next` |
-| Email confirm | `/auth/confirm` | -- | RH | -- | `verifyOtp({ type, token_hash })` and redirect |
-| Spot terminal | `/spot?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList, PriceChart, OrderBook / LatestTrades tabs, SpotOrderForm (Limit/Market tabs, Buy + Sell panels, QtySlider), UserOrdersPanel (Open Orders / Order History / Fills) |
-| Forex terminal | `/forex?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(forex), DrawingToolbar, PriceChart (timeframes 1m–1M, volume + MA5/10/20, Native/Depth toggle, AureonX watermark), OrderBook + LatestTrades, ForexOrderForm (the Spot form with the forex wallet; see D6), UserOrdersPanel |
-| Options terminal | `/options?symbol=` | (app) | S+C | U | TerminalLayout, SymbolHeader, MarketList(options), PriceChart (compact, entry-price line + expiry markers), OptionsTicket (Rise/Fall, CycleSelector, PremiumPresets + custom, fee/expected profit, SlideToConfirm), OptionsPositionsTabs (Positions with ExpiryCountdown, Filled Orders, Statistics) |
-| My Assets | `/assets` | (app) | S+C | U | TotalBalanceHeader, SubWalletCards (Capital/Spot/Forex/Options), ProfitChart (1D/1W/1M/6M), AssetTable (per coin), QuickActions (Deposit/Withdraw/Transfer) |
-| Deposit crypto | `/assets/deposit/crypto` | (app) | S+C | U (KYC optional, D7) | Stepper: CoinSelect → NetworkSelect → VirtualDepositNotice (no receiving address is shown: this is a virtual-credit request, decisions.md C9) → Amount → Submit; RecentRequestsTable |
-| Withdraw crypto | `/assets/withdraw/crypto` | (app) | S+C | U + MFA + KYC approved | Stepper: CoinSelect → NetworkSelect → DestinationAddress → Amount (fee, min, available) → Confirm (TOTP/phone code) ; RecentRequestsTable |
-| Deposit fiat | `/assets/deposit/fiat` | (app) | S+C | U | Stepper: Currency → Method (bank transfer, virtual credit) → Amount → Reference shown → Submit |
-| Withdraw fiat | `/assets/withdraw/fiat` | (app) | S+C | U + MFA + KYC approved | Stepper: Currency → BeneficiaryForm → Amount → Confirm |
-| Transfer | `/assets/transfer` | (app) | S+C | U | TransferForm (From wallet ⇄ To wallet swap button, asset, amount, Max), RecentTransfers |
-| Bills | `/assets/bills` | (app) | S+C | U | BillsFilters (wallet, type, asset, date range), BillsTable (keyset pagination), BillDetailSheet |
-| Account overview | `/account` | (app) | S+C | U | Identity strip (default avatar, nickname, UID copy, masked email, KYC badge, Country/Region, View profile) and the total balance with eye toggle, Deposit, Withdraw, Transfer and a 7 day ledger sparkline (decisions Part 1h) |
-| Profile | `/account/profile` | (app) | S+C | U | Account info (default avatar, nickname with inline Edit, UID and Email with Copy; no phone row) and KYC details (status with View details, Country/Region) |
-| Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone; needs Supabase's paid Advanced MFA add-on, decisions.md O8), Email verification status, Change password; SecurityScore |
-| KYC | `/account/kyc` | (app) | S+C | U | KycStepper: Country → DocType → PersonalInfo → DocumentUpload (front/back) + Selfie → Review & submit; KycStatusPanel (pending/approved/rejected + reason) |
-| Admin: User Search | `/admin` | admin | S+C | A | UserSearch, UserDetail (status, four wallet balances, 20 newest Bills rows) |
-| Admin: Top-Up | `/admin/top-up` | admin | S+C | A | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance` credit or debit) |
-| Admin: Restrictions | `/admin/restrictions` | admin | S+C | A | UserSearch, SelectedUserCard, Suspend or Unsuspend (`admin_set_suspension`), Withdrawals switch (`admin_set_withdraw_restriction`) |
-| Admin: KYC Review | `/admin/kyc` | admin | S+C | A | Submission list, status filter, ReviewDetail (60-second signed URL, Approve or Reject through `admin_review_kyc`) |
-| Admin: Option periods | `/admin/option-periods` | admin | S+C | A | PeriodRow (profit rate, fee, minimum premium, Enabled switch, `admin_set_option_period`) |
-| Admin: Support tickets | `/admin/support` | admin | S+C | A | Ticket list, status and topic filters, thread with reply box and Close (`admin_support_close`) |
-| Admin: Audit Log | `/admin/audit-log` | admin | S+C | A | TransactionsLog (ledger, 50 rows per page), ActionsLog (`admin_audit_log`, 50 rows per page) |
-| Admin: Admin access | `/admin/admin-access` | admin | S+C | A | Head admins only; UserSearch, Grant or Revoke (`admin_set_admin`), owner Demote to admin or Remove (`admin_demote_head`) |
-| Admin: Delete account | `/admin/delete-account` | admin | S+C | A | UserSearch, typed email confirmation, `admin_delete_user` (destructive, last) |
-| 404 | any unknown path | root | S | -- | NotFound (logo, back home) |
-| Error boundaries | `global-error.tsx`, `(app)/error.tsx` | -- | client | -- | ErrorState (retry `reset()`, Sentry event id) |
-| Terminal loading | `spot|forex|options/loading.tsx` | (app) | S | -- | TerminalSkeleton |
+| Auth callback | `/auth/callback` | -- | RH | -- | `exchangeCodeForSession`, redirect |
+| Email confirm | `/auth/confirm` | -- | RH | -- | `verifyOtp`, redirect |
+| Tickers | `/md/v1/tickers` | -- | RH | -- | KuCoin `allTickers`, enabled markets only, cached |
+| Home | `/home` | (app)/(with-top-bar) | S+C | U | Home tiles, MarketCards, market table |
+| Spot terminal | `/spot?symbol=` | (app) | S+C | U | header, TradingView chart, OrderForm, OrderBook |
+| Options | `/options` | (app) | S+C | U | header, TradingView chart, ticket, positions |
+| Forex | `/forex` | (app) | S+C | U | placeholder pairs, TradingView chart, generated ladder |
+| Assets | `/assets` | (app)/(with-top-bar) | S+C | U | balance card, wallet rows |
+| Deposit | `/assets/deposit` | (app)/(with-top-bar) | S+C | U | coin and network fields, address, QR |
+| Withdraw | `/assets/withdraw` | (app)/(with-top-bar) | S+C | U | disabled fields, no submit |
+| Transfer | `/assets/transfer` | (app)/(with-top-bar) | S+C | U | transfer details card |
+| Bills | `/assets/bills` | (app)/(with-top-bar) | S+C | U | Bills list |
+| Account overview | `/account` | (app)/(with-top-bar) | S+C | U | identity card, total balance, 7 day sparkline |
+| Profile | `/account/profile` | (app)/(with-top-bar) | S+C | U | account info, KYC details |
+| Security | `/account/security` | (app)/(with-top-bar) | S+C | U | authenticator app, password change |
+| Verification | `/account/verification` | (app)/(with-top-bar) | S+C | U | status card, stepper |
+| Verification submit | `/account/verification/submit` | (app)/(with-top-bar) | S+C | U | KYC flow |
+| Preferences | `/account/preferences` | (app)/(with-top-bar) | S+C | U | confirm trades toggle |
+| Market | `/market` | (app)/(with-top-bar) | S+C | U | MarketTable (market variant) |
+| Support | `/support` | (app)/(with-top-bar) | S+C | U | ticket form, thread |
+| Legal heading | `/legal` | (app)/(with-top-bar) | S | U | heading only |
+| Admin: User Search | `/admin` | admin | D | A | UserSearch, UserDetail (status, four wallet balances, 20 newest Bills rows) |
+| Admin: Top-Up | `/admin/top-up` | admin | D | A | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance`) |
+| Admin: Restrictions | `/admin/restrictions` | admin | D | A | UserSearch, SelectedUserCard, Suspend or Unsuspend (`admin_set_suspension`), Withdrawals switch (`admin_set_withdraw_restriction`) |
+| Admin: KYC Review | `/admin/kyc` | admin | D | A | Submission list, status filter, ReviewDetail (`admin_review_kyc`) |
+| Admin: Option periods | `/admin/option-periods` | admin | D | A | PeriodRow (`admin_set_option_period`) |
+| Admin: Support tickets | `/admin/support` | admin | D | A | Ticket list, filters, thread (`admin_support_close`) |
+| Admin: Audit Log | `/admin/audit-log` | admin | D | A | TransactionsLog, ActionsLog |
+| Admin: Admin access | `/admin/admin-access` | admin | D | A | head admins only; Grant or Revoke (`admin_set_admin`), owner Demote or Remove (`admin_demote_head`) |
+| Admin: Delete account | `/admin/delete-account` | admin | D | A | typed email confirmation, `admin_delete_user` (destructive, last) |
+| Offline | `/offline` | root | S | -- | static offline page (served by `sw.js`) |
+| 404 | any unknown path | root | S | -- | NotFound |
+| Error boundaries | `global-error.tsx`, `error.tsx` | -- | client | -- | ErrorState |
 
 **Static enforcement:** `cacheComponents` is off in the current `next.config.ts`. Put `export const dynamic = 'error'` in `(marketing)/layout.tsx`, `(auth)/layout.tsx` and `(app)/layout.tsx`, so that an accidental `cookies()` or `headers()` call fails the build instead of silently switching on SSR. `admin/layout.tsx` stays `dynamic = "force-dynamic"` so admin pages render per request and a non-admin is redirected before any admin page renders. Do not put it in `(auth)/auth/*/route.ts`. If `cacheComponents` is turned on later, Next 16.4 adds `export const ensureStatic = 'navigation'` for the same guarantee (<https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic>, added in v16.4.0). Server components may only render static chrome; everything user-specific is a client component.
 
@@ -406,7 +414,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 |---|---|
 | MarketingNavbar, Hero, BenefitsGrid, SecuritySection, FeaturesSection, CtaBand, Footer, Legal pages, NotFound | static |
 | LiveMarketPreview | browser → shared cached Worker route ⚑ (one `GET /md/v1/tickers?set=home`, edge-cached a few seconds; the store's bulk ticker; optionally a public exchange WS after first paint) |
-| SupportWidget (placeholder) | static (opens a Sheet with a contact email / "coming soon"; no third-party script in v1) |
+| Support entry (top-bar headset icon) | links to `/support` (ticket form and thread, Supabase under RLS) |
 | "Signed in?" CTA swap on the homepage | browser → Supabase (local session read from cookie storage via `getSession()`, no network) |
 | SignInForm / SignUpForm / ResetRequestForm / UpdatePasswordForm | Supabase Auth client (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`). Counts as **Supabase RPC (write)** class: a browser call to Supabase |
 | Passkey sign-in button | Supabase Auth client `signInWithPasskey()` (experimental opt-in; see D4) |
@@ -460,16 +468,14 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 | KycStepper: document + selfie upload | browser → Supabase Storage (direct `upload()` to private bucket `kyc/{uid}/…`, Storage RLS insert-own-folder). **Not** through a server action (1 MB default `serverActions.bodySizeLimit`, and it would waste Worker CPU) |
 | KycStatusPanel | browser → Supabase (RLS read `kyc_submissions`) + Supabase Realtime |
 | Admin tables (users, queues, audit) | browser → Supabase (RLS read; admin policies via `private.is_admin()` reading `user_roles`) + Supabase Realtime (new pending items) |
-| Admin approve/reject, credit/debit, cycle config | Supabase RPC (write) `admin_review_deposit`, `admin_review_withdrawal`, `admin_review_kyc`, `admin_adjust_balance`, `admin_upsert_option_cycle` (SECURITY DEFINER + `is_admin()` check + audit row) |
+| Admin actions (credit/debit, suspend, KYC review, option periods, admin access, delete account) | Supabase RPC (write) functions in `supabase/migrations/` (SECURITY DEFINER; claim and live admin row checked; one `admin_audit_log` row each) |
 | Admin KYC image viewer | browser → Supabase Storage `createSignedUrl` (Storage RLS select policy for admins; 60 s URLs) |
-| Admin ban/unban, reset a user's MFA, force sign-out | **server action (secret: `SUPABASE_SECRET_KEY` for `auth.admin.*`)**. These are the only admin operations Postgres RLS cannot do (D9) |
 | Admin user email/phone in the list | browser → Supabase (RLS read `profiles`, which mirrors email/phone from `auth.users` via trigger), so no secret is needed for listing |
 
 ### 5.4 Server-side code inventory (complete)
 1. `proxy.ts` (or `middleware.ts`): JWT verification and cookie refresh on protected paths only. No secret; uses the publishable key.
 2. `/auth/callback` and `/auth/confirm` route handlers. No secret.
-3. *(Planned, not built; no runtime code uses the secret key)* Server actions in `src/app/admin/_actions.ts`: `banUser`, `unbanUser`, `resetUserMfa`, `signOutUser`. Secret: `SUPABASE_SECRET_KEY`. Each action would re-verify the live admin row before acting.
-3a. *(Built)* `admin/layout.tsx` redirects a non-admin to `/home` (live `user_roles` row, no secret) and `admin/audit-log/actions.ts` reads the ledger and audit log as the signed-in user; both use `isAdmin` in `src/lib/admin-server.ts`.
+3. *(Built)* `admin/layout.tsx` redirects a non-admin to `/home` (live `user_roles` row, no secret) and `admin/audit-log/actions.ts` reads the ledger and audit log as the signed-in user; both use `isAdmin` in `src/lib/admin-server.ts`.
 4. *(Only if D4 = self-hosted WebAuthn)* `src/app/account/security/_passkey-actions.ts`.
 5. The shared market-data Worker route `/md/v1/*` belongs to the market-data agent. The UI consumes it only through the store.
 
