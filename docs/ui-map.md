@@ -2,7 +2,7 @@
 
 > **Merged 2026-10-25.** Where this doc conflicts with `docs/decisions.md`, `docs/decisions.md` wins. Table, column and RPC names follow `docs/data-model.md`.
 
-> AureonX is a multi-asset trading platform on **virtual funds**. An admin credits virtual balances and no real money moves. This file maps every screen to its route, layout, rendering mode, auth requirement, components and data source. It is a plan only: no app code exists yet.
+> AureonX is a multi-asset trading platform on **virtual funds**. This file is the original UI plan and parts of the app now ship. Where this file disagrees with the shipped code, CLAUDE.md or docs/decisions.md, those win.
 >
 > Research date: 2026-10-25. Versions found on npm on that date: `next@16.4.3` (the scaffold already pins this), `@opennextjs/cloudflare@1.20.13` (peer range `next >=15.5.28 <16 || >=16.4.1`), `@supabase/supabase-js@2.118.0`, `@supabase/ssr@0.12.7`, `lightweight-charts@5.2.1`, `next-intl@4.14.9`, `motion`/`framer-motion@14.6.0`, `@sentry/nextjs@11.9.0`, `tailwindcss@4.3.3`, `shadcn@4.22.1`.
 
@@ -74,17 +74,21 @@ src/
       account/profile/page.tsx /account/profile (Profile)
       account/security/page.tsx
       account/kyc/page.tsx
-    admin/
-      layout.tsx               AdminShell (Sidebar; role gate in proxy + client guard)
-      error.tsx
-      page.tsx                 /admin (queue counts dashboard)
-      users/page.tsx           /admin/users           (?id=<uuid> opens the detail panel)
-      deposits/page.tsx        /admin/deposits
-      withdrawals/page.tsx     /admin/withdrawals
-      kyc/page.tsx             /admin/kyc             (?id=<submission> opens the review panel)
-      options-config/page.tsx  /admin/options-config
-      audit/page.tsx           /admin/audit
+    admin/                     (under (app)/(with-top-bar)/)
+      layout.tsx               AdminShell: desktop tab row and mobile drawer; server gate redirects a non-admin to /home
+      page.tsx                 /admin (User Search)
+      top-up/page.tsx          /admin/top-up (Top-Up)
+      restrictions/page.tsx    /admin/restrictions (Restrictions)
+      kyc/page.tsx             /admin/kyc (KYC Review)
+      option-periods/page.tsx  /admin/option-periods (Option periods)
+      support/page.tsx         /admin/support (Support tickets)
+      audit-log/page.tsx       /admin/audit-log (Audit Log)
+      admin-access/layout.tsx  head admin only; redirects others to /admin
+      admin-access/page.tsx    /admin/admin-access (Admin access; head admins only)
+      delete-account/page.tsx  /admin/delete-account (Delete account; destructive, last)
 ```
+
+Admin panel order: the `SECTIONS` array in `src/components/admin/admin-shell.tsx`; one list drives both the desktop tab row and the mobile drawer.
 
 The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and not as a `[symbol]` segment. Each terminal is therefore **one static HTML file**. The page reads `useSearchParams()` inside a `<Suspense>` boundary in a client component. Switching symbols calls `window.history.replaceState`, which Next.js syncs with `useSearchParams`, so there is no RSC fetch and no Worker invocation. A `[symbol]` segment would cost a Worker request per symbol switch and would need `generateStaticParams` from a list fixed at build time (Open Decision D3). Admin detail views use `?id=` for the same reason.
 
@@ -112,7 +116,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 Legend:
 - **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. RH = route handler, run per request.
-- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (admin layout redirect plus RPC check; the proxy checks no role). MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
+- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (admin layout redirect plus RPC check; the proxy checks no role). Admin sections are A only: a live admin row grants every admin feature and no second factor is needed (decisions C21); TOTP stays optional and an enrolled factor still triggers the `SessionGuard` step-up. MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
@@ -139,18 +143,20 @@ Legend:
 | Profile | `/account/profile` | (app) | S+C | U | Account info (default avatar, nickname with inline Edit, UID and Email with Copy; no phone row) and KYC details (status with View details, Country/Region) |
 | Security Center | `/account/security` | (app) | S+C | U | SecurityItem rows: Passkeys (list, add, rename, delete), Authenticator app (TOTP enroll QR + verify / unenroll), Phone (enroll MFA phone; needs Supabase's paid Advanced MFA add-on, decisions.md O8), Email verification status, Change password; SecurityScore |
 | KYC | `/account/kyc` | (app) | S+C | U | KycStepper: Country → DocType → PersonalInfo → DocumentUpload (front/back) + Selfie → Review & submit; KycStatusPanel (pending/approved/rejected + reason) |
-| Admin dashboard | `/admin` | admin | S+C | A + MFA | QueueCountCards (pending deposits, withdrawals, KYC), RecentAuditList |
-| Admin users | `/admin/users` (`?id=`) | admin | S+C | A | UsersTable (search, filters, pagination), UserDetailSheet (profile, KYC, wallets, BalanceAdjustDialog credit/debit, orders, bills, ban/unban → D9) |
-| Admin deposits | `/admin/deposits` | admin | S+C | A | RequestQueueTable (status tabs), ReviewDialog (approve/reject + note) |
-| Admin withdrawals | `/admin/withdrawals` | admin | S+C | A | RequestQueueTable, ReviewDialog |
-| Admin KYC | `/admin/kyc` (`?id=`) | admin | S+C | A | KycQueueTable, KycReviewPanel (signed-URL image viewer, approve/reject with reason) |
-| Admin options config | `/admin/options-config` | admin | S+C | A | CycleConfigTable (cycle seconds, profit rate, fee rate, min/max premium, enabled), inline edit + save |
-| Admin audit | `/admin/audit` | admin | S+C | A | AuditLogTable |
+| Admin: User Search | `/admin` | admin | S+C | A | UserSearch, UserDetail (status, four wallet balances, 20 newest Bills rows) |
+| Admin: Top-Up | `/admin/top-up` | admin | S+C | A | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance` credit or debit) |
+| Admin: Restrictions | `/admin/restrictions` | admin | S+C | A | UserSearch, SelectedUserCard, Suspend or Unsuspend (`admin_set_suspension`), Withdrawals switch (`admin_set_withdraw_restriction`) |
+| Admin: KYC Review | `/admin/kyc` | admin | S+C | A | Submission list, status filter, ReviewDetail (60-second signed URL, Approve or Reject through `admin_review_kyc`) |
+| Admin: Option periods | `/admin/option-periods` | admin | S+C | A | PeriodRow (profit rate, fee, minimum premium, Enabled switch, `admin_set_option_period`) |
+| Admin: Support tickets | `/admin/support` | admin | S+C | A | Ticket list, status and topic filters, thread with reply box and Close (`admin_support_close`) |
+| Admin: Audit Log | `/admin/audit-log` | admin | S+C | A | TransactionsLog (ledger, 50 rows per page), ActionsLog (`admin_audit_log`, 50 rows per page) |
+| Admin: Admin access | `/admin/admin-access` | admin | S+C | A | Head admins only; UserSearch, Grant or Revoke (`admin_set_admin`), owner Demote to admin or Remove (`admin_demote_head`) |
+| Admin: Delete account | `/admin/delete-account` | admin | S+C | A | UserSearch, typed email confirmation, `admin_delete_user` (destructive, last) |
 | 404 | any unknown path | root | S | -- | NotFound (logo, back home) |
-| Error boundaries | `global-error.tsx`, `(app)/error.tsx`, `admin/error.tsx` | -- | client | -- | ErrorState (retry `reset()`, Sentry event id) |
+| Error boundaries | `global-error.tsx`, `(app)/error.tsx` | -- | client | -- | ErrorState (retry `reset()`, Sentry event id) |
 | Terminal loading | `spot|forex|options/loading.tsx` | (app) | S | -- | TerminalSkeleton |
 
-**Static enforcement:** `cacheComponents` is off in the current `next.config.ts`. Put `export const dynamic = 'error'` in `(marketing)/layout.tsx`, `(auth)/layout.tsx`, `(app)/layout.tsx` and `admin/layout.tsx`, so that an accidental `cookies()` or `headers()` call fails the build instead of silently switching on SSR. Do not put it in `(auth)/auth/*/route.ts`. If `cacheComponents` is turned on later, Next 16.4 adds `export const ensureStatic = 'navigation'` for the same guarantee (<https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic>, added in v16.4.0). Server components may only render static chrome; everything user-specific is a client component.
+**Static enforcement:** `cacheComponents` is off in the current `next.config.ts`. Put `export const dynamic = 'error'` in `(marketing)/layout.tsx`, `(auth)/layout.tsx` and `(app)/layout.tsx`, so that an accidental `cookies()` or `headers()` call fails the build instead of silently switching on SSR. `admin/layout.tsx` stays `dynamic = "force-dynamic"` so admin pages render per request and a non-admin is redirected before any admin page renders. Do not put it in `(auth)/auth/*/route.ts`. If `cacheComponents` is turned on later, Next 16.4 adds `export const ensureStatic = 'navigation'` for the same guarantee (<https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic>, added in v16.4.0). Server components may only render static chrome; everything user-specific is a client component.
 
 **Virtual funds indicator (recommended placement):**
 1. A persistent amber `Badge` reading "VIRTUAL FUNDS" in the `AppHeader`, directly left of the total-balance/UserMenu cluster. It is visible on every (app) and admin screen at every width; on mobile it collapses to a "VIRTUAL" pill next to the logo.
@@ -326,7 +332,7 @@ The top bar is `--top-bar-h` plus `--safe-t` tall with `--safe-t` as top padding
 #### Home (`/home`, signed in; the public homepage stays at `/`, slice 9): Captured
 1. Top bar as above.
 2. **Total asset value** with an eye toggle (hide amounts); large figure plus `USD`. Source: wallets (RLS) valued with the store's prices.
-3. **Shortcut grid**, 4 × 2 round icons: Deposit · Options · Forex / Spot · Transfer · Support · (8th slot: Bills). Forex shows a "coming soon" state while deferred (O21).
+3. **Shortcut grid**, 4 × 2 round icons: Deposit · Options · Forex / Spot · Transfer · Support · (8th slot: Bills). Forex opens the shipped placeholder terminal (O21).
 4. **Market table** with tabs Favorites · Popular · Gainers · Losers, plus a category select (Spot / Options / …). Columns: Symbol (with icon, display name per O22, and last-update time) · Sell · Buy (O23) · Change % (green/red).
 5. Bottom tab bar; the list reserves the bottom padding.
 
@@ -378,10 +384,10 @@ Slice 5 Part B as built (`/options`, directly in `(app)` like Spot; captured lay
 | "Coming soon" placeholders | none (`/support` became the Support page with tickets, `/market` became the Market tab in slice 3, `/spot` the Spot terminal in slice 4 (§4.12), `/options` the Options screen in slice 5 (§4.8)) | Designed |
 
 Assumptions (Described and Designed screens, plus choices inside the Captured ones):
-- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search, bell and support open "Coming soon" screens. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
+- **Shell:** the top bar comes from the `(app)/(with-top-bar)` group layout; every slice 2 page sits in that group, not only Home, so the avatar and the VIRTUAL pill are always one tap away. Inner pages add a back-arrow title row. The language globe is disabled (English only). Search opens the Market tab and the support icon opens `/support`. The raised Trade button has a "Trade" label under it, aligned with the other tab labels. The active tab and the Home quick-action icons use `primary`; up/down amounts use the `up` and `down` tokens. The search pill reads "Search symbol". Trade opens `/spot` (O24 ★), the Spot terminal since slice 4. Full-screen trading screens can live directly in `(app)` to skip the top bar while keeping the tab bar.
 - **Theme:** dark for the whole app (the `dark` class on `<html>`), auth pages included.
 - **Money display:** every amount is integer cents read with `::text` and formatted with BigInt (`src/lib/money.ts`). Amounts are labelled USD (owner decision; wallets hold USDT treated 1:1 as USD).
-- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills and Options (live since slice 5) are links; Forex and Support show a "Soon" badge and are not links (owner decision, Day 6); Deposit links to `/assets/deposit` since slice 7 (§4.15). The avatar is a generic icon (no extra profile fetch).
+- **Home:** total = available + frozen across the 4 wallets. The hide-eye state is not remembered across visits. Spot, Transfer, Bills, Options, Forex and Support are live links; Deposit links to `/assets/deposit` since slice 7 (§4.15). The avatar is a generic icon (no extra profile fetch).
 - **Assets:** the account card and row layout (`InfoCard`, `InfoRow`). A balance card (Total balance, the wallet total in USD, Deposit, Withdraw, Transfer and Bills), then a Wallets card with one row per wallet in fixed order (Capital, Spot, Forex, Options): its total, with available and, when non-zero, frozen under it. No profit chart (slice 5); the account Overview has a 7 day balance sparkline (decisions Part 1h).
 - **Transfer:** one "Transfer details" card in the same row layout: From (with the swap button on the right), To and Amount (MAX, the available line and the amount error under it), then Confirm transfer and a Bills link below the card. Native selects. Choosing the other side's wallet swaps the two, and the To list never offers the From wallet. MAX fills the full available balance. One idempotency key per confirm attempt (`crypto.randomUUID()`); a retry after a failure the server never answered reuses it, any answered result or changed input gets a new one. The button is disabled while the request is in flight.
 - **Bills:** cards with type, description, signed amount, wallet and local date/time. Filter chips: All and the 4 wallets. Keyset pagination on `(created_at, id)`, 20 per page, with a "Load more" button. Transfer text comes from `en.json` (`counter_account`); admin rows show the DB text "Balance adjustment". Only the signed-in user's own rows, even for an admin.
@@ -637,7 +643,7 @@ Assumptions:
 - **Home:** the table shows the first 8 rows of the active tab and a "See all markets" link to `/market`. The 8 is our choice.
 - **Market tab:** search matches the display symbol, the base asset, the id and `BASE/QUOTE`, case-insensitively, inside whichever tab is active. A star on each row adds or removes a favorite at once and undoes itself if the save fails. The top bar search form sends `/market?q=text`; the page field follows the URL when it changes and can then be edited freely.
 - **Coin icons:** a circle with the first two letters of the base asset. No third-party logos are downloaded or bundled.
-- **Row tap:** saves the symbol id under `aureonx.lastMarket` in `localStorage` (inside try/catch) and does not navigate. The Trade tab opens `/spot`, which is "Coming soon" until slice 4 (O24).
+- **Row tap:** saves the symbol id under `aureonx.lastMarket` in `localStorage` (inside try/catch) and does not navigate. The Trade tab opens `/spot` (slice 4, O24).
 - **States:** "Loading markets", an amber "Prices are temporarily unavailable. Retrying." when every provider has failed and nothing was loaded.
 - **Layout:** built at 390 px. Prices use 13 px tabular numbers, and the symbol column keeps a minimum width so `NEARUSD` does not truncate next to the star. Scrolling pages keep the tab bar plus safe-area padding from the group layout.
 
@@ -710,9 +716,9 @@ Assumptions:
 |---|---|---|
 | Deposit | `/assets/deposit` | Designed |
 | Withdraw | `/assets/withdraw` | Designed |
-| Admin: User Search, Top-Up, Restrictions, Option periods, Audit Log | `/admin`, `/admin/top-up`, `/admin/restrictions`, `/admin/option-periods`, `/admin/audit-log` | Designed |
+| Admin: User Search, Top-Up, Restrictions, KYC Review, Option periods, Support tickets, Audit Log, Admin access and Delete account | `/admin`, `/admin/top-up`, `/admin/restrictions`, `/admin/kyc`, `/admin/option-periods`, `/admin/support`, `/admin/audit-log`, `/admin/admin-access` and `/admin/delete-account` | Designed |
 
-The owner attached reference screenshots as layout ideas only. These are Designed screens: nothing is copied from them, the name, logo and wording are not used, and none of the screens may be described as matching any reference. This slice supersedes §4.4's deposit and withdraw steppers and request tables, and §4.6's request and KYC queues (decisions: users never request funds, so there are no deposit or withdrawal requests; there is no KYC queue, outcome control or per-user page access in this slice).
+The owner attached reference screenshots as layout ideas only. These are Designed screens: nothing is copied from them, the name, logo and wording are not used, and none of the screens may be described as matching any reference. This slice supersedes §4.4's deposit and withdraw steppers and request tables, and §4.6's request and KYC queues (decisions: users never request funds, so there are no deposit or withdrawal requests; there is no KYC queue in this slice; KYC Review shipped in slice 8, §4.16).
 
 Deposit and Withdraw assumptions:
 - **Deposit shows the address of the chosen network** (`DEPOSIT_ADDRESSES`, `src/lib/coins.ts`) with a Copy button and a QR drawn from the same string; coins on one network share it (USDT, USDC and ETH on ERC-20). Neither page accepts a request. Withdraw has no address and its controls are disabled. There is no note line, no form and no submit.
@@ -722,13 +728,13 @@ Deposit and Withdraw assumptions:
 - **Entry points:** the Home Deposit tile (now live) and the Assets hub buttons Deposit, Withdraw and Transfer (Bills stays as a full-width button under them).
 
 Admin assumptions:
-- **Navigation:** from `md:` a left sidebar (13 rem) lists the five sections with the active one highlighted. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
-- **Gate:** not an admin: a notice. No second-factor gate: the admin claim opens the panel, and every admin RPC and RLS read needs only the live admin row (decisions C21). An account with a verified factor is still stepped up by `SessionGuard`.
-- **User Search:** the field accepts an email substring (escaped `ilike`) or an exact 8-digit UID; Search and All (the newest 50). Each result shows email, UID and Active or Suspended. Opening one shows the suspension (since, reason), links to Top-Up and Restrictions, the four wallet balances and the 20 newest Bills rows (same text rules as Bills; the second line is hidden when it repeats the type).
-- **Top-Up:** pick a user (from the same search), wallet, Credit or Debit (kept from slice 2), amount and a reason of 3 to 200 characters. `admin_adjust_balance` with one idempotency key per attempt. Success shows the applied amount and the wallet's new balance (read back after the call).
-- **Restrictions:** shows the state, since, and the reason. A reason is required to suspend (3 to 200 characters) and optional to unsuspend. One button: Suspend or Unsuspend. Editing the reason of a suspended user is possible through the RPC but has no screen.
+- **Navigation:** from `md:` a horizontal tab row lists the sections with the active one underlined. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). The order lives in the `SECTIONS` array in `src/components/admin/admin-shell.tsx` and drives both the tab row and the drawer. Delete account is last and drawn red; Admin access shows for head admins only. Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
+- **Gate:** not an admin: a notice. No second-factor gate: a live admin row opens the panel, and every admin RPC and RLS read needs only that row (decisions C21). An account with a verified factor is still stepped up by `SessionGuard`.
+- **User Search:** the field accepts an email substring (escaped `ilike`) or an exact 8-digit UID; Search and All (the newest 50). Each result shows email, UID and Active or Suspended. Opening one shows when the suspension started, links to Top-Up and Restrictions, the four wallet balances and the 20 newest Bills rows (same text rules as Bills; the second line is hidden when it repeats the type).
+- **Top-Up:** pick a user (from the same search), wallet, Credit or Debit, amount. `admin_adjust_balance` with one idempotency key per attempt. Success shows the applied amount and the wallet's new balance (read back after the call).
+- **Restrictions:** shows the state and since. One button: Suspend or Unsuspend (`admin_set_suspension`), and below it a Withdrawals switch calling `admin_set_withdraw_restriction`. No reason is taken or shown.
 - **Option periods:** one card per period (30, 60, 90, 120, 300 s) with profit rate (%), fee (%), minimum premium (USD) and an Enabled switch; Save per period (enabled once something changed and the values are valid). Field errors mirror what `admin_set_option_period` refuses (profit 0 to 1000 %, fee 0 to 10 %, up to 2 decimals, minimum above 0, no enabling at a 0 % profit rate); other failures show the mapped RPC message. The list is live (Realtime), as the Options screen's.
-- **Audit Log:** `admin_audit_log` newest first, the latest 100, filter by action (balance adjustment, suspension, unsuspension, option period change). Each row: action, time, a one-line summary from the payload (text from `en.json`), the admin's email and the target user's email ("Deleted user" when the account was removed; option period rows have no target). Amounts come from jsonb numbers, which stay inside the safe integer range because adjustments are capped at 100000000000 cents.
+- **Audit Log:** two tabs. Transactions reads the platform ledger (not `admin_audit_log`) through a server action that checks the live admin row, 50 rows per page, with an email search and type pills. Admin actions reads `admin_audit_log` through `loadAdminActions`, 50 rows per page, with no reason shown, old rows included. Amounts come from jsonb numbers, which stay inside the safe integer range because adjustments are capped at 100000000000 cents.
 - **Suspended users:** Home shows a banner "Your account is suspended. Trading and transfers are paused." with the reason on a second line. Spot, Options and Transfer show the same sentence when their call returns `ACCOUNT_SUSPENDED`.
 
 ### 4.16 Slice 8 screens as shipped (Verification, KYC Review)
@@ -757,9 +763,9 @@ Differences from the captures (the tab set, the four-step flow with its dot step
 - Profile has a default avatar only (no upload) and no phone row.
 
 KYC Review assumptions:
-- **Sidebar:** "KYC Review" sits after Restrictions (icon `IdCard`), in the sidebar and the drawer.
+- **Navigation:** KYC Review sits after Restrictions (icon `IdCard`) in the `SECTIONS` order, in both the desktop tab row and the mobile drawer.
 - **List:** `kyc_submissions` (admin RLS), pending first (enum order), then newest; latest 100; a Status filter (All, Pending review, Verified, Rejected). Each row: email, country · document type, submitted time, badge.
-- **Detail:** email and UID, the badge, the text fields, submitted and decided times, the rejection reason, and the photo through a 60-second signed URL created when the detail opens (one line says so). Each open first calls `admin_log_kyc_photo_view`, which writes one `kyc_photo_view` audit row; if it fails no URL is created and the photo shows the error state. The list never calls it. The detail is in-page state, not a route, so no link prefetch can write a row. Pending only: a reason field (3 to 200 characters, required to reject), Reject (red) and Approve. Success shows a line and reloads the list. Approve and reject write `kyc_approve` / `kyc_reject` audit rows; the Audit Log filter lists both.
+- **Detail:** email and UID, the badge, the text fields, submitted and decided times, and the photo through a 60-second signed URL created when the detail opens (one line says so). Each open first calls `admin_log_kyc_photo_view`, which writes one `kyc_photo_view` audit row; if it fails no URL is created and the photo shows the error state. The list never calls it. The detail is in-page state, not a route, so no link prefetch can write a row. Pending only: Reject (red) and Approve. Success shows a line and reloads the list. Approve and reject write `kyc_approve` and `kyc_reject` audit rows in Admin actions.
 
 ### 4.17 Home market cards as shipped
 
