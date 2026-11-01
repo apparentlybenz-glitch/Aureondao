@@ -9,7 +9,7 @@ import { formatCents } from "@/lib/money";
 import { ACCOUNTS } from "@/lib/wallets";
 import { loadAdminActions, type ActionEntry } from "./actions";
 
-const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
+const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "outcome_config", "outcome_override_set", "outcome_override_clear", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const dayFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
@@ -100,6 +100,16 @@ export function ActionsLog() {
           min: formatCents(BigInt(Math.trunc(num(p.min_premium_cents)))),
           state: t(p.enabled === true ? "auditLog.summary.enabled" : "auditLog.summary.disabled"),
         });
+      case "outcome_config":
+        return t("auditLog.summary.outcomeConfig", { mode: str(p.mode), rate: num(p.win_rate_pct) });
+      case "outcome_override_set":
+        return t("auditLog.summary.outcomeOverride", {
+          email: str(p.email) || "-",
+          mode: str(p.mode),
+          rate: num(p.win_rate_pct),
+        });
+      case "outcome_override_clear":
+        return t("auditLog.summary.outcomeClear", { email: str(p.email) || "-" });
       default:
         return JSON.stringify(p);
     }

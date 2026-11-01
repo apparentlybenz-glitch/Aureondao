@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, Timer, Trash2, Users, Wallet, X } from "lucide-react";
+import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, SlidersHorizontal, Timer, Trash2, Users, Wallet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
@@ -18,6 +18,7 @@ const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
   { key: "topUp", href: "/admin/top-up", Icon: Wallet },
   { key: "restrictions", href: "/admin/restrictions", Icon: Ban },
+  { key: "outcomeControl", href: "/admin/outcome-control", Icon: SlidersHorizontal },
   { key: "kyc", href: "/admin/kyc", Icon: IdCard },
   { key: "optionPeriods", href: "/admin/option-periods", Icon: Timer },
   { key: "support", href: "/admin/support", Icon: LifeBuoy },
