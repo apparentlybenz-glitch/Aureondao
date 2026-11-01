@@ -491,7 +491,6 @@
     "addressLabel": "Deposit Address",
     "copyAddress": "Copy deposit address",
     "qrLabel": "Deposit address QR code",
-    "note": "Your balance is credited by AureonX. No transfer is needed.",
     "coins": {
       "BTC": "Bitcoin",
       "USDT": "Tether USD",
