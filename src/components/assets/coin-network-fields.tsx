@@ -5,23 +5,25 @@ import { Check, ChevronDown } from "lucide-react";
 import { Select } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
-import { COINS, type CoinSymbol } from "@/lib/coins";
+import { COINS, type CoinSymbol, type NetworkKey } from "@/lib/coins";
 import { cn } from "@/lib/utils";
 
 // Coin dropdown and network chips, shared by Deposit and Withdraw. Choosing a
 // coin selects its first network. The choice stays on this screen: nothing is
-// sent or stored.
-export function CoinNetworkFields() {
+// sent or stored. onChange reports the selected network (Deposit uses it to pick the
+// address).
+export function CoinNetworkFields({ onChange }: { onChange?: (network: NetworkKey) => void }) {
   const t = useTranslations("Deposit");
   const [symbol, setSymbol] = useState<CoinSymbol>(COINS[0].symbol);
   const coin = COINS.find((c) => c.symbol === symbol) ?? COINS[0];
-  const [network, setNetwork] = useState<string>(coin.networks[0]);
+  const [network, setNetwork] = useState<NetworkKey>(coin.networks[0]);
 
   function pickCoin(next: string) {
     const picked = COINS.find((c) => c.symbol === next);
     if (!picked) return;
     setSymbol(picked.symbol);
     setNetwork(picked.networks[0]);
+    onChange?.(picked.networks[0]);
   }
 
   return (
@@ -86,7 +88,10 @@ export function CoinNetworkFields() {
               type="button"
               role="radio"
               aria-checked={network === n}
-              onClick={() => setNetwork(n)}
+              onClick={() => {
+                setNetwork(n);
+                onChange?.(n);
+              }}
               className={cn(
                 "flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium",
                 network === n ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
