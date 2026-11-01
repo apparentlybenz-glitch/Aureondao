@@ -13,7 +13,6 @@ export default function DepositPage() {
 
       <section className="space-y-5 rounded-2xl border bg-card p-4">
         <DepositPanel />
-        <p className="text-sm text-muted-foreground">{t("note")}</p>
       </section>
     </div>
   );
