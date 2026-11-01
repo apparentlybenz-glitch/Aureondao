@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, Timer, Users, Wallet, X } from "lucide-react";
+import { Ban, House, IdCard, LifeBuoy, Menu, ScrollText, ShieldCheck, Timer, Trash2, Users, Wallet, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { SelectedUserProvider } from "@/components/admin/selected-user";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
 // route and its `Admin.sections` string. Admin access is listed for head admins only.
+// Delete account is last and destructive: it is drawn in red everywhere.
 const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
   { key: "topUp", href: "/admin/top-up", Icon: Wallet },
@@ -22,7 +23,10 @@ const SECTIONS = [
   { key: "support", href: "/admin/support", Icon: LifeBuoy },
   { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText },
   { key: "adminAccess", href: "/admin/admin-access", Icon: ShieldCheck },
+  { key: "deleteAccount", href: "/admin/delete-account", Icon: Trash2 },
 ] as const;
+
+const isDestructive = (key: string) => key === "deleteAccount";
 
 const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
@@ -55,14 +59,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <ul className="flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {sections.map(({ key, href }) => {
             const active = pathname === href;
+            const danger = isDestructive(key);
             return (
-              <li key={key} className="shrink-0">
+              <li key={key} className={cn("shrink-0", danger && "ml-auto")}>
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
-                    active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
+                    danger
+                      ? active
+                        ? "border-destructive text-destructive"
+                        : "border-transparent text-destructive"
+                      : active
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted-foreground",
                   )}
                 >
                   {t(`sections.${key}`)}
@@ -70,11 +81,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </li>
             );
           })}
-          <li className="ml-auto shrink-0">
-            <Link href="/home" className="flex h-11 items-center text-sm text-muted-foreground">
-              {t("backToApp")}
-            </Link>
-          </li>
         </ul>
       </nav>
       <div className="sticky top-[calc(var(--top-bar-h)+var(--safe-t))] z-20 -mx-4 -mt-4 mb-4 flex h-12 items-center md:hidden gap-2 border-b bg-background/95 px-4 backdrop-blur">
@@ -101,13 +107,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <ul className="space-y-1">
                   {sections.map(({ key, href, Icon }) => {
                     const active = pathname === href;
+                    const danger = isDestructive(key);
                     return (
                       <li key={key}>
                         <Link
                           href={href}
                           onClick={close}
                           aria-current={active ? "page" : undefined}
-                          className={cn(linkClass, active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted")}
+                          className={cn(
+                            linkClass,
+                            danger
+                              ? cn("text-destructive", active ? "bg-destructive/15" : "hover:bg-muted")
+                              : active
+                                ? "bg-primary/15 text-primary"
+                                : "text-muted-foreground hover:bg-muted",
+                          )}
                         >
                           <Icon className="size-4" />
                           {t(`sections.${key}`)}
@@ -124,7 +138,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
-        <p className="text-sm font-semibold">{t(`sections.${current.key}`)}</p>
+        <p className={cn("text-sm font-semibold", isDestructive(current.key) && "text-destructive")}>{t(`sections.${current.key}`)}</p>
       </div>
 
       <div className="space-y-5">{children}</div>
