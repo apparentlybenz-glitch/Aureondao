@@ -1,56 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { InfoCard, InfoRow, StatusPill } from "@/components/account/info-card";
 import { PageHeader } from "@/components/app/page-header";
 import { CoinNetworkFields } from "@/components/assets/coin-network-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { useWallets } from "@/lib/wallets";
 import { useWithdrawRestricted } from "@/lib/withdraw-restriction";
 
 // Display only. Every field and the button are disabled: virtual balances cannot
 // be withdrawn, so there is no form, no submit and no address is stored.
-// An admin can restrict the page per account (profiles.withdraw_restricted_at): that
-// account sees a contact support card in the account pages' layout instead of the form.
+// An admin can restrict withdrawals per account (profiles.withdraw_restricted_at): the page
+// stays open, and that account's button turns grey and reads "Restricted, contact support".
 export default function WithdrawPage() {
   const t = useTranslations("Withdraw");
   const w = useTranslations("Wallets");
-  const c = useTranslations("Common");
   const { wallets } = useWallets();
   const restricted = useWithdrawRestricted();
   const capital = wallets?.find((x) => x.account === "capital");
-
-  if (restricted === null) {
-    return (
-      <div className="mx-auto w-full max-w-[480px] space-y-5">
-        <PageHeader title={t("title")} back="/assets" />
-        <p className="text-sm text-muted-foreground">{c("loading")}</p>
-      </div>
-    );
-  }
-
-  if (restricted) {
-    return (
-      <div className="mx-auto w-full max-w-[480px] space-y-5">
-        <PageHeader title={t("title")} back="/assets" />
-        <InfoCard title={t("restricted.title")}>
-          <InfoRow label={t("restricted.status")}>
-            <StatusPill>{t("restricted.statusValue")}</StatusPill>
-          </InfoRow>
-          <div className="space-y-3 py-3">
-            <p className="text-sm text-muted-foreground">{t("restricted.message")}</p>
-            <Button asChild className="h-11 w-full">
-              <Link href="/support">{t("restricted.contact")}</Link>
-            </Button>
-          </div>
-        </InfoCard>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-[480px] space-y-5">
@@ -108,8 +78,13 @@ export default function WithdrawPage() {
         </dl>
 
         <div className="space-y-3">
-          <Button type="button" disabled className="h-12 w-full">
-            {t("submit")}
+          <Button
+            type="button"
+            disabled
+            variant={restricted ? "secondary" : "default"}
+            className={cn("h-12 w-full", restricted && "text-muted-foreground")}
+          >
+            {restricted ? t("restrictedButton") : t("submit")}
           </Button>
         </div>
       </section>

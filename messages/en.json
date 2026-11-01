@@ -520,13 +520,7 @@
     "summaryRemoved": "Removed from balance",
     "summaryEmpty": "--",
     "submit": "Withdraw",
-    "restricted": {
-      "title": "Withdraw access",
-      "status": "Status",
-      "statusValue": "Restricted",
-      "message": "This page is currently inaccessible for this account. Contact support for more information.",
-      "contact": "Contact support"
-    }
+    "restrictedButton": "Restricted, contact support"
   },
   "Transfer": {
     "title": "Transfer",
@@ -635,12 +629,12 @@
       "sending": "Saving…",
       "doneSuspended": "{email} is now suspended.",
       "doneActive": "{email} is now active.",
-      "withdrawTitle": "Withdraw page",
-      "withdrawDescription": "Block this account from the Withdraw page. The user sees a contact support message instead.",
+      "withdrawTitle": "Withdrawals",
+      "withdrawDescription": "Turn the Withdraw button off for this account. It turns grey and reads Restricted, contact support.",
       "withdrawRestricted": "Restricted",
       "withdrawAllowed": "Allowed",
-      "withdrawDoneRestricted": "Withdraw page restricted for {email}.",
-      "withdrawDoneAllowed": "Withdraw page allowed for {email}."
+      "withdrawDoneRestricted": "Withdrawals restricted for {email}.",
+      "withdrawDoneAllowed": "Withdrawals allowed for {email}."
     },
     "deleteAccount": {
       "description": "Permanently delete a user account. This cannot be undone.",
@@ -714,8 +708,8 @@
         "adjust_balance": "Balance adjustment",
         "suspend": "Suspension",
         "unsuspend": "Unsuspension",
-        "withdraw_restrict": "Withdraw page restricted",
-        "withdraw_unrestrict": "Withdraw page restriction removed",
+        "withdraw_restrict": "Withdrawals restricted",
+        "withdraw_unrestrict": "Withdrawals restriction removed",
         "delete_user": "Account deleted",
         "set_option_period": "Option period change",
         "kyc_approve": "KYC approval",
