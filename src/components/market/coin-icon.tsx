@@ -25,11 +25,14 @@ export function CoinIcon({
   kind = "coin",
   size = 24,
   className,
+  eager = false,
 }: {
   symbol: string;
   kind?: "coin" | "network";
   size?: 16 | 20 | 24 | 28 | 32 | 56;
   className?: string;
+  // Loads at once instead of lazily: the share card is drawn off screen.
+  eager?: boolean;
 }) {
   const file = kind === "network" ? NETWORKS[symbol] : COINS.has(symbol) ? symbol.toLowerCase() : undefined;
   if (!file) {
@@ -54,6 +57,7 @@ export function CoinIcon({
       alt=""
       width={inner}
       height={inner}
+      loading={eager ? "eager" : undefined}
       className={backed ? undefined : cn("shrink-0", className)}
     />
   );

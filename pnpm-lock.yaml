@@ -26,6 +26,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      html-to-image:
+        specifier: ^1.11.13
+        version: 1.11.13
       lucide-react:
         specifier: ^1.61.0
         version: 1.61.0(@types/react@19.3.0)(react@19.3.0)
@@ -3791,6 +3794,9 @@ packages:
   hono@4.13.14:
     resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
     engines: {node: '>=16.9.0'}
+
+  html-to-image@1.11.13:
+    resolution: {integrity: sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg==}
 
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
@@ -9520,6 +9526,8 @@ snapshots:
       hermes-estree: 0.25.1
 
   hono@4.13.14: {}
+
+  html-to-image@1.11.13: {}
 
   http-errors@2.0.1:
     dependencies:

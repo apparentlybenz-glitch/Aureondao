@@ -861,6 +861,21 @@
     "unlock": "Tap to use the chart",
     "label": "Price chart"
   },
+  "Share": {
+    "share": "Share result",
+    "text": "My AureonX trade: {percent} on {pair}",
+    "failed": "Could not make the image",
+    "whatsapp": "Send text on WhatsApp",
+    "card": {
+      "amount": "{amount} USD",
+      "call": "Call",
+      "put": "Put",
+      "seconds": "{seconds}s",
+      "options": "Options",
+      "premium": "Premium (USD)",
+      "strike": "Strike (USD)"
+    }
+  },
   "Options": {
     "chooseMarket": "Choose market, current {symbol}",
     "marketsTitle": "Options markets",
