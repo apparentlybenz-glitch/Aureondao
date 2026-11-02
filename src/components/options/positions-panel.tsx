@@ -9,6 +9,8 @@ import { formatCents } from "@/lib/money";
 import { formatCountdown } from "@/lib/options-math";
 import type { OptionPosition } from "@/lib/options";
 import { useServerNow } from "@/lib/server-clock";
+import { optionShareTrade } from "@/lib/share-trade";
+import { ShareButton } from "@/components/share/share-button";
 import { cn } from "@/lib/utils";
 
 const timeFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "medium" });
@@ -32,6 +34,7 @@ function PositionCard({ p, market }: { p: OptionPosition; market: Market | undef
   const rise = p.direction === "rise";
   const price = (v: string) => (market ? formatMid(v, market.priceDecimals) : v);
   const usd = (v: bigint) => t("usd", { amount: formatCents(v) });
+  const shareTrade = optionShareTrade(p, market);
   const result =
     p.status === "void" ? t("result.refunded") : p.result ? t(`result.${p.result}`) : null;
 
@@ -46,13 +49,16 @@ function PositionCard({ p, market }: { p: OptionPosition; market: Market | undef
         {p.status === "open" ? (
           <Countdown expiresAt={p.expiresAt} />
         ) : (
-          <span
-            className={cn(
-              "text-sm font-semibold",
-              p.result === "win" ? "text-up" : p.result === "loss" ? "text-down" : "text-muted-foreground",
-            )}
-          >
-            {result}
+          <span className="flex items-center gap-2">
+            <span
+              className={cn(
+                "text-sm font-semibold",
+                p.result === "win" ? "text-up" : p.result === "loss" ? "text-down" : "text-muted-foreground",
+              )}
+            >
+              {result}
+            </span>
+            {shareTrade ? <ShareButton trade={shareTrade} /> : null}
           </span>
         )}
       </div>
