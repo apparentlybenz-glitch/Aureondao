@@ -54,7 +54,7 @@ export function MarketCards() {
           <Link
             key={id}
             href={`/spot?symbol=${id}`}
-            className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted p-2.5"
+            className="press flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted p-2.5"
           >
             <span className="flex items-center justify-between gap-1">
               <span className="text-sm font-semibold">{market.base}</span>

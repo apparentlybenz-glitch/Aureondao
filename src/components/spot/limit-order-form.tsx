@@ -222,7 +222,7 @@ export function LimitOrderForm({
       aria-pressed={side === s}
       onClick={() => reset(s)}
       className={cn(
-        "h-9 rounded-lg text-sm font-semibold",
+        "press h-9 rounded-lg text-sm font-semibold",
         side === s ? (s === "buy" ? "bg-up text-black" : "bg-down/60 text-white") : "bg-muted text-muted-foreground",
       )}
     >

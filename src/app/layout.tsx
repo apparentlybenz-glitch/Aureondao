@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { MotionProvider } from "@/components/app/motion-provider";
 import { CookieConsent } from "@/components/legal/cookie-consent";
 import { RegisterServiceWorker } from "@/components/offline/register-sw";
 import "./globals.css";
@@ -52,8 +53,10 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
-          {children}
-          <CookieConsent />
+          <MotionProvider>
+            {children}
+            <CookieConsent />
+          </MotionProvider>
         </NextIntlClientProvider>
         <RegisterServiceWorker />
       </body>

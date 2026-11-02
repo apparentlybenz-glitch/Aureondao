@@ -56,7 +56,7 @@ export function AccountPanel({
             aria-pressed={view === key}
             onClick={() => setView(key)}
             className={cn(
-              "h-8 rounded-full border px-3 text-sm",
+              "press h-8 rounded-full border px-3 text-sm",
               view === key ? "border-foreground bg-foreground text-background" : "text-muted-foreground",
             )}
           >

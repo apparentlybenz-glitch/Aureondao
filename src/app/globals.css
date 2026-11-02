@@ -3,6 +3,14 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Hover styles only for a real hover pointer, so a tap on a phone never leaves one stuck. */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -115,6 +123,20 @@
    hidden from md, so those layouts add md:pb-* as well. */
 @utility pb-tabbar {
   padding-bottom: calc(var(--tab-bar-h) + var(--tab-bar-overhang) + 0.5rem + var(--safe-b));
+}
+
+/* Press feedback for buttons, tiles, pills and tabs: a 0.97 scale while pressed. It uses the
+   scale property, so an element's own transform (a centering translate) is untouched. Off under
+   reduced motion. Colors keep the same short transition. */
+@utility press {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform, translate, scale;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out-strong);
+  @media (prefers-reduced-motion: no-preference) {
+    &:active:not(:disabled, [aria-disabled="true"]) {
+      scale: 0.97;
+    }
+  }
 }
 
 .dark {

@@ -31,7 +31,7 @@ export function AccountTabs() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-11 items-center border-b-2 text-sm font-medium whitespace-nowrap",
+                  "press flex h-11 items-center border-b-2 text-sm font-medium whitespace-nowrap",
                   active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
                 )}
               >

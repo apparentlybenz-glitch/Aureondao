@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Dialog } from "radix-ui";
-import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
 import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
 import { Button } from "@/components/ui/button";
@@ -57,32 +57,30 @@ const cardMotion = {
 // order path waits on it. Reduced motion falls back to a fade (opacity only).
 export function TradeConfirm({ open, onCancel, ...props }: Props) {
   return (
-    <MotionConfig reducedMotion="user">
-      <Dialog.Root open={open} onOpenChange={(next) => (next || !open ? undefined : onCancel())}>
-        <AnimatePresence>
-          {open ? (
-            <Dialog.Portal forceMount>
-              <Dialog.Overlay forceMount asChild>
-                <motion.div className="fixed inset-0 z-50 bg-black/60" {...backdropMotion} />
-              </Dialog.Overlay>
-              <Dialog.Content
-                forceMount
-                asChild
+    <Dialog.Root open={open} onOpenChange={(next) => (next || !open ? undefined : onCancel())}>
+      <AnimatePresence>
+        {open ? (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay forceMount asChild>
+              <motion.div className="fixed inset-0 z-50 bg-black/60" {...backdropMotion} />
+            </Dialog.Overlay>
+            <Dialog.Content
+              forceMount
+              asChild
+            >
+              <motion.div
+                className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-popover text-popover-foreground"
+                style={{ transformOrigin: "center" }}
+                {...cardMotion}
               >
-                <motion.div
-                  className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-popover text-popover-foreground"
-                  style={{ transformOrigin: "center" }}
-                  {...cardMotion}
-                >
-                  {/* Mounted only while open, so the checkbox starts unticked every time. */}
-                  <Body {...props} onCancel={onCancel} />
-                </motion.div>
-              </Dialog.Content>
-            </Dialog.Portal>
-          ) : null}
-        </AnimatePresence>
-      </Dialog.Root>
-    </MotionConfig>
+                {/* Mounted only while open, so the checkbox starts unticked every time. */}
+                <Body {...props} onCancel={onCancel} />
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        ) : null}
+      </AnimatePresence>
+    </Dialog.Root>
   );
 }
 
@@ -168,14 +166,13 @@ function Body({
               onConfirm();
             }}
             className={cn(
-              "h-11 w-full text-base font-semibold duration-150 ease-out-strong active:scale-[0.97]",
+              "h-11 w-full text-base font-semibold",
               up ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
             )}
           >
             {confirmLabel}
           </Button>
-          <button type="button" onClick={onCancel} className="h-10 w-full text-sm text-muted-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
-          >
+          <button type="button" onClick={onCancel} className="press h-10 w-full text-sm text-muted-foreground">
             {t("cancel")}
           </button>
         </div>

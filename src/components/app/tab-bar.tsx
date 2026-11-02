@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CandlestickChart, Coins, Timer, UserRound, type LucideIcon } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { AnimatePresence, MotionConfig, motion, useIsPresent, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { DURATION, EASE_OUT } from "@/lib/motion";
 import { NAV_ITEMS } from "@/lib/nav";
@@ -159,89 +159,87 @@ export function TabBar() {
           if (key === "trade") {
             return (
               <li key={key}>
-                <MotionConfig reducedMotion="user">
-                  <DropdownMenu.Root
-                    open={open}
-                    onOpenChange={(next) => {
-                      setOpenedOn(next ? pathname : null);
-                      if (next) closedByButtonPress.current = false;
+                <DropdownMenu.Root
+                  open={open}
+                  onOpenChange={(next) => {
+                    setOpenedOn(next ? pathname : null);
+                    if (next) closedByButtonPress.current = false;
+                  }}
+                >
+                  <DropdownMenu.Trigger
+                    ref={trigger}
+                    aria-label={t("tradeMenu")}
+                    // Open on click, not pointerdown: the pills spring out from under the finger,
+                    // and a pointerup on one would select it. Keyboard opening is Radix's own.
+                    // A press that reaches this handler is a fresh one (while the menu is open
+                    // Radix blocks the button's own events), so a mouse press that closed the
+                    // menu cannot leave its flag set and swallow the next click.
+                    onPointerDown={(e) => {
+                      closedByButtonPress.current = false;
+                      e.preventDefault();
                     }}
-                  >
-                    <DropdownMenu.Trigger
-                      ref={trigger}
-                      aria-label={t("tradeMenu")}
-                      // Open on click, not pointerdown: the pills spring out from under the finger,
-                      // and a pointerup on one would select it. Keyboard opening is Radix's own.
-                      // A press that reaches this handler is a fresh one (while the menu is open
-                      // Radix blocks the button's own events), so a mouse press that closed the
-                      // menu cannot leave its flag set and swallow the next click.
-                      onPointerDown={(e) => {
+                    onClick={() => {
+                      if (closedByButtonPress.current) {
                         closedByButtonPress.current = false;
-                        e.preventDefault();
-                      }}
-                      onClick={() => {
-                        if (closedByButtonPress.current) {
-                          closedByButtonPress.current = false;
-                          return;
-                        }
-                        setOpenedOn(open ? null : pathname);
-                      }}
-                      className={cn(
-                        "flex h-full w-full flex-col items-center justify-end gap-0.5 pb-2 text-[11px] outline-none",
-                        active || open ? "text-primary" : "text-muted-foreground",
-                      )}
-                    >
-                      <TradeCircle open={open} Icon={Icon} />
-                      {t(key)}
-                    </DropdownMenu.Trigger>
-                    {/* Kept mounted through the exit: AnimatePresence holds the menu until the pills
-                        finish leaving, and a reopen mid-exit re-targets them from where they are. */}
-                    <AnimatePresence>
-                      {open ? (
-                        <DropdownMenu.Portal forceMount>
-                          <DropdownMenu.Content
-                            forceMount
-                            side="top"
-                            align="center"
-                            sideOffset={MENU_OFFSET}
-                            collisionPadding={8}
-                            onInteractOutside={(e) => {
-                              // The menu stays mounted while it exits, and its dismiss layer is
-                              // still live: a press on the button during the exit (to reopen it)
-                              // must not dismiss what it just opened. Read the live state from
-                              // the trigger, since AnimatePresence holds the last rendered element.
-                              if (trigger.current?.dataset.state !== "open") e.preventDefault();
-                            }}
-                            onPointerDownOutside={(e) => {
-                              const press = e.detail.originalEvent;
-                              const box = trigger.current?.getBoundingClientRect();
-                              closedByButtonPress.current =
-                                trigger.current?.dataset.state === "open" &&
-                                !!box &&
-                                press.clientX >= box.left &&
-                                press.clientX <= box.right &&
-                                press.clientY >= box.top &&
-                                press.clientY <= box.bottom;
-                            }}
-                            aria-label={t("tradeMenu")}
-                            className="z-50 flex flex-col-reverse gap-3 outline-none"
-                          >
-                            {TRADE_MENU.map(({ key: itemKey, href: itemHref, Icon: ItemIcon }, i) => (
-                              <TradeMenuItem
-                                key={itemKey}
-                                index={i}
-                                href={itemHref}
-                                Icon={ItemIcon}
-                                label={t(itemKey)}
-                                itemRef={i === 0 ? firstItem : undefined}
-                              />
-                            ))}
-                          </DropdownMenu.Content>
-                        </DropdownMenu.Portal>
-                      ) : null}
-                    </AnimatePresence>
-                  </DropdownMenu.Root>
-                </MotionConfig>
+                        return;
+                      }
+                      setOpenedOn(open ? null : pathname);
+                    }}
+                    className={cn(
+                      "flex h-full w-full flex-col items-center justify-end gap-0.5 pb-2 text-[11px] outline-none",
+                      active || open ? "text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    <TradeCircle open={open} Icon={Icon} />
+                    {t(key)}
+                  </DropdownMenu.Trigger>
+                  {/* Kept mounted through the exit: AnimatePresence holds the menu until the pills
+                      finish leaving, and a reopen mid-exit re-targets them from where they are. */}
+                  <AnimatePresence>
+                    {open ? (
+                      <DropdownMenu.Portal forceMount>
+                        <DropdownMenu.Content
+                          forceMount
+                          side="top"
+                          align="center"
+                          sideOffset={MENU_OFFSET}
+                          collisionPadding={8}
+                          onInteractOutside={(e) => {
+                            // The menu stays mounted while it exits, and its dismiss layer is
+                            // still live: a press on the button during the exit (to reopen it)
+                            // must not dismiss what it just opened. Read the live state from
+                            // the trigger, since AnimatePresence holds the last rendered element.
+                            if (trigger.current?.dataset.state !== "open") e.preventDefault();
+                          }}
+                          onPointerDownOutside={(e) => {
+                            const press = e.detail.originalEvent;
+                            const box = trigger.current?.getBoundingClientRect();
+                            closedByButtonPress.current =
+                              trigger.current?.dataset.state === "open" &&
+                              !!box &&
+                              press.clientX >= box.left &&
+                              press.clientX <= box.right &&
+                              press.clientY >= box.top &&
+                              press.clientY <= box.bottom;
+                          }}
+                          aria-label={t("tradeMenu")}
+                          className="z-50 flex flex-col-reverse gap-3 outline-none"
+                        >
+                          {TRADE_MENU.map(({ key: itemKey, href: itemHref, Icon: ItemIcon }, i) => (
+                            <TradeMenuItem
+                              key={itemKey}
+                              index={i}
+                              href={itemHref}
+                              Icon={ItemIcon}
+                              label={t(itemKey)}
+                              itemRef={i === 0 ? firstItem : undefined}
+                            />
+                          ))}
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    ) : null}
+                  </AnimatePresence>
+                </DropdownMenu.Root>
               </li>
             );
           }
@@ -251,7 +249,7 @@ export function TabBar() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
+                  "press flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >

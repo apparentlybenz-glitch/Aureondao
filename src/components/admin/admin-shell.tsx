@@ -29,7 +29,7 @@ const SECTIONS = [
 
 const isDestructive = (key: string) => key === "deleteAccount";
 
-const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
+const linkClass = "press flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
 // Gate, then the section nav: below `md:` a bar under the top bar whose hamburger
 // opens the section list in a drawer from the left; from `md:` a tab row like the
@@ -67,7 +67,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
+                    "press -mb-px flex h-11 items-center border-b-2 text-sm font-medium",
                     danger
                       ? active
                         ? "border-destructive text-destructive"

@@ -168,7 +168,7 @@ export function OptionTicket({
                 aria-label={t(d === "rise" ? "pickRise" : "pickFall")}
                 onClick={() => change(() => setDirection(d))}
                 className={cn(
-                  "flex size-16 items-center justify-center rounded-full transition-[box-shadow,opacity]",
+                  "press flex size-16 items-center justify-center rounded-full",
                   d === "rise" ? "bg-up text-black" : "bg-down/60 text-white",
                   selected
                     ? d === "rise"
@@ -259,7 +259,7 @@ export function OptionTicket({
               aria-pressed={amount === v}
               onClick={() => change(() => setAmount(v))}
               className={cn(
-                "h-9 rounded-md text-xs tabular-nums sm:text-sm",
+                "press h-9 rounded-md text-xs tabular-nums sm:text-sm",
                 amount === v ? "bg-primary/15 text-primary ring-1 ring-primary" : "bg-muted text-foreground",
               )}
             >

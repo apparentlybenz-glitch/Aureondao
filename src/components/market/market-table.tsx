@@ -95,7 +95,7 @@ export function MarketTable({
               aria-selected={tab === key}
               onClick={() => setTab(key)}
               className={cn(
-                "shrink-0 border-b-2 py-1.5",
+                "press shrink-0 border-b-2 py-1.5",
                 tab === key
                   ? "border-primary font-semibold text-foreground"
                   : "border-transparent text-muted-foreground",

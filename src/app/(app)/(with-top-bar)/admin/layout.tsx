@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { RouteTransition } from "@/components/app/route-transition";
 import { isAdmin } from "@/lib/admin-server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,5 +11,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   if (!(await isAdmin(await createClient()))) redirect("/home");
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <AdminShell>
+      <RouteTransition keyBy="path" variant="fade">
+        {children}
+      </RouteTransition>
+    </AdminShell>
+  );
 }

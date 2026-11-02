@@ -39,7 +39,7 @@ export function DesktopNav() {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium",
+                "press rounded-md px-3 py-1.5 text-sm font-medium",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >

@@ -211,7 +211,7 @@ export function SpotTerminal() {
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
                 className={cn(
-                  "-mb-px border-b-2 py-2",
+                  "press -mb-px border-b-2 py-2",
                   tab === key ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground",
                 )}
               >

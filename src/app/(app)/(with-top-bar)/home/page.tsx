@@ -70,7 +70,7 @@ export default function HomePage() {
           </p>
           <Link
             href={DEPOSIT_HREF}
-            className="inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black transition-[background-color,transform] duration-150 active:scale-[0.97] active:bg-primary motion-reduce:active:scale-100"
+            className="press inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black active:bg-primary"
           >
             {t("addFunds")}
           </Link>
@@ -94,7 +94,7 @@ export default function HomePage() {
             </>
           );
           return "href" in action ? (
-            <Link key={key} href={action.href} className="flex w-12 flex-col items-center gap-1.5">
+            <Link key={key} href={action.href} className="press flex w-12 flex-col items-center gap-1.5">
               {body}
             </Link>
           ) : (
