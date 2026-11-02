@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { type AdminUser, fetchRecentBills, fetchWallets } from "@/lib/admin";
 import { type BillRow, useBillDescription } from "@/lib/bills";
 import { centsFromText, formatCents, ZERO_CENTS } from "@/lib/money";
+import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/lib/wallets";
 
@@ -20,6 +21,8 @@ export function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => vo
   const b = useTranslations("Bills");
   const c = useTranslations("Common");
   const describe = useBillDescription();
+  // Top-Up is head admin only (its route redirects anyone else).
+  const isHead = useHeadAdmin()?.isHead === true;
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
   const [bills, setBills] = useState<BillRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -56,10 +59,12 @@ export function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => vo
             {t("search.since", { date: dateFormat.format(new Date(user.suspended_at)) })}
           </p>
         ) : null}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Button asChild variant="secondary" className="h-10">
-            <Link href="/admin/top-up">{t("search.topUp")}</Link>
-          </Button>
+        <div className={cn("grid gap-2 pt-1", isHead && "grid-cols-2")}>
+          {isHead ? (
+            <Button asChild variant="secondary" className="h-10">
+              <Link href="/admin/top-up">{t("search.topUp")}</Link>
+            </Button>
+          ) : null}
           <Button asChild variant="secondary" className="h-10">
             <Link href="/admin/restrictions">{t("search.restrictions")}</Link>
           </Button>

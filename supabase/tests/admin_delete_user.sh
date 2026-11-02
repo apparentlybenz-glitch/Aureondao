@@ -55,7 +55,7 @@ end \$f\$;
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select '00000000-0000-0000-0000-000000000000', v.id, 'authenticated', 'authenticated', 'delete-test-' || v.n || '@aureonx.invalid', '', now(), '{}', '{}', now(), now()
 from (values ('$A'::uuid, 'a'), ('$B'::uuid, 'b'), ('$C'::uuid, 'c'), ('$D'::uuid, 'd')) v(id, n);
-insert into public.user_roles (user_id, role) values ('$B', 'admin'), ('$D', 'admin');
+insert into public.user_roles (user_id, role, is_head) values ('$B', 'admin', true), ('$D', 'admin', false);
 do \$t\$
 declare r text := '';
 begin
@@ -70,7 +70,7 @@ begin
   r := r || 't4_other_admin=' || pg_temp.as_role('authenticated', '$B', 'admin', 'select (public.admin_delete_user(''$D'', ''$K3'')).action') || ';';
   r := r || 't5_unknown=' || pg_temp.as_role('authenticated', '$B', 'admin', 'select (public.admin_delete_user(gen_random_uuid(), ''$K4'')).action') || ';';
   r := r || 't5_null=' || pg_temp.as_role('authenticated', '$B', 'admin', 'select (public.admin_delete_user(null, ''$K4'')).action') || ';';
-  r := r || 't6_nothing_changed=' || (select count(*) from public.profiles where id in ('$A', '$B', '$D')) || '/' || (select count(*) from public.admin_audit_log where action = 'delete_user') || ';';
+  r := r || 't6_nothing_changed=' || (select count(*) from public.profiles where id in ('$A', '$B', '$D')) || '/' || (select count(*) from public.admin_audit_log where action = 'delete_user' and client_request_id::text like '11111111-0000-4000-8000-0000000000e_') || ';';
   r := r || 't7_no_sub=' || pg_temp.as_role('authenticated', null, 'admin', 'select (public.admin_delete_user(''$A'', ''$K5'')).action') || ';';
   r := r || 't7_anon=' || pg_temp.as_role('anon', null, 'user', 'select (public.admin_delete_user(''$A'', ''$K5'')).action') || ';';
 
@@ -78,7 +78,7 @@ begin
   r := r || 't8_auth_profile=' || (select count(*) from auth.users where id = '$A') || '/' || (select count(*) from public.profiles where id = '$A') || ';';
   r := r || 't8_after=' || (select count(*) from public.wallets where user_id = '$A') || '/' || (select count(*) from public.ledger where user_id = '$A') || '/' || (select count(*) from public.user_favorites where user_id = '$A') || ';';
   r := r || 't8_others_remain=' || (select count(*) from public.profiles where id in ('$B', '$C', '$D')) || ';';
-  r := r || 't9_audit=' || (select count(*) || '/' || count(*) filter (where target_user_id is null) || '/' || bool_and(admin_id = '$B') || '/' || bool_and(payload ->> 'user_id' = '$A' and payload ->> 'email' = 'delete-test-a@aureonx.invalid' and payload ->> 'uid' is not null) from public.admin_audit_log where action = 'delete_user') || ';';
+  r := r || 't9_audit=' || (select count(*) || '/' || count(*) filter (where target_user_id is null) || '/' || bool_and(admin_id = '$B') || '/' || bool_and(payload ->> 'user_id' = '$A' and payload ->> 'email' = 'delete-test-a@aureonx.invalid' and payload ->> 'uid' is not null) from public.admin_audit_log where action = 'delete_user' and client_request_id::text like '11111111-0000-4000-8000-0000000000e_') || ';';
   r := r || 't10_replay=' || pg_temp.as_role('authenticated', '$B', 'admin', 'select (public.admin_delete_user(''$A'', ''$K6'')).action') || ';';
   r := r || 't10_audit_rows=' || (select count(*) from public.admin_audit_log where client_request_id = '$K6') || ';';
   r := r || 't11_key_reuse=' || pg_temp.as_role('authenticated', '$B', 'admin', 'select (public.admin_delete_user(''$C'', ''$K6'')).action') || ';';

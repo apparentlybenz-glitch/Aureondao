@@ -36,7 +36,7 @@ trap 'cleanup; exit 1' ERR
 run <<SQL > /dev/null
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000','$B','authenticated','authenticated','floor-test-b@aureonx.invalid','',now(),'{}','{"nickname":"TestB"}',now(),now());
-insert into public.user_roles (user_id, role) values ('$B','admin');
+insert into public.user_roles (user_id, role, is_head) values ('$B','admin',true);
 SQL
 
 echo "T1 600 bps, 10 bps fee: floor is 34 cents"

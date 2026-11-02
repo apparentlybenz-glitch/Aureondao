@@ -72,7 +72,7 @@ insert into auth.users (instance_id, id, aud, role, email, encrypted_password, e
 values ('00000000-0000-0000-0000-000000000000','$A','authenticated','authenticated','slice5-test-a@aureonx.invalid','',now(),'{}','{"nickname":"TestA"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$B','authenticated','authenticated','slice5-test-b@aureonx.invalid','',now(),'{}','{"nickname":"TestB"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$C','authenticated','authenticated','slice5-test-c@aureonx.invalid','',now(),'{}','{"nickname":"TestC"}',now(),now());
-insert into public.user_roles (user_id, role) values ('$B','admin');
+insert into public.user_roles (user_id, role, is_head) values ('$B','admin',true);
 select private.wallet_apply((select id from public.wallets where user_id='$A' and account='options'),
   3000000, 0, 'admin_credit', 'admin_adjustment', gen_random_uuid(), p_memo => 'Balance adjustment');
 select private.wallet_apply((select id from public.wallets where user_id='$C' and account='options'),

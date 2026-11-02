@@ -111,7 +111,7 @@ insert into auth.users (instance_id, id, aud, role, email, encrypted_password, e
 select '00000000-0000-0000-0000-000000000000', pg_temp.u(x), 'authenticated', 'authenticated', 'forex-test-' || lower(x) || '@aureonx.invalid',
        '', now(), '{}', json_build_object('nickname', 'Test' || x)::jsonb, now(), now()
   from unnest(array['A','B','C','D']) x;
-insert into public.user_roles (user_id, role) values (pg_temp.u('B'), 'admin');
+insert into public.user_roles (user_id, role, is_head) values (pg_temp.u('B'), 'admin', true);
 select private.wallet_apply((select id from public.wallets where user_id = pg_temp.u(x) and account = 'forex'),
          c, 0, 'admin_credit', 'admin_adjustment', gen_random_uuid(), p_memo => 'Balance adjustment')
   from (values ('A', 3000000::bigint), ('C', 4900), ('D', 100000)) v(x, c);

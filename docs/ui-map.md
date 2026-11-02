@@ -77,6 +77,7 @@ src/
     admin/                     (under (app)/(with-top-bar)/)
       layout.tsx               AdminShell: desktop tab row and mobile drawer; server gate redirects a non-admin to /home
       page.tsx                 /admin (User Search)
+      top-up/layout.tsx        head admin only; redirects others to /admin (same for option-periods, audit-log, admin-access, delete-account)
       top-up/page.tsx          /admin/top-up (Top-Up)
       restrictions/page.tsx    /admin/restrictions (Restrictions)
       kyc/page.tsx             /admin/kyc (KYC Review)
@@ -116,7 +117,7 @@ The terminals carry the symbol in a query string (`/spot?symbol=BTC-USDT`) and n
 
 Legend:
 - **Render:** S = static prerender at build. S+C = static shell, with data loaded by client components after hydration. D = dynamic, rendered per request. RH = route handler, run per request.
-- **Auth:** -- = public. U = signed-in user (proxy). A = admin role (admin layout redirect plus RPC check; the proxy checks no role). Admin sections are A only: a live admin row grants every admin feature and no second factor is needed (decisions C21); TOTP stays optional and an enrolled factor still triggers the `SessionGuard` step-up. MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
+- **Auth:** -- = public. U = signed-in user (proxy). A = any admin (admin layout redirect plus RPC check; the proxy checks no role). HA = head admin or owner only (decisions C23): the section has `headOnly` in `SECTIONS` (hidden from ordinary admins in the tab row and the drawer), its own `layout.tsx` redirects anyone else to `/admin` with `isHeadAdmin`, and its RPCs, server actions and the `admin_audit_log` policy check `is_head_admin()` / `isHeadAdmin`. Both tiers come from the live `user_roles` row and need no second factor (decisions C21); TOTP stays optional and an enrolled factor still triggers the `SessionGuard` step-up. MFA = a verified factor forces the client-side `SessionGuard` step-up to AAL2 (no proxy redirect, and no admin function requires it).
 
 | Screen | Path | Layout | Render | Auth | Key components |
 |---|---|---|---|---|---|
@@ -152,14 +153,14 @@ Legend:
 | Support | `/support` | (app)/(with-top-bar) | S+C | U | ticket form (message only), thread |
 | Legal heading | `/legal` | (app)/(with-top-bar) | S | U | heading only |
 | Admin: User Search | `/admin` | admin | D | A | UserSearch, UserDetail (status, four wallet balances, 20 newest Bills rows) |
-| Admin: Top-Up | `/admin/top-up` | admin | D | A | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance`) |
+| Admin: Top-Up | `/admin/top-up` | admin | D | HA | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance`) |
 | Admin: Restrictions | `/admin/restrictions` | admin | D | A | UserSearch, SelectedUserCard, Suspend or Unsuspend (`admin_set_suspension`), Withdrawals switch (`admin_set_withdraw_restriction`) |
 | Admin: KYC Review | `/admin/kyc` | admin | D | A | Submission list, status filter, ReviewDetail (`admin_review_kyc`) |
-| Admin: Option periods | `/admin/option-periods` | admin | D | A | PeriodRow (`admin_set_option_period`) |
+| Admin: Option periods | `/admin/option-periods` | admin | D | HA | PeriodRow (`admin_set_option_period`) |
 | Admin: Support tickets | `/admin/support` | admin | D | A | Ticket list, status filter, thread (`admin_support_close`) |
-| Admin: Audit Log | `/admin/audit-log` | admin | D | A | TransactionsLog, ActionsLog |
-| Admin: Admin access | `/admin/admin-access` | admin | D | A | head admins only; Grant or Revoke (`admin_set_admin`), owner Demote or Remove (`admin_demote_head`) |
-| Admin: Delete account | `/admin/delete-account` | admin | D | A | typed email confirmation, `admin_delete_user` (destructive, last) |
+| Admin: Audit Log | `/admin/audit-log` | admin | D | HA | TransactionsLog, ActionsLog |
+| Admin: Admin access | `/admin/admin-access` | admin | D | HA | head admins only; Grant or Revoke (`admin_set_admin`), owner Demote or Remove (`admin_demote_head`) |
+| Admin: Delete account | `/admin/delete-account` | admin | D | HA | typed email confirmation, `admin_delete_user` (destructive, last) |
 | Offline | `/offline` | root | S | -- | static offline page (served by `sw.js`) |
 | 404 | any unknown path | root | S | -- | NotFound |
 | Error boundaries | `global-error.tsx`, `error.tsx` | -- | client | -- | ErrorState |
@@ -475,7 +476,7 @@ Allowed values: **static** · **browser → public exchange API** · **browser �
 ### 5.4 Server-side code inventory (complete)
 1. `proxy.ts` (or `middleware.ts`): JWT verification and cookie refresh on protected paths only. No secret; uses the publishable key.
 2. `/auth/callback` and `/auth/confirm` route handlers. No secret.
-3. *(Built)* `admin/layout.tsx` redirects a non-admin to `/home` (live `user_roles` row, no secret) and `admin/audit-log/actions.ts` reads the ledger and audit log as the signed-in user; both use `isAdmin` in `src/lib/admin-server.ts`.
+3. *(Built)* `admin/layout.tsx` redirects a non-admin to `/home` with `isAdmin` (live `user_roles` row, no secret); each head admin section's `layout.tsx` redirects anyone else to `/admin` with `isHeadAdmin`, and `admin/audit-log/actions.ts` reads the ledger and audit log as the signed-in user after `isHeadAdmin` (both in `src/lib/admin-server.ts`).
 4. *(Only if D4 = self-hosted WebAuthn)* `src/app/account/security/_passkey-actions.ts`.
 5. The shared market-data Worker route `/md/v1/*` belongs to the market-data agent. The UI consumes it only through the store.
 
@@ -734,7 +735,7 @@ Deposit and Withdraw assumptions:
 - **Entry points:** the Home Deposit tile (now live) and the Assets hub buttons Deposit, Withdraw and Transfer (Bills stays as a full-width button under them).
 
 Admin assumptions:
-- **Navigation:** from `md:` a horizontal tab row lists the sections with the active one underlined. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). The order lives in the `SECTIONS` array in `src/components/admin/admin-shell.tsx` and drives both the tab row and the drawer. Delete account is last and drawn red; Admin access shows for head admins only. Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
+- **Navigation:** from `md:` a horizontal tab row lists the sections with the active one underlined. On a phone a bar sticks under the top bar with a hamburger and the section name; the hamburger opens a drawer from the left (a Radix Dialog, the same primitive as the Options and Market sheets; there is no shared sheet component). The order lives in the `SECTIONS` array in `src/components/admin/admin-shell.tsx` and drives both the tab row and the drawer. Delete account is last and drawn red; Top-Up, Option periods, Audit Log, Admin access and Delete account (`headOnly`) show for head admins and the owner only. Each section is its own route under one layout, so the selected user carries across sections and a page reload clears it.
 - **Gate:** not an admin: a notice. No second-factor gate: a live admin row opens the panel, and every admin RPC and RLS read needs only that row (decisions C21). An account with a verified factor is still stepped up by `SessionGuard`.
 - **User Search:** the field accepts an email substring (escaped `ilike`) or an exact 8-digit UID; Search and All (the newest 50). Each result shows email, UID and Active or Suspended. Opening one shows when the suspension started, links to Top-Up and Restrictions, the four wallet balances and the 20 newest Bills rows (same text rules as Bills; the second line is hidden when it repeats the type).
 - **Top-Up:** pick a user (from the same search), wallet, Credit or Debit, amount. `admin_adjust_balance` with one idempotency key per attempt. Success shows the applied amount and the wallet's new balance (read back after the call).
