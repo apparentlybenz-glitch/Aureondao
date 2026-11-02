@@ -32,7 +32,7 @@ key() { printf '99999999-0000-4000-8000-%012d' "$1"; }
 ticket() { echo "select id from public.support_tickets where client_request_id = '$(key 1)';" | run | jq -r '.[0].id'; }
 # audit <action>: count, admin and from_status of the audit rows for the test ticket.
 audit() { echo "select count(*) n, count(*) filter (where admin_id = '$B') by_admin, min(payload ->> 'from_status') from_status,
-  count(*) filter (where payload ->> 'subject' = 'Cannot see my balance') with_subject
+  count(*) filter (where payload ->> 'subject' = 'Cannot see my balance It shows zero.') with_subject
   from public.admin_audit_log where action = '$1' and target_id = '$(ticket)' and target_user_id = '$A';" | run; }
 # fan <ticket> <kind> <author>: every live admin except the author has exactly one row of
 # this kind for the ticket, and nobody else has one. Live admins in the project count too.
@@ -60,21 +60,22 @@ insert into public.user_roles (user_id, role) values ('$B','admin'), ('$D','admi
 select count(*) profiles from public.profiles where id in ('$A','$B','$C','$D');
 SQL
 ;;
-t1) echo "T1 support_create_ticket: validation, trimming, replay"
-    K=$(key 1); LONG=$(printf 'x%.0s' $(seq 1 121)); BODY=$(printf 'y%.0s' $(seq 1 2001))
-    expect "unknown topic -> SUPPORT_INVALID_TOPIC" SUPPORT_INVALID_TOPIC "$(user $A "select public.support_create_ticket('billing', 'Hi', 'Body', '$K');")"
-    expect "no topic -> SUPPORT_INVALID_TOPIC" SUPPORT_INVALID_TOPIC "$(user $A "select public.support_create_ticket(null, 'Hi', 'Body', '$K');")"
-    expect "blank subject -> SUPPORT_INVALID_SUBJECT" SUPPORT_INVALID_SUBJECT "$(user $A "select public.support_create_ticket('account', E'  \\n ', 'Body', '$K');")"
-    expect "subject of 121 -> SUPPORT_INVALID_SUBJECT" SUPPORT_INVALID_SUBJECT "$(user $A "select public.support_create_ticket('account', '$LONG', 'Body', '$K');")"
-    expect "blank body -> SUPPORT_INVALID_BODY" SUPPORT_INVALID_BODY "$(user $A "select public.support_create_ticket('account', 'Hi', E'\\n\\t ', '$K');")"
-    expect "body of 2001 -> SUPPORT_INVALID_BODY" SUPPORT_INVALID_BODY "$(user $A "select public.support_create_ticket('account', 'Hi', '$BODY', '$K');")"
+t1) echo "T1 support_create_ticket: validation, derived subject, replay"
+    K=$(key 1); BODY=$(printf 'y%.0s' $(seq 1 2001))
+    expect "the four-argument signature is gone" '"gone":true' "$(echo "select to_regprocedure('public.support_create_ticket(text,text,text,uuid)') is null gone;" | run)"
+    expect "the topic column is gone" '"n":0' "$(echo "select count(*) n from information_schema.columns where table_schema = 'public' and table_name = 'support_tickets' and column_name = 'topic';" | run)"
+    expect "blank body -> SUPPORT_INVALID_BODY" SUPPORT_INVALID_BODY "$(user $A "select public.support_create_ticket(E'\\n\\t ', '$K');")"
+    expect "no-break spaces only -> SUPPORT_INVALID_BODY" SUPPORT_INVALID_BODY "$(user $A "select public.support_create_ticket(E'\\u00a0 \\u00a0', '$K');")"
+    expect "body of 2001 -> SUPPORT_INVALID_BODY" SUPPORT_INVALID_BODY "$(user $A "select public.support_create_ticket('$BODY', '$K');")"
     expect "nothing written" '"n":0' "$(echo "select count(*) n from public.support_tickets where user_id = '$A';" | run)"
-    expect "created open, subject trimmed" '"status":"open","subject":"Cannot see my balance"' "$(user $A "select (t).status, (t).subject from (select public.support_create_ticket('balance_funding', '  Cannot see my balance ', E'My balance shows zero.\\n', '$K') t) x;")"
-    expect "first message trimmed, not staff" '"is_staff":false,"body":"My balance shows zero."' "$(echo "select is_staff, body from public.support_messages where client_request_id = '$K';" | run)"
-    user $A "select public.support_create_ticket('balance_funding', 'Cannot see my balance', 'My balance shows zero.', '$K');" > /dev/null
+    expect "created open, multi-line body gives a one-line subject" '"status":"open","subject":"Cannot see my balance It shows zero."' "$(user $A "select (t).status, (t).subject from (select public.support_create_ticket(E'  Cannot see my balance\\n\\n\\tIt shows zero.\\n', '$K') t) x;")"
+    expect "first message trimmed, not staff" '"is_staff":false,"ok":true' "$(echo "select is_staff, body = E'Cannot see my balance\\n\\n\\tIt shows zero.' ok from public.support_messages where client_request_id = '$K';" | run)"
+    expect "same key, same body: the same ticket" '"same":true' "$(user $A "select (public.support_create_ticket(E'Cannot see my balance\\n\\n\\tIt shows zero.', '$K')).id = (select id from public.support_tickets where client_request_id = '$K') same;")"
     expect "same key twice: one ticket" '"n":1' "$(echo "select count(*) n from public.support_tickets where user_id = '$A';" | run)"
-    expect "same key, other subject -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(user $A "select public.support_create_ticket('balance_funding', 'Other', 'My balance shows zero.', '$K');")"
-    expect "same key, other body -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(user $A "select public.support_create_ticket('balance_funding', 'Cannot see my balance', 'Other', '$K');")";;
+    expect "same key, other body -> IDEMPOTENCY_CONFLICT" IDEMPOTENCY_CONFLICT "$(user $A "select public.support_create_ticket('Other', '$K');")"
+    X300=$(printf 'x%.0s' $(seq 1 300)); SPACE120="$(printf 'a%.0s' $(seq 1 119)) $(printf 'b%.0s' $(seq 1 180))"
+    expect "300 characters -> a 120 character subject" '"len":120' "$(user $A "select char_length((public.support_create_ticket('$X300', '$(key 2)')).subject) len;")"
+    expect "a cut that ends on a space leaves no trailing space" '"len":119,"trailing":false' "$(user $A "select char_length(s) len, right(s, 1) = ' ' trailing from (select (public.support_create_ticket('$SPACE120', '$(key 3)')).subject s) x;")";;
 t2) echo "T2 reads under RLS and no client writes"
     T=$(ticket)
     expect "owner reads the ticket" '"n":1' "$(user $A "select count(*) n from public.support_tickets where id = '$T';")"
@@ -84,7 +85,7 @@ t2) echo "T2 reads under RLS and no client writes"
     expect "admin reads the ticket and messages" '"t":1,"m":1' "$(adm "select (select count(*) from public.support_tickets where id = '$T') t, (select count(*) from public.support_messages where ticket_id = '$T') m;")"
     expect "author_id is not readable by the owner" 'permission denied' "$(user $A "select author_id from public.support_messages where ticket_id = '$T';")"
     expect "author_id is not readable by an admin either" 'permission denied' "$(adm "select author_id from public.support_messages where ticket_id = '$T';")"
-    expect "no direct ticket insert" 'permission denied' "$(user $A "insert into public.support_tickets (user_id, topic, subject, client_request_id) values ('$A', 'other', 'x', gen_random_uuid());")"
+    expect "no direct ticket insert" 'permission denied' "$(user $A "insert into public.support_tickets (user_id, subject, client_request_id) values ('$A', 'x', gen_random_uuid());")"
     expect "no direct message insert" 'permission denied' "$(user $A "insert into public.support_messages (ticket_id, is_staff, body, client_request_id) values ('$T', true, 'x', gen_random_uuid());")"
     expect "no direct status update by an admin" 'permission denied' "$(adm "update public.support_tickets set status = 'closed' where id = '$T';")";;
 t3) echo "T3 support_reply: is_staff and status set by the server, notification on a staff reply"
@@ -133,9 +134,9 @@ t5) echo "T5 notifications: own rows only, mark read"
     expect "marking again changes nothing" '"mark_notifications_read":0' "$(user $A "select public.mark_notifications_read(array['$N']::uuid[]);")"
     expect "no direct update" 'permission denied' "$(user $A "update public.notifications set read_at = null where id = '$N';")";;
 t6) echo "T6 admin notifications: fan-out to live admins, retries, clearing on staff reply and close"
-    expect "new ticket: one row per live admin" '"missing":0,"extra":0,"dupes":0' "$(user $A "select (public.support_create_ticket('trading', 'Order stuck', 'It never filled.', '$(key 61)')).status;" > /dev/null; fan "$(tid 61)" support_new_ticket $A)"
+    expect "new ticket: one row per live admin" '"missing":0,"extra":0,"dupes":0' "$(user $A "select (public.support_create_ticket('It never filled.', '$(key 61)')).status;" > /dev/null; fan "$(tid 61)" support_new_ticket $A)"
     T=$(tid 61); BEFORE=$(rows $T)
-    user $A "select public.support_create_ticket('trading', 'Order stuck', 'It never filled.', '$(key 61)');" > /dev/null
+    user $A "select public.support_create_ticket('It never filled.', '$(key 61)');" > /dev/null
     [ "$BEFORE" = "$(rows $T)" ] && expect "retried ticket adds no rows" . x || expect "retried ticket adds no rows" NEVER "$BEFORE vs $(rows $T)"
     expect "the author and the non-admin get no admin row" '"a":0,"c":0' "$(echo "select count(*) filter (where user_id = '$A') a, count(*) filter (where user_id = '$C') c from public.notifications where ticket_id = '$T';" | run)"
     expect "user reply: one row per live admin" '"missing":0,"extra":0,"dupes":0' "$(user $A "select public.support_reply('$T', 'Any news?', '$(key 62)');" > /dev/null; fan $T support_user_reply $A)"
@@ -145,16 +146,16 @@ t6) echo "T6 admin notifications: fan-out to live admins, retries, clearing on s
     expect "another user reads no admin rows" '"n":0' "$(user $C "select count(*) n from public.notifications where kind <> 'support_reply';")"
     expect "an admin claim without the row reads none" '"n":0' "$(as $C admin "select count(*) n from public.notifications where ticket_id = '$T';")"
     expect "an admin reads only their own rows" '"own":2,"other":0' "$(as $D admin "select count(*) filter (where user_id = '$D') own, count(*) filter (where user_id <> '$D') other from public.notifications where ticket_id = '$T';")"
-    expect "admin rows unread before the staff reply" '"unread_admin":[2-9]' "$(rows $T)"
+    expect "admin rows unread before the staff reply" '"unread_admin":([2-9]|[1-9][0-9]+)' "$(rows $T)"
     adm "select public.support_reply('$T', 'Checking now.', '$(key 63)');" > /dev/null
     expect "staff reply marks every admin row read, D's too" '"unread_admin":0' "$(rows $T)"
     expect "D's rows are read" '"n":0' "$(echo "select count(*) n from public.notifications where user_id = '$D' and ticket_id = '$T' and read_at is null;" | run)"
     expect "the owner still gets the staff reply row, unread" '"n":1' "$(echo "select count(*) n from public.notifications where user_id = '$A' and ticket_id = '$T' and kind = 'support_reply' and read_at is null;" | run)"
     user $A "select public.support_reply('$T', 'Still stuck.', '$(key 64)');" > /dev/null
-    expect "a second user reply fans out unread again" '"unread_admin":[2-9]' "$(rows $T)"
+    expect "a second user reply fans out unread again" '"unread_admin":([2-9]|[1-9][0-9]+)' "$(rows $T)"
     expect "close changes status" '"status":"closed"' "$(adm "select (public.admin_support_close('$T')).status;")"
     expect "close marks every admin row read" '"unread_admin":0' "$(rows $T)"
-    expect "admin author: other admins get a row, the author none" '"missing":0,"extra":0,"dupes":0' "$(as $D admin "select public.support_create_ticket('security', 'My own ticket', 'Testing.', '$(key 65)');" > /dev/null; fan "$(tid 65)" support_new_ticket $D)"
+    expect "admin author: other admins get a row, the author none" '"missing":0,"extra":0,"dupes":0' "$(as $D admin "select public.support_create_ticket('Testing.', '$(key 65)');" > /dev/null; fan "$(tid 65)" support_new_ticket $D)"
     T2=$(tid 65)
     expect "admin author reply: other admins only" '"missing":0,"extra":0,"dupes":0' "$(as $D admin "select public.support_reply('$T2', 'More detail.', '$(key 66)');" > /dev/null; fan $T2 support_user_reply $D)"
     expect "the admin author has no admin row" '"n":0' "$(echo "select count(*) n from public.notifications where user_id = '$D' and ticket_id = '$T2';" | run)";;

@@ -17,26 +17,23 @@ import {
   TICKET_SELECT,
   TICKETS_LIMIT,
 } from "@/lib/support";
-import { SUPPORT_TOPICS, type SupportTopic } from "@/lib/support-rules";
 import { createClient } from "@/lib/supabase/client";
 
 type AdminTicket = SupportTicket & { profiles: { email: string | null } | null };
 type StatusFilter = SupportStatus | "all";
-type TopicFilter = SupportTopic | "all";
 
 const selectClass =
   "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // Every ticket under RLS (private.is_admin()), newest update first, with the
 // owner's email from profiles.
-async function loadTickets(status: StatusFilter, topic: TopicFilter): Promise<AdminTicket[] | null> {
+async function loadTickets(status: StatusFilter): Promise<AdminTicket[] | null> {
   let req = createClient()
     .from("support_tickets")
     .select(`${TICKET_SELECT}, profiles(email)`)
     .order("updated_at", { ascending: false })
     .limit(TICKETS_LIMIT);
   if (status !== "all") req = req.eq("status", status);
-  if (topic !== "all") req = req.eq("topic", topic);
   const { data, error } = await req.overrideTypes<AdminTicket[], { merge: false }>();
   return error ? null : data;
 }
@@ -67,7 +64,6 @@ function SupportTickets() {
   const s = useTranslations("Support");
   const c = useTranslations("Common");
   const [status, setStatus] = useState<StatusFilter>("open");
-  const [topic, setTopic] = useState<TopicFilter>("all");
   const [version, setVersion] = useState(0);
   const [result, setResult] = useState<AdminTicket[] | null | undefined>(undefined);
   const router = useRouter();
@@ -90,13 +86,13 @@ function SupportTickets() {
 
   useEffect(() => {
     let active = true;
-    loadTickets(status, topic).then((r) => {
+    loadTickets(status).then((r) => {
       if (active) setResult(r);
     });
     return () => {
       active = false;
     };
-  }, [status, topic, version]);
+  }, [status, version]);
 
   return (
     <>
@@ -122,49 +118,26 @@ function SupportTickets() {
         )
       ) : (
         <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label htmlFor="support-status" className="block text-sm font-medium">
-                {t("support.status")}
-              </label>
-              <select
-                id="support-status"
-                value={status}
-                onChange={(e) => {
-                  setResult(undefined);
-                  setStatus(e.target.value as StatusFilter);
-                }}
-                className={selectClass}
-              >
-                <option value="all">{t("support.all")}</option>
-                {SUPPORT_STATUSES.map((v) => (
-                  <option key={v} value={v}>
-                    {s(`status.${v}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="support-topic" className="block text-sm font-medium">
-                {t("support.topic")}
-              </label>
-              <select
-                id="support-topic"
-                value={topic}
-                onChange={(e) => {
-                  setResult(undefined);
-                  setTopic(e.target.value as TopicFilter);
-                }}
-                className={selectClass}
-              >
-                <option value="all">{t("support.all")}</option>
-                {SUPPORT_TOPICS.map((v) => (
-                  <option key={v} value={v}>
-                    {s(`topics.${v}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="mb-4 space-y-1.5 sm:max-w-xs">
+            <label htmlFor="support-status" className="block text-sm font-medium">
+              {t("support.status")}
+            </label>
+            <select
+              id="support-status"
+              value={status}
+              onChange={(e) => {
+                setResult(undefined);
+                setStatus(e.target.value as StatusFilter);
+              }}
+              className={selectClass}
+            >
+              <option value="all">{t("support.all")}</option>
+              {SUPPORT_STATUSES.map((v) => (
+                <option key={v} value={v}>
+                  {s(`status.${v}`)}
+                </option>
+              ))}
+            </select>
           </div>
 
           {result === undefined ? <p className="text-sm">{c("loading")}</p> : null}
@@ -184,7 +157,7 @@ function SupportTickets() {
                   <span className="min-w-0 space-y-0.5">
                     <span className="block truncate text-sm font-medium">{row.subject}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {row.profiles?.email ?? t("support.unknownUser")} · {s(`topics.${row.topic}`)}
+                      {row.profiles?.email ?? t("support.unknownUser")}
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       {s("updated", { date: supportDate.format(new Date(row.updated_at)) })}
@@ -233,9 +206,9 @@ function AdminThread({ ticket, onBack, onChanged }: { ticket: AdminTicket; onBac
       <section className="space-y-4 rounded-xl border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold break-words">{row.subject}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {email} · {s(`topics.${row.topic}`)}
+            <p className="truncate text-sm font-semibold">{email}</p>
+            <p className="text-xs text-muted-foreground">
+              {s("updated", { date: supportDate.format(new Date(row.updated_at)) })}
             </p>
           </div>
           <SupportStatusBadge status={row.status} />
