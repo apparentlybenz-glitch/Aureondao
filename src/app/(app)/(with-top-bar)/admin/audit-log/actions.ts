@@ -1,6 +1,6 @@
 "use server";
 
-import { isAdmin } from "@/lib/admin-server";
+import { isHeadAdmin } from "@/lib/admin-server";
 import type { LedgerKind } from "@/lib/bills";
 import { escapeLike } from "@/lib/escape-like";
 import { isGroup, LEDGER_GROUPS } from "@/lib/ledger-groups";
@@ -38,13 +38,14 @@ const SELECT =
   "id::text, account, counter_account, kind, delta_cents::text, memo, asset, created_at, profiles!inner(email)";
 
 // One page of the platform ledger, newest first. Runs as the signed-in user:
-// RLS lets only a live admin row read other users' rows, and the explicit role
-// check makes a non-admin fail instead of seeing an empty list.
+// RLS lets any live admin row read other users' ledger rows (User Search shows
+// Bills), so the Audit Log's head admin rule is this check: a server action is a
+// directly callable POST and the layout does not run for it.
 export async function loadLedger(input: { q: string; group: string; offset: number }): Promise<LedgerPage> {
   const offset = Number.isInteger(input.offset) && input.offset >= 0 ? input.offset : 0;
   const supabase = await createClient();
 
-  if (!(await isAdmin(supabase))) return { ok: false };
+  if (!(await isHeadAdmin(supabase))) return { ok: false };
 
   let req = supabase
     .from("ledger")
@@ -99,7 +100,7 @@ type AuditRow = {
 export async function loadAdminActions(input: { offset: number }): Promise<ActionsPage> {
   const offset = Number.isInteger(input.offset) && input.offset >= 0 ? input.offset : 0;
   const supabase = await createClient();
-  if (!(await isAdmin(supabase))) return { ok: false };
+  if (!(await isHeadAdmin(supabase))) return { ok: false };
 
   const { data, count, error } = await supabase
     .from("admin_audit_log")

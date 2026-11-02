@@ -28,7 +28,7 @@ setup) run <<SQL
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000','$A','authenticated','authenticated','slice2-test-a@aureonx.invalid','',now(),'{}','{"nickname":"TestA"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$B','authenticated','authenticated','slice2-test-b@aureonx.invalid','',now(),'{}','{"nickname":"TestB"}',now(),now());
-insert into public.user_roles (user_id, role) values ('$B','admin');
+insert into public.user_roles (user_id, role, is_head) values ('$B','admin',true);
 select count(*) wallets from public.wallets where user_id in ('$A','$B');
 SQL
 ;;
