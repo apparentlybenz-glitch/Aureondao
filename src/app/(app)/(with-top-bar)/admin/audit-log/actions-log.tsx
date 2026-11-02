@@ -8,6 +8,7 @@ import { bpsToPercent } from "@/lib/options-math";
 import { formatCents } from "@/lib/money";
 import { ACCOUNTS } from "@/lib/wallets";
 import { loadAdminActions, type ActionEntry } from "./actions";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "outcome_config", "outcome_override_set", "outcome_override_clear", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
 type Action = (typeof ACTIONS)[number];
@@ -135,7 +136,7 @@ export function ActionsLog() {
         </button>
       </div>
 
-      {result === null ? <p className="text-sm">{c("loading")}</p> : null}
+      {result === null ? <LoadingRows label={c("loading")} rows={5} /> : null}
       {failed ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
       {result && !failed && rows.length === 0 ? <p className="text-sm text-muted-foreground">{t("auditLog.actionsEmpty")}</p> : null}
 

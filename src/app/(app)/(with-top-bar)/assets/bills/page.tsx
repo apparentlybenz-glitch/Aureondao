@@ -9,6 +9,7 @@ import { centsFromText, formatCents, ZERO_CENTS } from "@/lib/money";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { ACCOUNTS, type Account } from "@/lib/wallets";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 20;
 
@@ -102,7 +103,7 @@ export default function BillsPage() {
       </div>
 
       {error ? <p className="text-sm text-destructive">{c("genericError")}</p> : null}
-      {rows === null && !error ? <p className="text-sm">{c("loading")}</p> : null}
+      {rows === null && !error ? <LoadingRows label={c("loading")} rows={5} rowClassName="h-14" /> : null}
       {rows?.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{t("empty")}</p> : null}
 
       <ul className="space-y-3">

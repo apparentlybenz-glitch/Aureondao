@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Sparkline } from "@/components/market/sparkline";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatChange, formatPrice } from "@/lib/market/decimal";
 import { isDelayed } from "@/lib/market/types";
 import type { Ticker } from "@/lib/market/types";
@@ -43,7 +44,7 @@ export function MarketCards() {
         const market = markets?.find((m) => m.id === id);
         const ticker = tickers[id];
         if (!market || !ticker) {
-          return <div key={id} aria-hidden="true" className="h-[4.5rem] animate-pulse rounded-xl bg-muted" />;
+          return <Skeleton key={id} className="h-[4.5rem] rounded-xl" />;
         }
         const live = !isDelayed(ticker.ts, now);
         const change = formatChange(ticker.changePct);

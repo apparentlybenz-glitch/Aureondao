@@ -6,6 +6,7 @@ import { KycBadge } from "@/components/kyc/kyc-badge";
 import { KYC_STEPS, KycStepper } from "@/components/kyc/kyc-stepper";
 import { Button } from "@/components/ui/button";
 import { kycState, useOwnKyc } from "@/lib/kyc";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 // Start, Update or Resubmit; no button while a submission is pending.
@@ -17,7 +18,7 @@ export default function VerificationPage() {
   const c = useTranslations("Common");
   const { kyc } = useOwnKyc();
 
-  if (kyc === undefined) return <p className="text-sm">{c("loading")}</p>;
+  if (kyc === undefined) return <LoadingRows label={c("loading")} rows={1} rowClassName="h-44 rounded-2xl" />;
   if (kyc === null) return <p className="text-sm text-destructive">{c("genericError")}</p>;
 
   const current = kyc.current;

@@ -23,6 +23,7 @@ import { TradingViewChart } from "@/components/market/tradingview-chart";
 import { TradesPanel } from "./book-panels";
 import { MarketPicker } from "./market-picker";
 import { OrderForm } from "./order-form";
+import { TerminalSkeleton } from "@/components/market/terminal-skeleton";
 
 type Tab = "book" | "trades" | "orders";
 
@@ -66,7 +67,7 @@ export function SpotTerminal() {
   }
 
   if (!market || !markets) {
-    return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{m("loading")}</p>;
+    return <TerminalSkeleton label={m("loading")} />;
   }
 
   const bookFor = (fill: boolean) => (

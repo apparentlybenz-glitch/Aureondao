@@ -251,6 +251,27 @@
 .trade-confirm-badge[data-direction="up"] svg { animation: trade-confirm-float-up 1.2s ease-in-out infinite; }
 .trade-confirm-badge[data-direction="down"] svg { animation: trade-confirm-float-down 1.2s ease-in-out infinite; }
 
+/* Skeleton (skeleton.tsx): a muted block with a highlight sweeping across on a 1.4 s linear loop.
+   Transform only; a still block under reduced motion. */
+@keyframes skeleton-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.skeleton { position: relative; overflow: hidden; background-color: var(--muted); }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 7%, transparent), transparent);
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+/* Launch splash (splash.tsx). The ring draws once over 700 ms. The cap fades the splash out at
+   900 ms even without JavaScript; data-leaving fades it out earlier, once the app is ready. */
+@keyframes splash-draw { to { stroke-dashoffset: 0; } }
+@keyframes splash-cap { to { opacity: 0; visibility: hidden; } }
+.splash { animation: splash-cap var(--duration-moderate) var(--ease-out-strong) 900ms forwards; }
+.splash[data-leaving] { opacity: 0; transition: opacity var(--duration-moderate) var(--ease-out-strong); }
+.splash-ring { stroke-dasharray: 1; stroke-dashoffset: 1; animation: splash-draw 700ms var(--ease-out-strong) forwards; }
+
 /* Auth backdrop (auth-background.tsx). Transform only; linear loops of 40 s and 90 s. */
 @keyframes auth-bg-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes auth-bg-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -259,6 +280,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .auth-bg-drift, .auth-bg-orbit { animation: none; will-change: auto; }
+  .skeleton::after { animation: none; display: none; }
+  .splash-ring { animation: none; stroke-dashoffset: 0; }
   .trade-confirm-badge, .trade-confirm-badge[data-direction] svg { animation: none; }
   .toast[data-state="open"] { animation-name: toast-fade-in; }
   .toast[data-state="closed"] { animation-name: toast-fade-out; }

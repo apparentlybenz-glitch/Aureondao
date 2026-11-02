@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const SCRIPT = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
@@ -21,10 +22,15 @@ function toHex(value: string, fallback: string): string {
 // and TradingView's attribution link stays visible under the chart. It is an essential
 // script (docs/decisions.md), so it loads without waiting for cookie consent.
 // Below md an overlay keeps the iframe from trapping page scroll: tap it to use the chart.
+// A chart-shaped skeleton shows until the widget's iframe fires load; the script is added after
+// the first paint and the widget then fades in over 250 ms.
 export function TradingViewChart({ symbol, className }: { symbol: string; className?: string }) {
   const t = useTranslations("Chart");
   const host = useRef<HTMLDivElement>(null);
   const [locked, setLocked] = useState(true);
+  // The symbol whose iframe has loaded; the widget is shown only for the current one.
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const ready = loaded === symbol;
 
   useEffect(() => {
     const el = host.current;
@@ -75,8 +81,21 @@ export function TradingViewChart({ symbol, className }: { symbol: string; classN
         "mainSeriesProperties.candleStyle.wickDownColor": down,
       },
     });
-    el.replaceChildren(widget, copyright, script);
-    return () => el.replaceChildren();
+    // The widget script inserts the iframe; wait for it, then for its load event.
+    const observer = new MutationObserver(() => {
+      const iframe = el.querySelector("iframe");
+      if (!iframe) return;
+      observer.disconnect();
+      iframe.addEventListener("load", () => setLoaded(symbol), { once: true });
+    });
+    observer.observe(el, { childList: true, subtree: true });
+    // After the first paint, so the skeleton shows before the script starts.
+    const frame = requestAnimationFrame(() => el.replaceChildren(widget, copyright, script));
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      el.replaceChildren();
+    };
   }, [symbol]);
 
   // Re-lock when the finger or pointer goes anywhere else, so the page scrolls again.
@@ -91,7 +110,20 @@ export function TradingViewChart({ symbol, className }: { symbol: string; classN
 
   return (
     <div className={cn("relative h-[420px] overflow-hidden rounded-xl border bg-background lg:h-[520px]", className)}>
-      <div ref={host} aria-label={t("label")} className="tradingview-widget-container h-full w-full" />
+      {ready ? null : (
+        <div aria-hidden="true" className="absolute inset-0 flex flex-col gap-2 p-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="w-full flex-1" />
+        </div>
+      )}
+      <div
+        ref={host}
+        aria-label={t("label")}
+        className={cn(
+          "tradingview-widget-container h-full w-full transition-opacity duration-250 ease-out-strong",
+          ready ? "opacity-100" : "opacity-0",
+        )}
+      />
       {locked ? (
         <button
           type="button"

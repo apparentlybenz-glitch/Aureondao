@@ -6,12 +6,16 @@ export function BrandMark({
   idPrefix,
   className,
   size,
+  ringClassName,
 }: {
   variant: "full" | "small";
   idPrefix: string;
   className?: string;
   // Pixel width and height attributes, for pages that cannot rely on CSS.
   size?: number;
+  // Full mark only: a class on the thin ring, drawn with pathLength 1 so a stroke-dash animation
+  // can draw it (the launch splash).
+  ringClassName?: string;
 }) {
   const id = (name: string) => `${idPrefix}-${name}`;
   const ref = (name: string) => `url(#${id(name)})`;
@@ -70,7 +74,17 @@ export function BrandMark({
       </defs>
       <circle cx="256" cy="256" r="256" fill="#050505" />
       {small ? null : (
-        <circle cx="256" cy="256" r="176" fill="none" stroke="#1BA04A" strokeWidth="4" mask={ref("m-ring")} />
+        <circle
+          cx="256"
+          cy="256"
+          r="176"
+          fill="none"
+          stroke="#1BA04A"
+          strokeWidth="4"
+          mask={ref("m-ring")}
+          pathLength={ringClassName ? 1 : undefined}
+          className={ringClassName}
+        />
       )}
       <use href={`#${id("o")}`} fill="#1BA04A" mask={ref("m-behind")} />
       <use href={`#${id("a")}`} fill="#1BA04A" mask={ref("m-a")} />

@@ -18,6 +18,7 @@ import {
   TICKETS_LIMIT,
 } from "@/lib/support";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 type AdminTicket = SupportTicket & { profiles: { email: string | null } | null };
 type StatusFilter = SupportStatus | "all";
@@ -114,7 +115,7 @@ function SupportTickets() {
             <p className="text-sm text-destructive">{t("loadError")}</p>
           </div>
         ) : (
-          <p className="text-sm">{c("loading")}</p>
+          <LoadingRows label={c("loading")} rowClassName="h-16" />
         )
       ) : (
         <>
@@ -140,7 +141,7 @@ function SupportTickets() {
             </select>
           </div>
 
-          {result === undefined ? <p className="text-sm">{c("loading")}</p> : null}
+          {result === undefined ? <LoadingRows label={c("loading")} rowClassName="h-16" /> : null}
           {result === null ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
           {result?.length === 0 ? <p className="text-sm text-muted-foreground">{t("support.empty")}</p> : null}
           <ul className="space-y-2">

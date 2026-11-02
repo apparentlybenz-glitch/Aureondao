@@ -18,6 +18,7 @@ import { maskEmail } from "@/lib/mask-email";
 import { formatCents } from "@/lib/money";
 import { useOwnProfile } from "@/lib/own-profile";
 import { totalCents, useWallets } from "@/lib/wallets";
+import { InlineLoading } from "@/components/ui/skeleton";
 
 // Account Overview: identity strip, then the total balance with a 7 day line.
 export default function AccountOverviewPage() {
@@ -40,7 +41,7 @@ export default function AccountOverviewPage() {
             ) : error ? (
               <FormError message={rpcMessage(error)} />
             ) : (
-              <p className="text-sm text-muted-foreground">{c("loading")}</p>
+              <InlineLoading label={c("loading")} className="h-6 w-24" />
             )}
             <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -111,7 +112,7 @@ function BalanceCard() {
             </button>
           </div>
           <p className="text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
-            {total === null ? c("loading") : hidden ? h("hidden") : formatCents(total)}
+            {total === null ? <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" /> : hidden ? h("hidden") : formatCents(total)}
             <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
           </p>
         </div>

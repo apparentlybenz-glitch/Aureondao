@@ -14,6 +14,7 @@ import { countryName } from "@/lib/countries";
 import { KYC_BUCKET, KYC_SELECT, KYC_STATUSES, type KycStatus, type KycSubmission } from "@/lib/kyc";
 import { serverAnswered } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const LIMIT = 100;
 const SIGNED_URL_SECONDS = 60;
@@ -107,7 +108,7 @@ export default function KycReviewPage() {
             </select>
           </div>
 
-          {result === undefined ? <p className="text-sm">{c("loading")}</p> : null}
+          {result === undefined ? <LoadingRows label={c("loading")} rowClassName="h-16" /> : null}
           {result === null ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
           {result?.rows.length === 0 ? <p className="text-sm text-muted-foreground">{t("kyc.empty")}</p> : null}
           <ul className="space-y-2">

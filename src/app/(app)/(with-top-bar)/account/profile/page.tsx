@@ -16,6 +16,7 @@ import { countryName } from "@/lib/countries";
 import { kycState, useOwnKyc } from "@/lib/kyc";
 import { PROFILE_SELECT, reportProfileError, useOwnProfile, type OwnProfile, type ProfileError } from "@/lib/own-profile";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const NICKNAME_MAX = 8;
 
@@ -29,7 +30,9 @@ export default function AccountProfilePage() {
   const [editing, setEditing] = useState(false);
 
   if (!profile) {
-    return error ? <FormError message={rpcMessage(error)} /> : <p className="text-sm">{c("loading")}</p>;
+    return error ? <FormError message={rpcMessage(error)} /> : (
+      <LoadingRows label={c("loading")} rows={2} className="space-y-5" rowClassName="h-40 rounded-2xl" />
+    );
   }
 
   return (

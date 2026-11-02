@@ -12,6 +12,7 @@ import { BODY_MAX, bodyOk } from "@/lib/support-rules";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 export const supportDate = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
@@ -71,7 +72,7 @@ export function useThread<T extends SupportTicket>(initial: T, onChange: (change
 export function MessageList({ messages, userLabel }: { messages: SupportMessage[] | null | undefined; userLabel: string }) {
   const t = useTranslations("Support");
   const c = useTranslations("Common");
-  if (messages === undefined) return <p className="text-sm">{c("loading")}</p>;
+  if (messages === undefined) return <LoadingRows label={c("loading")} rowClassName="h-16 rounded-xl" />;
   if (messages === null) return <p className="text-sm text-destructive">{t("loadError")}</p>;
   return (
     <ol className="space-y-3">

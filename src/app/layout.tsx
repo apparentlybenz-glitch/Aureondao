@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MotionProvider } from "@/components/app/motion-provider";
+import { Splash } from "@/components/app/splash";
 import { CookieConsent } from "@/components/legal/cookie-consent";
 import { RegisterServiceWorker } from "@/components/offline/register-sw";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default async function RootLayout({
             {children}
             <CookieConsent />
           </MotionProvider>
+          <Splash />
         </NextIntlClientProvider>
         <RegisterServiceWorker />
       </body>

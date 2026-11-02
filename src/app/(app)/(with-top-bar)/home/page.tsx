@@ -20,6 +20,7 @@ import { MarketTable } from "@/components/market/market-table";
 import { formatCents } from "@/lib/money";
 import { useSuspension } from "@/lib/suspension";
 import { totalCents, useWallets } from "@/lib/wallets";
+import { InlineLoading } from "@/components/ui/skeleton";
 
 const DEPOSIT_HREF = "/assets/deposit";
 
@@ -65,7 +66,7 @@ export default function HomePage() {
         </div>
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
-            {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : c("loading")}
+            {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" />}
             <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
           </p>
           <Link

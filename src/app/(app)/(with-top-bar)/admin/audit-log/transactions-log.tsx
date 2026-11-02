@@ -8,6 +8,7 @@ import { GROUPS, groupOf, type LedgerGroup } from "@/lib/ledger-groups";
 import { formatCents } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { loadLedger, type LedgerEntry } from "./actions";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const DEBOUNCE_MS = 300;
 
@@ -137,7 +138,7 @@ export function TransactionsLog() {
         </div>
       </div>
 
-      {current === null ? <p className="text-sm">{c("loading")}</p> : null}
+      {current === null ? <LoadingRows label={c("loading")} rows={5} /> : null}
       {failed ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
       {current && !failed && rows.length === 0 ? <p className="text-sm text-muted-foreground">{t("auditLog.empty")}</p> : null}
 

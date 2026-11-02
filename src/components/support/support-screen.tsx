@@ -17,6 +17,7 @@ import { fetchOwnTickets, type SupportTicket } from "@/lib/support";
 import { BODY_MAX, bodyOk } from "@/lib/support-rules";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "@/lib/use-hydrated";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // The user's Support page: header, the new ticket form and "Your tickets", or
 // one ticket's thread. Reloads the list when the tab becomes visible.
@@ -66,7 +67,7 @@ export function SupportScreen() {
           <NewTicketForm onCreated={(ticket) => setTickets((list) => [ticket, ...(list ?? [])])} />
           <section className="space-y-2">
             <h2 className="text-base font-semibold">{t("yourTickets")}</h2>
-            {tickets === undefined ? <p className="text-sm">{c("loading")}</p> : null}
+            {tickets === undefined ? <LoadingRows label={c("loading")} rowClassName="h-16" /> : null}
             {tickets === null ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
             {tickets?.length === 0 ? <p className="text-sm text-muted-foreground">{t("noTickets")}</p> : null}
             <ul className="space-y-2">

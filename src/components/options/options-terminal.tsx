@@ -23,6 +23,7 @@ import { useWallets } from "@/lib/wallets";
 import { OptionTicket } from "./option-ticket";
 import { OptionsHeader, OptionsInfo, OptionsMarketPicker } from "./options-header";
 import { PositionsPanel } from "./positions-panel";
+import { TerminalSkeleton } from "@/components/market/terminal-skeleton";
 
 const DEFAULT_MARKET = "BTC-USDT";
 
@@ -62,7 +63,7 @@ export function OptionsTerminal() {
   const optionMarkets = markets?.filter((x) => x.optionsEnabled) ?? [];
   const market = optionMarkets.find((x) => x.id === symbol) ?? optionMarkets[0] ?? null;
   if (!market || !markets) {
-    return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{m("loading")}</p>;
+    return <TerminalSkeleton label={m("loading")} />;
   }
 
   const ticker = tickers[market.id];

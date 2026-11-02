@@ -10,6 +10,7 @@ import { SelectedUserProvider } from "@/components/admin/selected-user";
 import { useAccount } from "@/lib/use-account";
 import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
 // route and its `Admin.sections` string. Admin access is listed for head admins only.
@@ -48,7 +49,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const close = () => setOpenedOn(null);
 
-  if (!ready) return <p className="text-sm">{c("loading")}</p>;
+  if (!ready) return <LoadingRows label={c("loading")} />;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
   const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || viewer?.isHead === true);

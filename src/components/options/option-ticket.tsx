@@ -21,6 +21,7 @@ import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { feeCents } from "@/lib/spot-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // Preset premiums in USD (UI only; the minimum comes from option_periods).
 const PRESETS = ["49", "1000", "5000", "10000", "30000", "50000"] as const;
@@ -237,7 +238,7 @@ export function OptionTicket({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <LoadingRows label={t("loading")} rows={2} rowClassName="h-4 first:h-6" />
         )}
       </div>
 
