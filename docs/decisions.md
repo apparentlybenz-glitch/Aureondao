@@ -141,6 +141,11 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 - **Default avatar only:** no upload and no storage. No Today's Profit line.
 - **Profile has no phone row.** `profiles.phone` stays in the database; `update_profile` always writes phone, so the Profile page reads it and passes the stored value back unchanged when saving the nickname.
 
+## Part 1i: Decisions locked by the owner (support tickets without topic or subject, 2026-11-02)
+
+- **A ticket is only a message.** The new ticket form has no topic or subject input. `support_tickets.topic` is dropped and its old values are discarded.
+- **The server derives the subject** from the first 120 characters of the message (whitespace runs made one space, trimmed). It stays the ticket title in both lists, the admin toasts and the audit payloads; existing tickets keep theirs.
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.

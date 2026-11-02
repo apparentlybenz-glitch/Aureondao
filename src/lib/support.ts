@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client";
-import type { SupportTopic } from "@/lib/support-rules";
 
 export const SUPPORT_STATUSES = ["open", "answered", "closed"] as const;
 export type SupportStatus = (typeof SUPPORT_STATUSES)[number];
@@ -7,7 +6,6 @@ export type SupportStatus = (typeof SUPPORT_STATUSES)[number];
 export type SupportTicket = {
   id: string;
   user_id: string;
-  topic: SupportTopic;
   subject: string;
   status: SupportStatus;
   created_at: string;
@@ -16,7 +14,7 @@ export type SupportTicket = {
 // author_id is not granted to authenticated: no client learns which admin replied.
 export type SupportMessage = { id: string; is_staff: boolean; body: string; created_at: string };
 
-export const TICKET_SELECT = "id, user_id, topic, subject, status, created_at, updated_at";
+export const TICKET_SELECT = "id, user_id, subject, status, created_at, updated_at";
 const MESSAGE_SELECT = "id, is_staff, body, created_at";
 export const TICKETS_LIMIT = 100;
 

@@ -149,14 +149,14 @@ Legend:
 | Verification submit | `/account/verification/submit` | (app)/(with-top-bar) | S+C | U | KYC flow |
 | Preferences | `/account/preferences` | (app)/(with-top-bar) | S+C | U | confirm trades toggle |
 | Market | `/market` | (app)/(with-top-bar) | S+C | U | MarketTable (market variant) |
-| Support | `/support` | (app)/(with-top-bar) | S+C | U | ticket form, thread |
+| Support | `/support` | (app)/(with-top-bar) | S+C | U | ticket form (message only), thread |
 | Legal heading | `/legal` | (app)/(with-top-bar) | S | U | heading only |
 | Admin: User Search | `/admin` | admin | D | A | UserSearch, UserDetail (status, four wallet balances, 20 newest Bills rows) |
 | Admin: Top-Up | `/admin/top-up` | admin | D | A | UserSearch, SelectedUserCard, AdjustForm (`admin_adjust_balance`) |
 | Admin: Restrictions | `/admin/restrictions` | admin | D | A | UserSearch, SelectedUserCard, Suspend or Unsuspend (`admin_set_suspension`), Withdrawals switch (`admin_set_withdraw_restriction`) |
 | Admin: KYC Review | `/admin/kyc` | admin | D | A | Submission list, status filter, ReviewDetail (`admin_review_kyc`) |
 | Admin: Option periods | `/admin/option-periods` | admin | D | A | PeriodRow (`admin_set_option_period`) |
-| Admin: Support tickets | `/admin/support` | admin | D | A | Ticket list, filters, thread (`admin_support_close`) |
+| Admin: Support tickets | `/admin/support` | admin | D | A | Ticket list, status filter, thread (`admin_support_close`) |
 | Admin: Audit Log | `/admin/audit-log` | admin | D | A | TransactionsLog, ActionsLog |
 | Admin: Admin access | `/admin/admin-access` | admin | D | A | head admins only; Grant or Revoke (`admin_set_admin`), owner Demote or Remove (`admin_demote_head`) |
 | Admin: Delete account | `/admin/delete-account` | admin | D | A | typed email confirmation, `admin_delete_user` (destructive, last) |
