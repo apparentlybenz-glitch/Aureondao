@@ -6,6 +6,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const nextConfig: NextConfig = {
   // Cloudflare Images binding is not configured; serve images as-is.
   images: { unoptimized: true },
+  // No on-disk Turbopack cache for builds: Workers Builds restores .next/cache between
+  // deploys, and a restored cache once shipped a stale globals.css (no splash or skeleton CSS).
+  experimental: { turbopackFileSystemCacheForBuild: false },
   turbopack: {
     rules: {
       "*.css": {

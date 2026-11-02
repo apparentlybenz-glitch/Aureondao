@@ -11,6 +11,10 @@ import { whenSplashReady } from "@/lib/splash";
 // once the page has hydrated and the shell's session check has resolved (holdSplash), or at the
 // 900 ms cap in CSS, whichever comes first, even mid-draw. It never takes pointer input.
 // /offline is served without its stylesheet, so it gets none.
+// Mirrors .splash in globals.css: the 900 ms cap and the 200 ms fade.
+const CAP_MS = 900;
+const FADE_MS = 200;
+
 export function Splash() {
   const pathname = usePathname();
   const [phase, setPhase] = useState<"shown" | "leaving" | "gone">("shown");
@@ -21,11 +25,21 @@ export function Splash() {
     const frame = requestAnimationFrame(() => {
       stop = whenSplashReady(() => setPhase((p) => (p === "shown" ? "leaving" : p)));
     });
+    // Fail-safe: removed at the cap plus the fade even if its CSS never arrives.
+    const cap = setTimeout(() => setPhase("gone"), CAP_MS + FADE_MS);
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(cap);
       stop();
     };
   }, []);
+
+  // The fade normally ends in transitionend; this removes it even without the CSS transition.
+  useEffect(() => {
+    if (phase !== "leaving") return;
+    const done = setTimeout(() => setPhase("gone"), FADE_MS);
+    return () => clearTimeout(done);
+  }, [phase]);
 
   if (phase === "gone" || pathname === "/offline") return null;
   return (
