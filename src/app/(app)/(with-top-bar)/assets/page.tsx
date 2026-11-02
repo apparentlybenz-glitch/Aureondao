@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatCents, ZERO_CENTS } from "@/lib/money";
 import { totalCents, useWallets } from "@/lib/wallets";
 import { InlineLoading, LoadingRows } from "@/components/ui/skeleton";
+import { RollingCents } from "@/components/app/rolling-cents";
 
 // Assets in the account card and row layout: the total with its actions, then one
 // row per wallet (total, with available and frozen under it).
@@ -25,7 +26,7 @@ export default function AssetsPage() {
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">{t("total")}</p>
           <p className="text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
-            {wallets ? formatCents(totalCents(wallets)) : <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" />}
+            {wallets ? <RollingCents cents={totalCents(wallets)} /> : <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" />}
             <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
           </p>
         </div>

@@ -22,6 +22,7 @@ import { feeCents } from "@/lib/spot-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { LoadingRows } from "@/components/ui/skeleton";
+import { DrawnCheck } from "@/components/app/drawn-check";
 
 // Preset premiums in USD (UI only; the minimum comes from option_periods).
 const PRESETS = ["49", "1000", "5000", "10000", "30000", "50000"] as const;
@@ -296,7 +297,8 @@ export function OptionTicket({
 
       <FormError message={error} />
       {notice ? (
-        <p role="status" className="text-sm text-up">
+        <p role="status" className="flex items-center gap-1.5 text-sm text-up">
+          <DrawnCheck />
           {notice}
         </p>
       ) : null}

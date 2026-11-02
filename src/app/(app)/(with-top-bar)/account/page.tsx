@@ -15,10 +15,10 @@ import { useBalanceHistory } from "@/lib/balance-history";
 import { countryName } from "@/lib/countries";
 import { kycState, useOwnKyc } from "@/lib/kyc";
 import { maskEmail } from "@/lib/mask-email";
-import { formatCents } from "@/lib/money";
 import { useOwnProfile } from "@/lib/own-profile";
 import { totalCents, useWallets } from "@/lib/wallets";
 import { InlineLoading } from "@/components/ui/skeleton";
+import { RollingCents } from "@/components/app/rolling-cents";
 
 // Account Overview: identity strip, then the total balance with a 7 day line.
 export default function AccountOverviewPage() {
@@ -112,7 +112,7 @@ function BalanceCard() {
             </button>
           </div>
           <p className="text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
-            {total === null ? <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" /> : hidden ? h("hidden") : formatCents(total)}
+            {total === null ? <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" /> : hidden ? h("hidden") : <RollingCents cents={total} />}
             <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
           </p>
         </div>

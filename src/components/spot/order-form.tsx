@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { LimitOrderForm } from "./limit-order-form";
 import { OrderTypeTabs } from "./order-type-tabs";
 import type { OrderType } from "./order-type-tabs";
+import { DrawnCheck } from "@/components/app/drawn-check";
 
 const STEPS = [0, 25, 50, 75, 100] as const;
 type Side = "buy" | "sell";
@@ -306,7 +307,10 @@ function MarketTicket({
       <FormError message={error} />
       {fill ? (
         <div role="status" className="space-y-1 rounded-lg border border-up/40 p-2.5 text-xs">
-          <p className="font-semibold text-up">{t("filledTitle")}</p>
+          <p className="flex items-center gap-1.5 font-semibold text-up">
+            <DrawnCheck />
+            {t("filledTitle")}
+          </p>
           <p>
             {t(fill.side === "buy" ? "filledBuy" : "filledSell", {
               qty: trimDecimal(fill.qty),
