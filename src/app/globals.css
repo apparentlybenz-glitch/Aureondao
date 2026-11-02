@@ -181,25 +181,28 @@
 }
 
 /* Toasts (toaster.tsx, Radix Toast). Radix keeps a toast mounted until its closed-state CSS
-   animation ends, so enter and exit are keyframes keyed on data-state. The swipe states are plain
-   transforms and transitions: move follows the finger 1:1, cancel springs back, end leaves
-   downward from where the finger let go. Transform and opacity only; the enter animation fills
-   backwards so it never holds the transform the swipe sets. */
-@keyframes toast-in { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
-@keyframes toast-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(100%); } }
+   animation ends, so enter and exit are keyframes keyed on data-state: in from the bottom edge over
+   300 ms, out by the same edge over 200 ms. The swipe states are plain translates and transitions:
+   move follows the finger 1:1, cancel springs back, end leaves downward from where the finger let go.
+   Everything here moves the translate property, never transform: motion's layout animation owns
+   transform on the same element, so the stack slides smoothly when a toast arrives or leaves.
+   The enter animation fills backwards so it never holds the translate the swipe sets. */
+@keyframes toast-in { from { opacity: 0; translate: 0 100%; } to { opacity: 1; translate: 0 0; } }
+@keyframes toast-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 100%; } }
 @keyframes toast-swipe-out {
-  from { opacity: 1; transform: translateY(var(--radix-toast-swipe-end-y)); }
-  to { opacity: 0; transform: translateY(calc(var(--radix-toast-swipe-end-y) + 100%)); }
+  from { opacity: 1; translate: 0 var(--radix-toast-swipe-end-y); }
+  to { opacity: 0; translate: 0 calc(var(--radix-toast-swipe-end-y) + 100%); }
 }
 @keyframes toast-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes toast-fade-out { from { opacity: 1; } to { opacity: 0; } }
-.toast[data-state="open"] { animation: toast-in var(--duration-moderate) var(--ease-out-strong) backwards; }
-.toast[data-state="closed"] { animation: toast-out var(--duration-base) var(--ease-out-strong) forwards; }
-.toast[data-swipe="move"] { animation: none; transform: translateY(var(--radix-toast-swipe-move-y)); transition: none; }
-.toast[data-swipe="cancel"] { animation: none; transform: translateY(0); transition: transform var(--duration-moderate) var(--ease-out-strong); }
+.toast[data-state="open"] { animation: toast-in var(--duration-slow) var(--ease-out-strong) backwards; }
+.toast[data-state="closed"] { animation: toast-out var(--duration-moderate) var(--ease-out-strong) forwards; }
+.toast[data-swipe="move"] { animation: none; translate: 0 var(--radix-toast-swipe-move-y); transition: none; }
+.toast[data-swipe="cancel"] { animation: none; translate: 0 0; transition: translate var(--duration-moderate) var(--ease-out-strong); }
 .toast[data-swipe="end"] { animation: toast-swipe-out var(--duration-base) var(--ease-out-strong) forwards; }
 
-/* Slide-in panels on Radix Dialog: the admin drawer (left) and the symbol sheets (bottom).
+/* Slide-in panel on Radix Dialog: the admin drawer (left). The bottom sheets are motion
+   components (sheet.tsx), with drag to dismiss.
    Enter and exit are CSS transitions on data-state, so a close or reopen mid-motion re-targets
    from the current position with no jump (@starting-style supplies the enter's start). Radix
    unmounts a closed Dialog when its CSS animation ends and ignores transitions, so the closed
@@ -209,7 +212,6 @@
    Exit is shorter than enter and travels back along the same path. */
 @property --slide-hold { syntax: "<number>"; inherits: false; initial-value: 0; }
 @keyframes slide-hold { from { --slide-hold: 0; } to { --slide-hold: 1; } }
-.slide-panel { --slide-from: translateY(100%); }
 .slide-panel-left { --slide-from: translateX(-100%); }
 .slide-panel[data-state="open"] { transform: none; transition: transform var(--duration-slow) var(--ease-drawer); }
 .slide-panel[data-state="closed"] {
@@ -260,7 +262,7 @@
   .trade-confirm-badge, .trade-confirm-badge[data-direction] svg { animation: none; }
   .toast[data-state="open"] { animation-name: toast-fade-in; }
   .toast[data-state="closed"] { animation-name: toast-fade-out; }
-  .toast[data-swipe="end"] { animation-name: toast-fade-out; transform: translateY(var(--radix-toast-swipe-end-y)); }
+  .toast[data-swipe="end"] { animation-name: toast-fade-out; translate: 0 var(--radix-toast-swipe-end-y); }
 }
 
 @layer base {

@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { EASE_OUT } from "@/lib/motion";
 
 const STORAGE_KEY = "aureonx-cookie-consent";
 
@@ -45,6 +47,11 @@ function saveChoice(choice: CookieChoice) {
   listeners.forEach((listener) => listener());
 }
 
+// In from the bottom edge over 300 ms, out by the same edge over 200 ms (reduced motion: a fade).
+const hidden = { opacity: 0, y: "100%" };
+const shown = { opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT } };
+const leaving = { ...hidden, transition: { duration: 0.2, ease: EASE_OUT } };
+
 const shouldAsk = () => !dismissed && getCookieConsent() === null;
 const hasTabBar = () => document.querySelector("[data-tab-bar]") !== null;
 
@@ -54,38 +61,43 @@ export function CookieConsent() {
   const open = useSyncExternalStore(subscribe, shouldAsk, () => false);
   const aboveTabBar = useSyncExternalStore(subscribe, hasTabBar, () => false);
 
-  if (!open) return null;
-
   return (
-    <div
-      className={`pointer-events-none fixed inset-x-0 z-30 px-4 ${
-        aboveTabBar
-          ? "bottom-[calc(var(--tab-bar-h)+var(--tab-bar-overhang)+0.5rem+var(--safe-b))] md:bottom-3"
-          : "bottom-[calc(0.75rem+var(--safe-b))]"
-      }`}
-    >
-      <div
-        role="dialog"
-        aria-label={t("label")}
-        className="pointer-events-auto mx-auto max-w-md space-y-3 rounded-xl border border-primary/40 bg-background p-4 shadow-lg"
-      >
-        <h2 className="text-sm font-semibold">{t("heading")}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t("bodyBefore")}
-          <Link href="/privacy" className="text-primary underline-offset-4 hover:underline">
-            {t("privacyLink")}
-          </Link>
-          {t("bodyAfter")}
-        </p>
-        <div className="flex gap-3">
-          <Button variant="outline" className="h-10 flex-1 border-primary" onClick={() => saveChoice("accept")}>
-            {t("accept")}
-          </Button>
-          <Button variant="outline" className="h-10 flex-1 border-primary" onClick={() => saveChoice("decline")}>
-            {t("decline")}
-          </Button>
+    <AnimatePresence>
+      {open ? (
+        <div
+          className={`pointer-events-none fixed inset-x-0 z-30 px-4 ${
+            aboveTabBar
+              ? "bottom-[calc(var(--tab-bar-h)+var(--tab-bar-overhang)+0.5rem+var(--safe-b))] md:bottom-3"
+              : "bottom-[calc(0.75rem+var(--safe-b))]"
+          }`}
+        >
+          <motion.div
+            initial={hidden}
+            animate={shown}
+            exit={leaving}
+            role="dialog"
+            aria-label={t("label")}
+            className="pointer-events-auto mx-auto max-w-md space-y-3 rounded-xl border border-primary/40 bg-background p-4 shadow-lg"
+          >
+            <h2 className="text-sm font-semibold">{t("heading")}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t("bodyBefore")}
+              <Link href="/privacy" className="text-primary underline-offset-4 hover:underline">
+                {t("privacyLink")}
+              </Link>
+              {t("bodyAfter")}
+            </p>
+            <div className="flex gap-3">
+              <Button variant="outline" className="h-10 flex-1 border-primary" onClick={() => saveChoice("accept")}>
+                {t("accept")}
+              </Button>
+              <Button variant="outline" className="h-10 flex-1 border-primary" onClick={() => saveChoice("decline")}>
+                {t("decline")}
+              </Button>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      ) : null}
+    </AnimatePresence>
   );
 }
