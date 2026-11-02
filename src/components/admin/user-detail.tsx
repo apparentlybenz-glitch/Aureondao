@@ -11,6 +11,7 @@ import { centsFromText, formatCents, ZERO_CENTS } from "@/lib/money";
 import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/lib/wallets";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
@@ -75,7 +76,9 @@ export function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => vo
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium">{t("search.balances")}</h2>
-        {wallets === null && !failed ? <p className="text-sm">{c("loading")}</p> : null}
+        {wallets === null && !failed ? (
+          <LoadingRows label={c("loading")} rows={4} className="grid grid-cols-2 gap-2 space-y-0" rowClassName="h-14 rounded-xl" />
+        ) : null}
         <ul className="grid grid-cols-2 gap-2 text-sm">
           {(wallets ?? []).map((x) => (
             <li key={x.account} className="rounded-xl border bg-card px-3 py-2">

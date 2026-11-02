@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { LimitOrderForm } from "./limit-order-form";
 import { OrderTypeTabs } from "./order-type-tabs";
 import type { OrderType } from "./order-type-tabs";
+import { DrawnCheck } from "@/components/app/drawn-check";
 
 const STEPS = [0, 25, 50, 75, 100] as const;
 type Side = "buy" | "sell";
@@ -206,7 +207,7 @@ function MarketTicket({
       aria-pressed={side === s}
       onClick={() => reset(s)}
       className={cn(
-        "h-9 rounded-lg text-sm font-semibold",
+        "press h-9 rounded-lg text-sm font-semibold",
         side === s ? (s === "buy" ? "bg-up text-black" : "bg-down/60 text-white") : "bg-muted text-muted-foreground",
       )}
     >
@@ -306,7 +307,10 @@ function MarketTicket({
       <FormError message={error} />
       {fill ? (
         <div role="status" className="space-y-1 rounded-lg border border-up/40 p-2.5 text-xs">
-          <p className="font-semibold text-up">{t("filledTitle")}</p>
+          <p className="flex items-center gap-1.5 font-semibold text-up">
+            <DrawnCheck />
+            {t("filledTitle")}
+          </p>
           <p>
             {t(fill.side === "buy" ? "filledBuy" : "filledSell", {
               qty: trimDecimal(fill.qty),

@@ -1,4 +1,5 @@
 import { DesktopNav } from "@/components/app/desktop-nav";
+import { RouteTransition } from "@/components/app/route-transition";
 import { NotificationListener } from "@/components/app/notification-listener";
 import { SessionGuard } from "@/components/app/session-guard";
 import { TabBar } from "@/components/app/tab-bar";
@@ -18,7 +19,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SessionGuard />
       <NotificationListener />
       <DesktopNav />
-      {children}
+      {/* The navs sit outside the animated region and never move. */}
+      <RouteTransition keyBy="segment" className="flex flex-1 flex-col">
+        {children}
+      </RouteTransition>
       <TabBar />
       <Toaster />
     </>

@@ -17,9 +17,11 @@ import {
 import { useTranslations } from "next-intl";
 import { MarketCards } from "@/components/market/market-cards";
 import { MarketTable } from "@/components/market/market-table";
-import { formatCents } from "@/lib/money";
+import { Reveal } from "@/components/app/reveal";
 import { useSuspension } from "@/lib/suspension";
 import { totalCents, useWallets } from "@/lib/wallets";
+import { InlineLoading } from "@/components/ui/skeleton";
+import { RollingCents } from "@/components/app/rolling-cents";
 
 const DEPOSIT_HREF = "/assets/deposit";
 
@@ -65,12 +67,12 @@ export default function HomePage() {
         </div>
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 text-[clamp(1.5rem,7vw,2.25rem)] leading-tight font-semibold tabular-nums">
-            {wallets ? (hidden ? t("hidden") : formatCents(totalCents(wallets))) : c("loading")}
+            {wallets ? (hidden ? t("hidden") : <RollingCents cents={totalCents(wallets)} />) : <InlineLoading label={c("loading")} className="h-[0.85em] w-[7ch]" />}
             <span className="ml-1.5 text-base font-normal text-muted-foreground">{w("currency")}</span>
           </p>
           <Link
             href={DEPOSIT_HREF}
-            className="inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black transition-[background-color,transform] duration-150 active:scale-[0.97] active:bg-primary motion-reduce:active:scale-100"
+            className="press inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black active:bg-primary"
           >
             {t("addFunds")}
           </Link>
@@ -94,7 +96,7 @@ export default function HomePage() {
             </>
           );
           return "href" in action ? (
-            <Link key={key} href={action.href} className="flex w-12 flex-col items-center gap-1.5">
+            <Link key={key} href={action.href} className="press flex w-12 flex-col items-center gap-1.5">
               {body}
             </Link>
           ) : (
@@ -107,7 +109,9 @@ export default function HomePage() {
 
       <MarketCards />
 
-      <MarketTable variant="home" />
+      <Reveal>
+        <MarketTable variant="home" />
+      </Reveal>
     </div>
   );
 }

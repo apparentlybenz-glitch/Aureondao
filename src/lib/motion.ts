@@ -2,8 +2,12 @@
 // variables. globals.css is the source of truth: these mirror only the values motion components
 // use. Add a value here when a component needs it, not before.
 
-// --ease-out-strong
+// --ease-out-strong: enter, exit, press.
 export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+// --ease-in-out-strong: movement that stays on screen.
+export const EASE_IN_OUT = [0.77, 0, 0.175, 1] as const;
+// --ease-drawer: sheets and drawers.
+export const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
 
 // --duration-fast, --duration-base and --duration-moderate, in seconds.
 export const DURATION = { fast: 0.12, base: 0.15, moderate: 0.2 } as const;

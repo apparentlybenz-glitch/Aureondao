@@ -22,6 +22,7 @@ import {
 import { serverAnswered } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const selectClass =
   "h-11 w-full rounded-lg border border-input bg-input px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -74,7 +75,7 @@ export default function OutcomeControlPage() {
   return (
     <>
       <AdminHeading title={t("sections.outcomeControl")} description={t("outcomeControl.description")} />
-      {config === undefined || overrides === undefined ? <p className="text-sm">{c("loading")}</p> : null}
+      {config === undefined || overrides === undefined ? <LoadingRows label={c("loading")} rowClassName="h-20 rounded-xl" /> : null}
       {failed ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
       {config && overrides ? (
         <div className="space-y-5">

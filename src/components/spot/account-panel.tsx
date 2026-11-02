@@ -10,6 +10,7 @@ import { useRpcMessage } from "@/components/app/use-rpc-message";
 import type { Holding, OpenOrder, SpotOrder } from "@/lib/spot";
 import { compareDecimal, trimDecimal } from "@/lib/spot-math";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
@@ -56,7 +57,7 @@ export function AccountPanel({
             aria-pressed={view === key}
             onClick={() => setView(key)}
             className={cn(
-              "h-8 rounded-full border px-3 text-sm",
+              "press h-8 rounded-full border px-3 text-sm",
               view === key ? "border-foreground bg-foreground text-background" : "text-muted-foreground",
             )}
           >
@@ -69,7 +70,7 @@ export function AccountPanel({
 
       {view === "history" ? (
         orders === null ? (
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <LoadingRows label={t("loading")} rows={2} rowClassName="h-16" />
         ) : orders.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t("noOrders")}</p>
         ) : (
@@ -126,7 +127,7 @@ export function AccountPanel({
         )
       ) : view === "open" ? (
         openOrders === null ? (
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <LoadingRows label={t("loading")} rows={2} rowClassName="h-16" />
         ) : openOrders.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t("noOpenOrders")}</p>
         ) : (
@@ -173,7 +174,7 @@ export function AccountPanel({
           </ul>
         )
       ) : holdings === null ? (
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+        <LoadingRows label={t("loading")} rows={2} rowClassName="h-16" />
       ) : holdings.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">{t("noHoldings")}</p>
       ) : (

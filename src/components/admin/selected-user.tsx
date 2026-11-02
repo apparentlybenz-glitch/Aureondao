@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type AdminUser, fetchUser, searchUsers } from "@/lib/admin";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // The user the admin is working on. It lives in the admin layout, so it carries
 // across sections; a page reload clears it.
@@ -92,7 +93,7 @@ export function UserSearch({ onPick, selectedId }: { onPick: (user: AdminUser) =
         </Button>
       </form>
 
-      {users === null ? <p className="text-sm">{c("loading")}</p> : null}
+      {users === null ? <LoadingRows label={c("loading")} /> : null}
       {failed ? <p className="text-sm text-destructive">{t("loadError")}</p> : null}
       {users?.length === 0 && !failed ? <p className="text-sm text-muted-foreground">{t("search.noUsers")}</p> : null}
       <ul className="space-y-2">

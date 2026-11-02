@@ -1,31 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, Info, X } from "lucide-react";
-import { Dialog } from "radix-ui";
+import { BookOpen, ChevronDown, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Sheet } from "@/components/app/sheet";
 import { bpsToPercent } from "@/lib/options-math";
 import type { OptionPeriod } from "@/lib/options";
 import { CoinIcon } from "@/components/market/coin-icon";
 import type { Market } from "@/lib/market/types";
 import { cn } from "@/lib/utils";
 
-const sheet =
-  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80dvh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
+const SHEET = "max-h-[80dvh] pb-[calc(1rem+var(--safe-b))]";
 
 const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
-
-function SheetHeader({ title }: { title: string }) {
-  const t = useTranslations("Options");
-  return (
-    <div className="flex items-center justify-between px-4 pt-3 pb-2">
-      <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-      <Dialog.Close aria-label={t("close")} className="flex size-9 items-center justify-center rounded-full">
-        <X className="size-5" />
-      </Dialog.Close>
-    </div>
-  );
-}
 
 // The symbol button and the markets sheet it opens. Shared by the header and the desktop strip.
 export function OptionsMarketPicker({
@@ -40,8 +27,13 @@ export function OptionsMarketPicker({
   const t = useTranslations("Options");
   const [pickerOpen, setPickerOpen] = useState(false);
   return (
-    <Dialog.Root open={pickerOpen} onOpenChange={setPickerOpen}>
-      <Dialog.Trigger asChild>
+    <Sheet
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      title={t("marketsTitle")}
+      closeLabel={t("close")}
+      className={SHEET}
+      trigger={
         <button
           type="button"
           aria-label={t("chooseMarket", { symbol: market.displaySymbol })}
@@ -51,35 +43,30 @@ export function OptionsMarketPicker({
           <span className="text-lg font-semibold">{market.displaySymbol}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content aria-describedby={undefined} className={sheet}>
-          <SheetHeader title={t("marketsTitle")} />
-          <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
-            {markets.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  aria-pressed={m.id === market.id}
-                  onClick={() => {
-                    onPick(m.id);
-                    setPickerOpen(false);
-                  }}
-                  className={cn(
-                    "flex h-12 w-full items-center gap-2.5 rounded-lg px-3 text-left font-medium",
-                    m.id === market.id ? "bg-muted text-primary" : "",
-                  )}
-                >
-                  <CoinIcon symbol={m.base} size={24} />
-                  {m.displaySymbol}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      }
+    >
+      <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
+        {markets.map((m) => (
+          <li key={m.id}>
+            <button
+              type="button"
+              aria-pressed={m.id === market.id}
+              onClick={() => {
+                onPick(m.id);
+                setPickerOpen(false);
+              }}
+              className={cn(
+                "flex h-12 w-full items-center gap-2.5 rounded-lg px-3 text-left font-medium",
+                m.id === market.id ? "bg-muted text-primary" : "",
+              )}
+            >
+              <CoinIcon symbol={m.base} size={24} />
+              {m.displaySymbol}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 
@@ -87,34 +74,37 @@ export function OptionsMarketPicker({
 export function OptionsInfo({ periods }: { periods: OptionPeriod[] | null }) {
   const t = useTranslations("Options");
   const enabled = periods?.filter((p) => p.enabled) ?? [];
+  const [open, setOpen] = useState(false);
   return (
-    <Dialog.Root>
-      <Dialog.Trigger aria-label={t("info")} className={ICON}>
-        <Info className="size-5" />
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content aria-describedby={undefined} className={sheet}>
-          <SheetHeader title={t("infoTitle")} />
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 text-sm">
-            {enabled.length === 0 ? (
-              <p className="text-muted-foreground">{t("infoEmpty")}</p>
-            ) : (
-              <ul className="divide-y rounded-xl border">
-                {enabled.map((p) => (
-                  <li key={p.durationS} className="flex justify-between px-3 py-2.5 tabular-nums">
-                    <span>{t("seconds", { seconds: p.durationS })}</span>
-                    <span className="text-up">{t("infoRate", { rate: bpsToPercent(p.profitRateBps) })}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {enabled[0] ? <p>{t("infoFee", { rate: bpsToPercent(enabled[0].feeBps) })}</p> : null}
-            <p className="text-muted-foreground">{t("infoSettle")}</p>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      title={t("infoTitle")}
+      closeLabel={t("close")}
+      className={SHEET}
+      trigger={
+        <button type="button" aria-label={t("info")} className={ICON}>
+          <Info className="size-5" />
+        </button>
+      }
+    >
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 text-sm">
+        {enabled.length === 0 ? (
+          <p className="text-muted-foreground">{t("infoEmpty")}</p>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {enabled.map((p) => (
+              <li key={p.durationS} className="flex justify-between px-3 py-2.5 tabular-nums">
+                <span>{t("seconds", { seconds: p.durationS })}</span>
+                <span className="text-up">{t("infoRate", { rate: bpsToPercent(p.profitRateBps) })}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {enabled[0] ? <p>{t("infoFee", { rate: bpsToPercent(enabled[0].feeBps) })}</p> : null}
+        <p className="text-muted-foreground">{t("infoSettle")}</p>
+      </div>
+    </Sheet>
   );
 }
 

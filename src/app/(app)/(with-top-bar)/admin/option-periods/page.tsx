@@ -13,6 +13,7 @@ import { type OptionPeriod, useOptionPeriods } from "@/lib/options";
 import { bpsToPercentText, minPremiumFloorCents, percentToBps } from "@/lib/options-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // The limits admin_set_option_period enforces: profit rate 0 to 1000 %, fee 0 to 10 %.
 const MAX_PROFIT_BPS = 100000;
@@ -26,7 +27,7 @@ export default function OptionPeriodsPage() {
   return (
     <>
       <AdminHeading title={t("sections.optionPeriods")} description={t("optionPeriods.description")} />
-      {periods === null ? <p className="text-sm">{c("loading")}</p> : null}
+      {periods === null ? <LoadingRows label={c("loading")} rows={5} rowClassName="h-24 rounded-xl" /> : null}
       <ul className="space-y-3">
         {periods?.map((p) => (
           <li key={p.durationS}>

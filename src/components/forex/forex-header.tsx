@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, X } from "lucide-react";
-import { Dialog } from "radix-ui";
+import { BookOpen, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Sheet } from "@/components/app/sheet";
 import type { ForexPair } from "@/lib/forex-pairs";
 import { cn } from "@/lib/utils";
-
-const sheet =
-  "slide-panel fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80dvh] max-w-[880px] flex-col rounded-t-2xl border-t bg-background pb-[calc(1rem+var(--safe-b))]";
 
 // Placeholder icon: a plain circle with the pair's initials.
 export function PairIcon({ icon, className }: { icon: string; className?: string }) {
@@ -38,8 +35,13 @@ export function ForexPairPicker({
   const t = useTranslations("Forex");
   const [pickerOpen, setPickerOpen] = useState(false);
   return (
-    <Dialog.Root open={pickerOpen} onOpenChange={setPickerOpen}>
-      <Dialog.Trigger asChild>
+    <Sheet
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      title={t("pairsTitle")}
+      closeLabel={t("close")}
+      className="max-h-[80dvh] pb-[calc(1rem+var(--safe-b))]"
+      trigger={
         <button
           type="button"
           aria-label={t("choosePair", { symbol: pair.display })}
@@ -49,40 +51,30 @@ export function ForexPairPicker({
           <span className="text-lg font-semibold">{pair.display}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content aria-describedby={undefined} className={sheet}>
-          <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <Dialog.Title className="text-base font-semibold">{t("pairsTitle")}</Dialog.Title>
-            <Dialog.Close aria-label={t("close")} className="flex size-9 items-center justify-center rounded-full">
-              <X className="size-5" />
-            </Dialog.Close>
-          </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
-            {pairs.map((p) => (
-              <li key={p.symbol}>
-                <button
-                  type="button"
-                  aria-pressed={p.symbol === pair.symbol}
-                  onClick={() => {
-                    onPick(p.symbol);
-                    setPickerOpen(false);
-                  }}
-                  className={cn(
-                    "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
-                    p.symbol === pair.symbol ? "bg-muted text-primary" : "",
-                  )}
-                >
-                  <PairIcon icon={p.icon} />
-                  {p.display}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      }
+    >
+      <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
+        {pairs.map((p) => (
+          <li key={p.symbol}>
+            <button
+              type="button"
+              aria-pressed={p.symbol === pair.symbol}
+              onClick={() => {
+                onPick(p.symbol);
+                setPickerOpen(false);
+              }}
+              className={cn(
+                "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
+                p.symbol === pair.symbol ? "bg-muted text-primary" : "",
+              )}
+            >
+              <PairIcon icon={p.icon} />
+              {p.display}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 

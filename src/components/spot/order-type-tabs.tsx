@@ -18,7 +18,7 @@ export function OrderTypeTabs({ type, onChange }: { type: OrderType; onChange: (
           aria-selected={type === key}
           onClick={() => onChange(key)}
           className={cn(
-            "border-b-2 py-1",
+            "press border-b-2 py-1",
             type === key ? "border-primary font-semibold" : "border-transparent text-muted-foreground",
           )}
         >

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Faq } from "@/components/landing/faq";
 import { CtaBanner } from "@/components/landing/cta-banner";
 import { HeroPreview } from "@/components/landing/hero-preview";
+import { Reveal } from "@/components/app/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -58,14 +59,14 @@ export default function LandingPage() {
       </section>
 
       <section id="products" aria-labelledby="products-title" className="scroll-mt-6 space-y-10">
-        <div className="mx-auto max-w-3xl space-y-3 text-center">
+        <Reveal className="mx-auto max-w-3xl space-y-3 text-center">
           <p className="text-xs font-medium tracking-wide text-primary uppercase">{t("features.eyebrow")}</p>
           <h2 id="products-title" className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("features.title")}
           </h2>
           <p className="text-sm text-muted-foreground md:text-base">{t("features.subtitle")}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+        </Reveal>
+        <Reveal className="grid gap-4 md:grid-cols-3 md:gap-6">
           {FEATURES.map(({ key, Icon, href }) => (
             <article key={key} className="flex flex-col justify-between gap-8 rounded-2xl border bg-card p-6">
               <div className="space-y-4">
@@ -89,12 +90,16 @@ export default function LandingPage() {
               </Link>
             </article>
           ))}
-        </div>
+        </Reveal>
       </section>
 
-      <Faq />
+      <Reveal>
+        <Faq />
+      </Reveal>
 
-      <CtaBanner />
+      <Reveal>
+        <CtaBanner />
+      </Reveal>
     </main>
   );
 }

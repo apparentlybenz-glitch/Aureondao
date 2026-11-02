@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RouteTransition } from "@/components/app/route-transition";
 import { AuthBackground } from "@/components/auth/auth-background";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -16,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Wordmark className="h-5 w-auto" />
         </Link>
         <div className="rounded-xl border border-primary/25 bg-card/90 p-5 text-card-foreground [&_button[type=submit]]:h-12 [&_input[data-slot=input]]:h-12 [&_input[data-slot=input]]:text-base">
-          {children}
+          <RouteTransition keyBy="path">{children}</RouteTransition>
         </div>
       </div>
     </main>

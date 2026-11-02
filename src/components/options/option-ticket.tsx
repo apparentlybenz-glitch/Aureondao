@@ -21,6 +21,8 @@ import { rpcErrorCode, serverAnswered } from "@/lib/rpc-error";
 import { feeCents } from "@/lib/spot-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
+import { DrawnCheck } from "@/components/app/drawn-check";
 
 // Preset premiums in USD (UI only; the minimum comes from option_periods).
 const PRESETS = ["49", "1000", "5000", "10000", "30000", "50000"] as const;
@@ -168,7 +170,7 @@ export function OptionTicket({
                 aria-label={t(d === "rise" ? "pickRise" : "pickFall")}
                 onClick={() => change(() => setDirection(d))}
                 className={cn(
-                  "flex size-16 items-center justify-center rounded-full transition-[box-shadow,opacity]",
+                  "press flex size-16 items-center justify-center rounded-full",
                   d === "rise" ? "bg-up text-black" : "bg-down/60 text-white",
                   selected
                     ? d === "rise"
@@ -237,7 +239,7 @@ export function OptionTicket({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <LoadingRows label={t("loading")} rows={2} rowClassName="h-4 first:h-6" />
         )}
       </div>
 
@@ -259,7 +261,7 @@ export function OptionTicket({
               aria-pressed={amount === v}
               onClick={() => change(() => setAmount(v))}
               className={cn(
-                "h-9 rounded-md text-xs tabular-nums sm:text-sm",
+                "press h-9 rounded-md text-xs tabular-nums sm:text-sm",
                 amount === v ? "bg-primary/15 text-primary ring-1 ring-primary" : "bg-muted text-foreground",
               )}
             >
@@ -295,7 +297,8 @@ export function OptionTicket({
 
       <FormError message={error} />
       {notice ? (
-        <p role="status" className="text-sm text-up">
+        <p role="status" className="flex items-center gap-1.5 text-sm text-up">
+          <DrawnCheck />
           {notice}
         </p>
       ) : null}

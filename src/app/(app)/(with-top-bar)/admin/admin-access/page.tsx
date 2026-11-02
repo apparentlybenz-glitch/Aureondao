@@ -13,6 +13,7 @@ import { serverAnswered } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/client";
 import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 type Action = "grant" | "revoke" | "demote" | "remove";
 const LABEL = { grant: "access.grant", revoke: "access.revoke", demote: "access.demote", remove: "access.remove" } as const;
@@ -24,7 +25,7 @@ export default function AdminAccessPage() {
   const viewer = useHeadAdmin();
   const { user, select } = useSelectedUser();
 
-  if (viewer === null) return <p className="text-sm">{c("loading")}</p>;
+  if (viewer === null) return <LoadingRows label={c("loading")} rows={2} />;
   if (!viewer.isHead) return <p className="text-sm text-muted-foreground">{t("access.notAllowed")}</p>;
 
   return (
@@ -66,7 +67,7 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
     };
   }, [user.id]);
 
-  if (role === undefined) return <p className="text-sm">{c("loading")}</p>;
+  if (role === undefined) return <LoadingRows label={c("loading")} rows={2} />;
   if (role === null) return <p className="text-sm text-destructive">{t("loadError")}</p>;
 
   // The owner is never changed in the app. A head admin is changed only by the owner,

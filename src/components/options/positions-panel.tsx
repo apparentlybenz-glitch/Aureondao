@@ -12,6 +12,7 @@ import { useServerNow } from "@/lib/server-clock";
 import { optionShareTrade } from "@/lib/share-trade";
 import { ShareButton } from "@/components/share/share-button";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const timeFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "medium" });
 
@@ -122,7 +123,7 @@ export function PositionsPanel({
             aria-selected={tab === key}
             onClick={() => setTab(key)}
             className={cn(
-              "-mb-px border-b-2 py-2",
+              "press -mb-px border-b-2 py-2",
               tab === key ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground",
             )}
           >
@@ -142,7 +143,7 @@ export function PositionsPanel({
 
       {error ? <p className="text-sm text-destructive">{t("listError")}</p> : null}
       {list === null ? (
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+        <LoadingRows label={t("loading")} rows={2} rowClassName="h-16" />
       ) : list.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {tab === "positions" ? t("noOpen") : t("noFills")}

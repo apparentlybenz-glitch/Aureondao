@@ -28,6 +28,7 @@ import {
 import { serverAnswered } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 type Photo = { file: File; type: PhotoType; url: string };
 
@@ -66,7 +67,7 @@ export function KycFlow() {
   // Revoke the previous preview URL whenever the photo changes, and on leave.
   useEffect(() => () => (photo ? URL.revokeObjectURL(photo.url) : undefined), [photo]);
 
-  if (kyc === undefined || pending) return <p className="text-sm">{c("loading")}</p>;
+  if (kyc === undefined || pending) return <LoadingRows label={c("loading")} rows={4} rowClassName="h-11" />;
   if (kyc === null) return <p className="text-sm text-destructive">{c("genericError")}</p>;
   const userId = kyc.userId;
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, X } from "lucide-react";
-import { Dialog } from "radix-ui";
+import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Sheet } from "@/components/app/sheet";
 import { MarketTable } from "@/components/market/market-table";
 import { formatChange } from "@/lib/market/decimal";
 import { CoinIcon } from "@/components/market/coin-icon";
@@ -31,8 +31,13 @@ export function MarketPicker({
   const change = ticker && showChange ? formatChange(ticker.changePct) : null;
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      title={t("marketsTitle")}
+      closeLabel={t("close")}
+      className="top-[8dvh]"
+      trigger={
         <button
           type="button"
           aria-label={t("chooseMarket", { symbol: market.displaySymbol })}
@@ -52,32 +57,19 @@ export function MarketPicker({
             </span>
           ) : null}
         </button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          className="slide-panel fixed inset-x-0 top-[8dvh] bottom-0 z-50 mx-auto flex max-w-[880px] flex-col rounded-t-2xl border-t bg-background"
-        >
-          <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <Dialog.Title className="text-base font-semibold">{t("marketsTitle")}</Dialog.Title>
-            <Dialog.Close aria-label={t("close")} className="flex size-9 items-center justify-center rounded-full">
-              <X className="size-5" />
-            </Dialog.Close>
-          </div>
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+var(--safe-b))]">
-            <MarketTable
-              variant="market"
-              query={query}
-              onQueryChange={setQuery}
-              onSelect={(id) => {
-                onPick(id);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      }
+    >
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+var(--safe-b))]">
+        <MarketTable
+          variant="market"
+          query={query}
+          onQueryChange={setQuery}
+          onSelect={(id) => {
+            onPick(id);
+            setOpen(false);
+          }}
+        />
+      </div>
+    </Sheet>
   );
 }

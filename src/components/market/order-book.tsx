@@ -276,7 +276,7 @@ function FillBookView({
               title={t(`bookView.${key}`)}
               onClick={() => setView(key)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md",
+                "press flex size-7 items-center justify-center rounded-md",
                 view === key ? "bg-muted" : "opacity-60",
                 tone,
               )}

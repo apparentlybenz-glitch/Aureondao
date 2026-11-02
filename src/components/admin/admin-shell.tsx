@@ -10,6 +10,7 @@ import { SelectedUserProvider } from "@/components/admin/selected-user";
 import { useAccount } from "@/lib/use-account";
 import { useHeadAdmin } from "@/lib/use-head-admin";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
 // route and its `Admin.sections` string. A `headOnly` section is listed for head
@@ -31,7 +32,7 @@ const SECTIONS = [
 
 const isDestructive = (key: string) => key === "deleteAccount";
 
-const linkClass = "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
+const linkClass = "press flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium";
 
 // Gate, then the section nav: below `md:` a bar under the top bar whose hamburger
 // opens the section list in a drawer from the left; from `md:` a tab row like the
@@ -50,7 +51,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const close = () => setOpenedOn(null);
 
-  if (!ready) return <p className="text-sm">{c("loading")}</p>;
+  if (!ready) return <LoadingRows label={c("loading")} />;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
   const sections = SECTIONS.filter((s) => !("headOnly" in s) || viewer?.isHead === true);
@@ -69,7 +70,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "-mb-px flex h-11 items-center border-b-2 text-sm font-medium",
+                    "press -mb-px flex h-11 items-center border-b-2 text-sm font-medium",
                     danger
                       ? active
                         ? "border-destructive text-destructive"

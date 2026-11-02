@@ -14,6 +14,7 @@ import { isDelayed } from "@/lib/market/types";
 import type { Market } from "@/lib/market/types";
 import { useMarketData } from "@/lib/market/use-market-data";
 import { cn } from "@/lib/utils";
+import { LoadingRows } from "@/components/ui/skeleton";
 
 const TABS: TableTab[] = ["optional", "popular", "gainer", "down"];
 const TYPES = ["spot", "options", "forex"] as const;
@@ -67,9 +68,10 @@ export function MarketTable({
   }
 
   const hasTickers = Object.keys(tickers).length > 0;
+  const loading = markets ? tab === "optional" && !favorites : !failing;
   let message: string | null = null;
-  if (!markets) message = failing ? t("unavailable") : t("loading");
-  else if (tab === "optional" && !favorites) message = t("loading");
+  if (!markets) message = failing ? t("unavailable") : null;
+  else if (loading) message = null;
   else if (rows.length === 0) message = tab === "optional" && !query.trim() ? t("emptyOptional") : t("noResults");
 
   return (
@@ -95,7 +97,7 @@ export function MarketTable({
               aria-selected={tab === key}
               onClick={() => setTab(key)}
               className={cn(
-                "shrink-0 border-b-2 py-1.5",
+                "press shrink-0 border-b-2 py-1.5",
                 tab === key
                   ? "border-primary font-semibold text-foreground"
                   : "border-transparent text-muted-foreground",
@@ -131,7 +133,9 @@ export function MarketTable({
         </div>
       </div>
 
-      {message ? (
+      {loading ? (
+        <LoadingRows label={t("loading")} rows={HOME_ROWS} className="space-y-3 py-2.5" rowClassName="h-9" />
+      ) : message ? (
         <div className="space-y-3 py-8 text-center text-sm text-muted-foreground">
           <p>{message}</p>
           {tab === "optional" && !isMarket && favorites && rows.length === 0 ? (
