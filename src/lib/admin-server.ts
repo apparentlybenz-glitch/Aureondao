@@ -19,8 +19,9 @@ export async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>
   return role !== null;
 }
 
-// The caller's own admin row is a head admin. Same live-row-only rule as isAdmin;
-// admin_set_admin checks it again in SQL.
+// The caller's own admin row is a head admin (the owner is always one). Same
+// live-row-only rule as isAdmin; the head admin RPCs and the admin_audit_log
+// policy check private.is_head_admin() again in SQL.
 export async function isHeadAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: auth } = await supabase.auth.getClaims();
   const userId = auth?.claims.sub;

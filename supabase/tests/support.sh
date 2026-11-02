@@ -56,7 +56,7 @@ values ('00000000-0000-0000-0000-000000000000','$A','authenticated','authenticat
        ('00000000-0000-0000-0000-000000000000','$B','authenticated','authenticated','support-test-b@aureonx.invalid','',now(),'{}','{"nickname":"TestB"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$C','authenticated','authenticated','support-test-c@aureonx.invalid','',now(),'{}','{"nickname":"TestC"}',now(),now()),
        ('00000000-0000-0000-0000-000000000000','$D','authenticated','authenticated','support-test-d@aureonx.invalid','',now(),'{}','{"nickname":"TestD"}',now(),now());
-insert into public.user_roles (user_id, role) values ('$B','admin'), ('$D','admin');
+insert into public.user_roles (user_id, role, is_head) values ('$B','admin',true), ('$D','admin',false);
 select count(*) profiles from public.profiles where id in ('$A','$B','$C','$D');
 SQL
 ;;

@@ -13,19 +13,21 @@ import { cn } from "@/lib/utils";
 import { LoadingRows } from "@/components/ui/skeleton";
 
 // Every admin section, in drawer order. A new section is one entry here plus its
-// route and its `Admin.sections` string. Admin access is listed for head admins only.
+// route and its `Admin.sections` string. A `headOnly` section is listed for head
+// admins (and the owner) only; its route also needs a layout.tsx that redirects
+// with isHeadAdmin, and its RPCs check private.is_head_admin().
 // Delete account is last and destructive: it is drawn in red everywhere.
 const SECTIONS = [
   { key: "search", href: "/admin", Icon: Users },
-  { key: "topUp", href: "/admin/top-up", Icon: Wallet },
+  { key: "topUp", href: "/admin/top-up", Icon: Wallet, headOnly: true },
   { key: "restrictions", href: "/admin/restrictions", Icon: Ban },
   { key: "outcomeControl", href: "/admin/outcome-control", Icon: SlidersHorizontal },
   { key: "kyc", href: "/admin/kyc", Icon: IdCard },
-  { key: "optionPeriods", href: "/admin/option-periods", Icon: Timer },
+  { key: "optionPeriods", href: "/admin/option-periods", Icon: Timer, headOnly: true },
   { key: "support", href: "/admin/support", Icon: LifeBuoy },
-  { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText },
-  { key: "adminAccess", href: "/admin/admin-access", Icon: ShieldCheck },
-  { key: "deleteAccount", href: "/admin/delete-account", Icon: Trash2 },
+  { key: "auditLog", href: "/admin/audit-log", Icon: ScrollText, headOnly: true },
+  { key: "adminAccess", href: "/admin/admin-access", Icon: ShieldCheck, headOnly: true },
+  { key: "deleteAccount", href: "/admin/delete-account", Icon: Trash2, headOnly: true },
 ] as const;
 
 const isDestructive = (key: string) => key === "deleteAccount";
@@ -52,7 +54,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (!ready) return <LoadingRows label={c("loading")} />;
   if (!isAdmin) return <p className="text-sm text-muted-foreground">{t("needAdmin")}</p>;
 
-  const sections = SECTIONS.filter((s) => s.key !== "adminAccess" || viewer?.isHead === true);
+  const sections = SECTIONS.filter((s) => !("headOnly" in s) || viewer?.isHead === true);
   const current = SECTIONS.find((s) => s.href === pathname) ?? SECTIONS[0];
 
   return (
