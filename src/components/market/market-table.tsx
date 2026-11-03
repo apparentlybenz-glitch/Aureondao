@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { LoadingRows } from "@/components/ui/skeleton";
 
 const TABS: TableTab[] = ["optional", "popular", "gainer", "down"];
-const TYPES = ["spot", "options", "forex"] as const;
+const TYPES = ["spot", "options"] as const;
 const HOME_ROWS = 8;
 const GRID =
   "grid min-w-0 flex-1 grid-cols-[minmax(7.5rem,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_3.75rem] items-center gap-1";

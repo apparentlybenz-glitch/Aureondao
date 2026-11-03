@@ -17,12 +17,30 @@
         "colMinimum": "MINIMUM DEPOSIT",
         "notice": "Only send supported assets to their correct network address. Deposits sent to the wrong network are permanently lost.",
         "rows": {
-          "usdtTrc20": { "asset": "USDT", "network": "TRC-20 (Tron)" },
-          "usdtErc20": { "asset": "USDT", "network": "ERC-20 (ETH)" },
-          "btc": { "asset": "Bitcoin", "network": "BTC" },
-          "sol": { "asset": "Solana", "network": "SOL" },
-          "eth": { "asset": "Ethereum", "network": "ERC-20 (ETH)" },
-          "usdcErc20": { "asset": "USDC", "network": "ERC-20 (ETH)" }
+          "usdtTrc20": {
+            "asset": "USDT",
+            "network": "TRC-20 (Tron)"
+          },
+          "usdtErc20": {
+            "asset": "USDT",
+            "network": "ERC-20 (ETH)"
+          },
+          "btc": {
+            "asset": "Bitcoin",
+            "network": "BTC"
+          },
+          "sol": {
+            "asset": "Solana",
+            "network": "SOL"
+          },
+          "eth": {
+            "asset": "Ethereum",
+            "network": "ERC-20 (ETH)"
+          },
+          "usdcErc20": {
+            "asset": "USDC",
+            "network": "ERC-20 (ETH)"
+          }
         }
       },
       "depositTime": {
@@ -308,6 +326,7 @@
     "NOT_HEAD_ADMIN": "This user is not a head admin.",
     "CANNOT_DELETE_SELF": "You cannot delete your own account.",
     "ADMIN_PROTECTED": "An admin account cannot be deleted. Remove their admin access first.",
+    "MARKET_CLOSED": "Forex is closed right now. Try again when it reopens.",
     "network": "The connection failed. Your request may not have gone through. Press confirm again to retry safely."
   },
   "Offline": {
@@ -390,7 +409,6 @@
       "preferences": "Preferences"
     }
   },
-
   "Security": {
     "title": "Security Center",
     "totpTitle": "Authenticator app",
@@ -553,12 +571,13 @@
       "order_release": "Order release",
       "spot_buy": "Spot buy",
       "spot_sell": "Spot sell",
-      "forex_margin": "Forex margin",
-      "forex_close": "Forex close",
+      "forex_margin": "Forex premium",
+      "forex_close": "Forex settlement",
       "option_premium": "Options premium",
       "option_settle": "Options settlement",
       "fee": "Fee",
-      "option_refund": "Option refund"
+      "option_refund": "Option refund",
+      "forex_refund": "Forex refund"
     },
     "transfer": "Transfer: {from} to {to}"
   },
@@ -699,7 +718,7 @@
       "doneRevoked": "{email} is no longer an admin. Their admin tools stop working at once, and the admin menu clears on their next token refresh."
     },
     "optionPeriods": {
-      "description": "Profit rate, fee and minimum premium for each option period. Open positions keep the rate they opened with.",
+      "description": "Profit rate, fee and minimum premium for each Options period and each Forex duration. Open positions keep the rate they opened with.",
       "period": "{seconds} s",
       "profitRate": "Profit rate (%)",
       "fee": "Fee (%)",
@@ -715,7 +734,9 @@
         "enabledNeedsRate": "A period needs a profit rate above 0 to be enabled.",
         "rateBelowFee": "The profit rate must be above the fee for a period to be enabled.",
         "minPremiumFloor": "The minimum premium must be at least {min} for this rate and fee, so a win still pays after the fee."
-      }
+      },
+      "optionsHeading": "Options",
+      "forexHeading": "Forex"
     },
     "auditLog": {
       "description": "Every transaction across the platform. {count, plural, one {# record} other {# records}}.",
@@ -728,11 +749,21 @@
       "loadMore": "Load more",
       "deletedUser": "Deleted user",
       "noNote": "-",
-      "tabs": { "label": "Audit view", "transactions": "Transactions", "actions": "Admin actions" },
+      "tabs": {
+        "label": "Audit view",
+        "transactions": "Transactions",
+        "actions": "Admin actions"
+      },
       "actionsDescription": "Every admin action on the platform. {count, plural, one {# record} other {# records}}.",
       "actionsEmpty": "No admin actions found.",
       "noTarget": "-",
-      "actionColumns": { "date": "Date", "admin": "Admin", "action": "Action", "target": "Target user", "detail": "Detail" },
+      "actionColumns": {
+        "date": "Date",
+        "admin": "Admin",
+        "action": "Action",
+        "target": "Target user",
+        "detail": "Detail"
+      },
       "actions": {
         "adjust_balance": "Balance adjustment",
         "suspend": "Suspension",
@@ -741,6 +772,7 @@
         "withdraw_unrestrict": "Withdrawals restriction removed",
         "delete_user": "Account deleted",
         "set_option_period": "Option period change",
+        "set_fx_period": "Forex period change",
         "outcome_config": "Outcome config change",
         "outcome_override_set": "Outcome override set",
         "outcome_override_clear": "Outcome override cleared",
@@ -828,8 +860,7 @@
     "types": {
       "label": "Market type",
       "spot": "Spot",
-      "options": "Options",
-      "forex": "Forex"
+      "options": "Options"
     },
     "columns": {
       "symbol": "Symbol",
@@ -963,22 +994,97 @@
     "choosePair": "Choose pair, current {symbol}",
     "pairsTitle": "Forex pairs",
     "close": "Close",
+    "info": "Forex durations and fees",
+    "infoTitle": "Forex positions",
+    "infoRate": "Profit {rate}",
+    "infoFee": "Transaction fee {rate}, charged on top of the premium.",
+    "infoEntry": "Your entry price is the first rate recorded at least 5 minutes after you open.",
+    "infoSettle": "A position settles at the first rate recorded at or after its end time. If no rate is recorded in time, the premium and fee are refunded.",
+    "infoEmpty": "No Forex duration is open right now.",
     "showBook": "Show order book",
     "hideBook": "Hide order book",
     "currentPrice": "{symbol} Current price <value>{price}</value>",
-    "buy": "Buy",
-    "sell": "Sell",
-    "amount": "Amount",
-    "amountInput": "Amount",
-    "amountPlaceholder": "Amount",
-    "notAvailable": "Forex trading is not available yet.",
+    "noPrice": "No price yet.",
+    "expect": "I expect {symbol} will <dir>{direction}</dir>",
+    "rise": "Rise",
+    "fall": "Fall",
+    "pickRise": "Expect a rise",
+    "pickFall": "Expect a fall",
+    "duration": "Duration",
+    "hours": "{value} h",
+    "minutes": "{value} min",
+    "pnl": "PnL {rate}",
+    "premium": "Premium Amount (USD)",
+    "available": "{amount}",
+    "toTransfer": "Move funds to the Forex wallet",
+    "premiumInput": "Premium in USD",
+    "premiumPlaceholder": "Minimum {min}",
+    "fee": "Transaction fee: {rate}",
+    "estReturn": "Est. return: <value>{amount}</value>",
+    "call": "Call",
+    "put": "Put",
+    "sending": "Opening…",
+    "noPeriod": "No Forex duration is open",
+    "opened": "Position opened. Waiting for entry price.",
+    "closed": "Forex is closed. It opens again {weekday} at {time} ET.",
+    "closedNoTime": "Forex is closed right now. Try again when it reopens.",
+    "crossing": "A new position cannot finish before Forex closes at {time} ET. Try again when it reopens.",
+    "crossingNoTime": "A new position cannot finish before Forex closes. Try again when it reopens.",
+    "check": {
+      "format": "Enter an amount like 49 or 49.50.",
+      "belowMin": "The minimum premium is {min} USD.",
+      "overBalance": "The premium plus the fee is more than your Forex balance."
+    },
+    "errors": {
+      "UNAUTHENTICATED": "Please sign in again.",
+      "INVALID_ARGUMENT": "Something is missing. Check the ticket.",
+      "WALLET_NOT_FOUND": "Your Forex wallet was not found.",
+      "MARKET_NOT_FOUND": "This instrument is not available.",
+      "MARKET_DISABLED": "This instrument is not available right now.",
+      "PERIOD_NOT_FOUND": "This duration is not available.",
+      "PERIOD_DISABLED": "This duration is not open right now. Pick another one.",
+      "BELOW_MIN_PREMIUM": "The minimum premium is {min} USD.",
+      "PRICE_STALE": "Prices are updating. Try again in a minute.",
+      "INSUFFICIENT_FUNDS": "Not enough USD in your Forex wallet for the premium plus the fee.",
+      "IDEMPOTENCY_CONFLICT": "This position was already sent with different details. Check your positions, then try again."
+    },
     "tabs": {
       "positions": "Positions ({count})",
       "history": "History"
     },
     "currentOnly": "Current instrument",
+    "field": {
+      "premium": "Premium",
+      "period": "Duration",
+      "entry": "Entry price",
+      "fee": "Fee",
+      "opened": "Opened",
+      "settlePrice": "Settle price",
+      "payout": "Payout",
+      "pnl": "PnL"
+    },
+    "waitingEntry": "Waiting for entry price",
+    "ends": "Ends {time} ET",
+    "et": "{time} ET",
+    "result": {
+      "win": "Win",
+      "loss": "Loss",
+      "draw": "Draw",
+      "refunded": "Refunded"
+    },
     "noOpen": "No open positions.",
-    "noHistory": "No history yet."
+    "noHistory": "No history yet.",
+    "listError": "Could not load your positions. Try again shortly.",
+    "usd": "{amount} USD",
+    "loading": "Loading…",
+    "confirmCallBadge": "CALL",
+    "confirmPutBadge": "PUT",
+    "confirmEntry": "Entry price",
+    "confirmEntryValue": "Next rate after 5 min",
+    "confirmPremium": "Premium",
+    "confirmPeriod": "Duration",
+    "confirmFee": "Fee ({rate})",
+    "confirmReturn": "Est. return"
   },
   "Spot": {
     "title": "Spot",

@@ -34,7 +34,7 @@ type Common = {
 
 export type OrderBookProps =
   | (Common & { mode: "real"; market: Pick<Market, "id" | "visionSymbol"> })
-  | (Common & { mode: "generated"; id: string; mid: string | null });
+  | (Common & { mode: "generated"; id: string; mid: string | null; emptyLabel?: string });
 
 // One book for Spot, Options and Forex. "real" polls Vision depth for the symbol while the
 // page is visible; "generated" is a deterministic ladder around `mid` for an instrument
@@ -66,7 +66,7 @@ function RealBook(props: Common & { mode: "real"; market: Pick<Market, "id" | "v
 
 const GENERATED_LEVELS = 20;
 
-function GeneratedBook(props: Common & { mode: "generated"; id: string; mid: string | null }) {
+function GeneratedBook(props: Common & { mode: "generated"; id: string; mid: string | null; emptyLabel?: string }) {
   const t = useTranslations("Spot");
   const hydrated = useHydrated();
   // The minute changes once a minute; the check runs every 5 s, and an unchanged value does not re-render.
@@ -85,7 +85,8 @@ function GeneratedBook(props: Common & { mode: "generated"; id: string; mid: str
     [hydrated, id, mid, priceDecimals, qtyDecimals, minute],
   );
   const View = props.fill ? FillBookView : BookView;
-  return <View {...props} book={book} mid={mid} empty={t("loading")} />;
+  // With no price there is nothing to draw: the caller's empty label (if any) replaces "Loading".
+  return <View {...props} book={book} mid={mid} empty={!mid && props.emptyLabel ? props.emptyLabel : t("loading")} />;
 }
 
 const CELL = "relative flex justify-between py-px text-[11px] leading-4 tabular-nums";
