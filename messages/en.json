@@ -860,10 +860,11 @@
     "types": {
       "label": "Market type",
       "spot": "Spot",
-      "options": "Options"
+      "forex": "Forex"
     },
     "columns": {
       "symbol": "Symbol",
+      "last": "Last price",
       "sell": "Sell",
       "buy": "Buy",
       "change": "Change"
@@ -876,6 +877,7 @@
     "loading": "Loading markets…",
     "unavailable": "Prices are temporarily unavailable. Retrying.",
     "delayed": "Delayed",
+    "closed": "Closed",
     "addFavorite": "Add {symbol} to favorites",
     "removeFavorite": "Remove {symbol} from favorites",
     "seeAll": "See all markets"

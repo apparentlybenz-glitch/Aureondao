@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { SupportFab } from "@/components/app/support-fab";
 import { DepthTabs } from "@/components/market/depth-tabs";
@@ -9,7 +10,7 @@ import { OrderBook } from "@/components/market/order-book";
 import { TerminalSkeleton } from "@/components/market/terminal-skeleton";
 import { TerminalStrip } from "@/components/market/terminal-strip";
 import { TradingViewChart } from "@/components/market/tradingview-chart";
-import { changePercent } from "@/lib/forex-math";
+import { fxChangePercent } from "@/lib/forex-math";
 import { forexTvSymbol } from "@/lib/forex-pairs";
 import { useFxFeed, useFxInstruments, useFxPositions, useFxPrice } from "@/lib/forex";
 import type { FxInstrument } from "@/lib/forex";
@@ -37,7 +38,11 @@ export function ForexTerminal() {
 
 function ForexScreen({ instruments }: { instruments: FxInstrument[] }) {
   const t = useTranslations("Forex");
-  const [pickedId, setPickedId] = useState(instruments[0].id);
+  // /forex?instrument=EUR-USD (from the Market list) picks the first instrument; an unknown id is ignored.
+  const wanted = useSearchParams().get("instrument");
+  const [pickedId, setPickedId] = useState(
+    instruments.find((i) => i.id === wanted)?.id ?? instruments[0].id,
+  );
   const [bookShown, setBookShown] = useState(false);
   const instrument = instruments.find((i) => i.id === pickedId) ?? instruments[0];
   const { periods } = usePeriods("fx_periods");
@@ -63,7 +68,7 @@ function ForexScreen({ instruments }: { instruments: FxInstrument[] }) {
 
   const dp = instrument.priceDecimals;
   const price = last ? formatPrice(last.price, dp) : "--";
-  const pct = last && dayAgo ? changePercent(last.price, dayAgo.price) : null;
+  const pct = fxChangePercent(last, dayAgo);
   const change = pct === null ? "--" : formatChange(pct);
   const tone = change.startsWith("+") ? "up" : change.startsWith("-") ? "down" : undefined;
   const forex = wallets?.find((w) => w.account === "forex") ?? null;

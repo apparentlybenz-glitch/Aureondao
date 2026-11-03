@@ -48,6 +48,12 @@ export function changePercent(last: string, prev: string): string | null {
   return negative ? `-${text}` : text;
 }
 
+// The 24 hour change of a print against the one selected by dayAgoPrint, as changePercent
+// (null when either is missing). The terminal and the Market list both call this.
+export function fxChangePercent(last: PricePoint | null, dayAgo: PricePoint | null): string | null {
+  return last && dayAgo ? changePercent(last.price, dayAgo.price) : null;
+}
+
 const etWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long" });
 const etClock = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",

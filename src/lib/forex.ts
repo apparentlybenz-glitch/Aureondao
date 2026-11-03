@@ -280,3 +280,78 @@ export function useFxPositions() {
 
   return { active: data?.active ?? null, history: data?.history ?? null, error, reload };
 }
+
+export type FxRow = { last: PricePoint | null; dayAgo: PricePoint | null };
+
+type TableRow = { instrument_id: string; ts: string; price: string };
+
+// Newest print and the print about a day before it for every listed instrument, in two reads
+// (the newest row overall, then everything within 24.5 h of it), with the same dayAgoPrint
+// selection as useFxPrice. A burst of Realtime inserts (one per instrument) reloads once.
+// Null until the first answer.
+export function useFxTable(ids: readonly string[]): Record<string, FxRow> | null {
+  const [rows, setRows] = useState<Record<string, FxRow> | null>(null);
+  const key = ids.join(",");
+
+  useEffect(() => {
+    const list = key ? key.split(",") : [];
+    if (list.length === 0) return;
+    const supabase = createClient();
+    let active = true;
+    let ticket = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const load = async () => {
+      const mine = ++ticket;
+      const newest = await supabase
+        .from("fx_prices")
+        .select("ts")
+        .in("instrument_id", list)
+        .order("ts", { ascending: false })
+        .limit(1)
+        .overrideTypes<{ ts: string }[], { merge: false }>();
+      if (!active || mine !== ticket || newest.error) return;
+      if (!newest.data[0]) {
+        setRows(Object.fromEntries(list.map((id) => [id, { last: null, dayAgo: null }])));
+        return;
+      }
+      const from = new Date(Date.parse(newest.data[0].ts) - DAY_MS - WINDOW_MS).toISOString();
+      const all = await supabase
+        .from("fx_prices")
+        .select("instrument_id, ts, price::text")
+        .in("instrument_id", list)
+        .gte("ts", from)
+        .order("ts")
+        .overrideTypes<TableRow[], { merge: false }>();
+      if (!active || mine !== ticket || all.error) return;
+      const by = new Map<string, PricePoint[]>(list.map((id) => [id, []]));
+      for (const r of all.data) by.get(r.instrument_id)?.push({ ts: r.ts, price: r.price });
+      const next: Record<string, FxRow> = {};
+      for (const id of list) {
+        const own = by.get(id) ?? [];
+        const last = own[own.length - 1] ?? null;
+        next[id] = { last, dayAgo: last ? dayAgoPrint(own, last.ts) : null };
+      }
+      setRows(next);
+    };
+    const soon = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void load(), 300);
+    };
+    void load();
+    const channel = supabase
+      .channel(`fx_prices_table:${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "fx_prices" }, soon)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void load();
+      });
+    const stopVisible = onVisible(() => void load());
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      stopVisible();
+      void supabase.removeChannel(channel);
+    };
+  }, [key]);
+
+  return rows;
+}
