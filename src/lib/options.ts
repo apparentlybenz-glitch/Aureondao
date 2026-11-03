@@ -89,16 +89,21 @@ function toPosition(r: PositionRow): OptionPosition {
   };
 }
 
-// All periods in duration order, kept live (admin edits arrive over Realtime).
-export function useOptionPeriods(): OptionPeriod[] | null {
+// All periods of a table in duration order, kept live (admin edits arrive over Realtime;
+// fx_periods is not in the publication, so it reloads on subscribe, on visibility and on
+// `reload`, which the admin page calls after a save).
+export type PeriodTable = "option_periods" | "fx_periods";
+
+export function usePeriods(table: PeriodTable): { periods: OptionPeriod[] | null; reload: () => void } {
   const [periods, setPeriods] = useState<OptionPeriod[] | null>(null);
+  const loadRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const supabase = createClient();
     let active = true;
     const load = async () => {
       const { data, error } = await supabase
-        .from("option_periods")
+        .from(table)
         .select(PERIOD_SELECT)
         .order("duration_s")
         .overrideTypes<PeriodRow[], { merge: false }>();
@@ -113,10 +118,11 @@ export function useOptionPeriods(): OptionPeriod[] | null {
         })),
       );
     };
+    loadRef.current = () => void load();
     void load();
     const channel = supabase
-      .channel(`option_periods:${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "option_periods" }, () => void load())
+      .channel(`${table}:${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table }, () => void load())
       .subscribe((status) => {
         if (status === "SUBSCRIBED") void load();
       });
@@ -126,9 +132,14 @@ export function useOptionPeriods(): OptionPeriod[] | null {
       stopVisible();
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [table]);
 
-  return periods;
+  const reload = useCallback(() => loadRef.current(), []);
+  return { periods, reload };
+}
+
+export function useOptionPeriods(): OptionPeriod[] | null {
+  return usePeriods("option_periods").periods;
 }
 
 type PositionsData = { open: OptionPosition[]; fills: OptionPosition[] };

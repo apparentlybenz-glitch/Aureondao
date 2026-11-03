@@ -1,30 +1,16 @@
-// The Forex page reads its pairs only from here. Everything is a placeholder
-// until the pricing session replaces it: mid is a static decimal string, icon
-// is the text drawn in a plain circle.
-export type ForexPair = {
-  symbol: string; // EURUSD
-  tvSymbol: string; // FX:EURUSD, see forexTvSymbol
-  display: string; // EUR/USD
-  name: string;
-  mid: string; // static placeholder, decimal string
-  priceDecimals: number;
-  icon: string;
-};
-
-// TradingView chart symbols. Currency pairs are FX:<PAIR>; gold and silver are
-// OANDA:XAUUSD and OANDA:XAGUSD, with TVC:GOLD and TVC:SILVER as alternates if
-// OANDA does not render.
+// TradingView chart symbols for the enabled Forex instruments. Instruments themselves
+// (ids, names, decimals, class, order) come from the fx_instruments table.
+//
+// Currency pairs are FX:<PAIR>; gold and silver are OANDA:XAUUSD and OANDA:XAGUSD, with
+// TVC:GOLD and TVC:SILVER as alternates if OANDA does not render. Not seen rendering from
+// the agent sandbox (the widget host is unreachable there), so all 13 are unverified.
 export const FOREX_TV_ALTERNATES: Readonly<Record<string, string>> = {
-  XAUUSD: "TVC:GOLD",
-  XAGUSD: "TVC:SILVER",
+  "XAU-USD": "TVC:GOLD",
+  "XAG-USD": "TVC:SILVER",
 };
 
-export function forexTvSymbol(symbol: string): string {
-  return symbol === "XAUUSD" || symbol === "XAGUSD" ? `OANDA:${symbol}` : `FX:${symbol}`;
+// "EUR-USD" -> "FX:EURUSD", "XAU-USD" -> "OANDA:XAUUSD".
+export function forexTvSymbol(id: string): string {
+  const pair = id.replace("-", "");
+  return id === "XAU-USD" || id === "XAG-USD" ? `OANDA:${pair}` : `FX:${pair}`;
 }
-
-export const FOREX_PAIRS: readonly ForexPair[] = [
-  { symbol: "EURUSD", tvSymbol: "FX:EURUSD", display: "EUR/USD", name: "Euro / US Dollar", mid: "1.08500", priceDecimals: 5, icon: "EU" },
-  { symbol: "GBPUSD", tvSymbol: "FX:GBPUSD", display: "GBP/USD", name: "British Pound / US Dollar", mid: "1.27000", priceDecimals: 5, icon: "GB" },
-  { symbol: "USDJPY", tvSymbol: "FX:USDJPY", display: "USD/JPY", name: "US Dollar / Japanese Yen", mid: "150.000", priceDecimals: 3, icon: "UJ" },
-];

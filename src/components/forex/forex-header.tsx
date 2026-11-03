@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown } from "lucide-react";
+import { BookOpen, ChevronDown, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Sheet } from "@/components/app/sheet";
-import type { ForexPair } from "@/lib/forex-pairs";
+import { durationParts, fxDisplay } from "@/lib/forex-math";
+import type { FxInstrument } from "@/lib/forex";
+import type { OptionPeriod } from "@/lib/options";
+import { bpsToPercent } from "@/lib/options-math";
 import { cn } from "@/lib/utils";
 
-// Placeholder icon: a plain circle with the pair's initials.
-export function PairIcon({ icon, className }: { icon: string; className?: string }) {
+const SHEET = "max-h-[80dvh] pb-[calc(1rem+var(--safe-b))]";
+const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
+
+// A plain circle with the base currency's first letters (a placeholder, never a logo).
+export function PairIcon({ base, className }: { base: string; className?: string }) {
   return (
     <span
       aria-hidden="true"
@@ -17,20 +23,20 @@ export function PairIcon({ icon, className }: { icon: string; className?: string
         className,
       )}
     >
-      {icon}
+      {base.slice(0, 2)}
     </span>
   );
 }
 
-// The pair button and the pairs sheet it opens. Shared by the header and the desktop strip.
+// The instrument button and the sheet it opens. Shared by the header and the desktop strip.
 export function ForexPairPicker({
-  pair,
-  pairs,
+  instrument,
+  instruments,
   onPick,
 }: {
-  pair: ForexPair;
-  pairs: readonly ForexPair[];
-  onPick: (symbol: string) => void;
+  instrument: FxInstrument;
+  instruments: readonly FxInstrument[];
+  onPick: (id: string) => void;
 }) {
   const t = useTranslations("Forex");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -40,36 +46,36 @@ export function ForexPairPicker({
       onOpenChange={setPickerOpen}
       title={t("pairsTitle")}
       closeLabel={t("close")}
-      className="max-h-[80dvh] pb-[calc(1rem+var(--safe-b))]"
+      className={SHEET}
       trigger={
         <button
           type="button"
-          aria-label={t("choosePair", { symbol: pair.display })}
+          aria-label={t("choosePair", { symbol: fxDisplay(instrument.id) })}
           className="flex min-w-0 items-center gap-1.5"
         >
-          <PairIcon icon={pair.icon} />
-          <span className="text-lg font-semibold">{pair.display}</span>
+          <PairIcon base={instrument.base} />
+          <span className="text-lg font-semibold">{fxDisplay(instrument.id)}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>
       }
     >
       <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
-        {pairs.map((p) => (
-          <li key={p.symbol}>
+        {instruments.map((i) => (
+          <li key={i.id}>
             <button
               type="button"
-              aria-pressed={p.symbol === pair.symbol}
+              aria-pressed={i.id === instrument.id}
               onClick={() => {
-                onPick(p.symbol);
+                onPick(i.id);
                 setPickerOpen(false);
               }}
               className={cn(
                 "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
-                p.symbol === pair.symbol ? "bg-muted text-primary" : "",
+                i.id === instrument.id ? "bg-muted text-primary" : "",
               )}
             >
-              <PairIcon icon={p.icon} />
-              {p.display}
+              <PairIcon base={i.base} />
+              {fxDisplay(i.id)}
             </button>
           </li>
         ))}
@@ -78,40 +84,118 @@ export function ForexPairPicker({
   );
 }
 
-// Pair picker and order book toggle (below lg), copied from OptionsHeader.
+// The info button and the sheet it opens: durations, rates, fee and the entry and settlement rules.
+export function ForexInfo({ periods }: { periods: OptionPeriod[] | null }) {
+  const t = useTranslations("Forex");
+  const enabled = periods?.filter((p) => p.enabled) ?? [];
+  const [open, setOpen] = useState(false);
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      title={t("infoTitle")}
+      closeLabel={t("close")}
+      className={SHEET}
+      trigger={
+        <button type="button" aria-label={t("info")} className={ICON}>
+          <Info className="size-5" />
+        </button>
+      }
+    >
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 text-sm">
+        {enabled.length === 0 ? (
+          <p className="text-muted-foreground">{t("infoEmpty")}</p>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {enabled.map((p) => {
+              const d = durationParts(p.durationS);
+              return (
+                <li key={p.durationS} className="flex justify-between px-3 py-2.5 tabular-nums">
+                  <span>{t(d.unit, { value: d.value })}</span>
+                  <span className="text-up">{t("infoRate", { rate: bpsToPercent(p.profitRateBps) })}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {enabled[0] ? <p>{t("infoFee", { rate: bpsToPercent(enabled[0].feeBps) })}</p> : null}
+        <p>{t("infoEntry")}</p>
+        <p className="text-muted-foreground">{t("infoSettle")}</p>
+      </div>
+    </Sheet>
+  );
+}
+
+// Last price with the 24 hour change beneath, under the picker (below xl).
+export function ForexPriceBlock({
+  price,
+  change,
+  tone,
+}: {
+  price: string;
+  change: string;
+  tone: "up" | "down" | undefined;
+}) {
+  return (
+    <div>
+      <p
+        className={cn(
+          "text-2xl leading-tight font-semibold tabular-nums",
+          tone === "up" && "text-up",
+          tone === "down" && "text-down",
+        )}
+      >
+        {price}
+      </p>
+      <p className={cn("text-xs tabular-nums", tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-muted-foreground")}>
+        {change}
+      </p>
+    </div>
+  );
+}
+
+// Instrument picker, info and the order book toggle (below lg), then the last price.
 export function ForexHeader({
-  pair,
-  pairs,
+  instrument,
+  instruments,
+  periods,
   bookShown,
+  price,
+  change,
+  tone,
   onPick,
   onToggleBook,
 }: {
-  pair: ForexPair;
-  pairs: readonly ForexPair[];
+  instrument: FxInstrument;
+  instruments: readonly FxInstrument[];
+  periods: OptionPeriod[] | null;
   bookShown: boolean;
-  onPick: (symbol: string) => void;
+  price: string;
+  change: string;
+  tone: "up" | "down" | undefined;
+  onPick: (id: string) => void;
   onToggleBook: () => void;
 }) {
   const t = useTranslations("Forex");
-  const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
 
   return (
-    <header className="mb-3 flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-1">
-        <ForexPairPicker pair={pair} pairs={pairs} onPick={onPick} />
-      </div>
-
-      <div className="flex items-center gap-1">
+    <header className="mb-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1">
+          <ForexPairPicker instrument={instrument} instruments={instruments} onPick={onPick} />
+          <ForexInfo periods={periods} />
+        </div>
         <button
           type="button"
           aria-pressed={bookShown}
           aria-label={bookShown ? t("hideBook") : t("showBook")}
           onClick={onToggleBook}
-          className={cn(icon, "lg:hidden", bookShown && "text-primary")}
+          className={cn(ICON, "lg:hidden", bookShown && "text-primary")}
         >
           <BookOpen className="size-5" />
         </button>
       </div>
+      <ForexPriceBlock price={price} change={change} tone={tone} />
     </header>
   );
 }

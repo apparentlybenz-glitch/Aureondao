@@ -9,37 +9,60 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { centsToInput, parseAmount, ZERO_CENTS } from "@/lib/money";
-import { type OptionPeriod, useOptionPeriods } from "@/lib/options";
+import { type OptionPeriod, usePeriods } from "@/lib/options";
 import { bpsToPercentText, minPremiumFloorCents, percentToBps } from "@/lib/options-math";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { LoadingRows } from "@/components/ui/skeleton";
 
-// The limits admin_set_option_period enforces: profit rate 0 to 1000 %, fee 0 to 10 %.
+// The limits admin_set_option_period and admin_set_fx_period enforce: profit rate 0 to 1000 %, fee 0 to 10 %.
 const MAX_PROFIT_BPS = 100000;
 const MAX_FEE_BPS = 1000;
 
+type PeriodRpc = "admin_set_option_period" | "admin_set_fx_period";
+
 export default function OptionPeriodsPage() {
   const t = useTranslations("Admin");
-  const c = useTranslations("Common");
-  // Live: a saved row arrives back over Realtime.
-  const periods = useOptionPeriods();
   return (
     <>
       <AdminHeading title={t("sections.optionPeriods")} description={t("optionPeriods.description")} />
-      {periods === null ? <LoadingRows label={c("loading")} rows={5} rowClassName="h-24 rounded-xl" /> : null}
-      <ul className="space-y-3">
-        {periods?.map((p) => (
-          <li key={p.durationS}>
-            <PeriodRow period={p} />
-          </li>
-        ))}
-      </ul>
+      <PeriodList table="option_periods" rpc="admin_set_option_period" heading={t("optionPeriods.optionsHeading")} />
+      <PeriodList table="fx_periods" rpc="admin_set_fx_period" heading={t("optionPeriods.forexHeading")} />
     </>
   );
 }
 
-function PeriodRow({ period }: { period: OptionPeriod }) {
+// One table's periods. Options arrive live over Realtime; fx_periods is not published, so a save
+// reloads the list.
+function PeriodList({ table, rpc, heading }: { table: "option_periods" | "fx_periods"; rpc: PeriodRpc; heading: string }) {
+  const c = useTranslations("Common");
+  const { periods, reload } = usePeriods(table);
+  return (
+    <section className="mb-8 space-y-3">
+      <h2 className="text-lg font-semibold">{heading}</h2>
+      {periods === null ? <LoadingRows label={c("loading")} rows={3} rowClassName="h-24 rounded-xl" /> : null}
+      <ul className="space-y-3">
+        {periods?.map((p) => (
+          <li key={p.durationS}>
+            <PeriodRow period={p} rpc={rpc} idPrefix={table} onSaved={reload} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function PeriodRow({
+  period,
+  rpc,
+  idPrefix,
+  onSaved,
+}: {
+  period: OptionPeriod;
+  rpc: PeriodRpc;
+  idPrefix: string;
+  onSaved: () => void;
+}) {
   const t = useTranslations("Admin");
   const rpcMessage = useRpcMessage();
   const [profit, setProfit] = useState(bpsToPercentText(period.profitRateBps));
@@ -88,7 +111,7 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
     if (!valid || pending || profitBps === null || feeBps === null || minCents === null) return;
     setPending(true);
     setError(null);
-    const { error } = await createClient().rpc("admin_set_option_period", {
+    const { error } = await createClient().rpc(rpc, {
       p_duration_s: period.durationS,
       p_profit_rate_bps: profitBps,
       p_fee_bps: feeBps,
@@ -98,9 +121,10 @@ function PeriodRow({ period }: { period: OptionPeriod }) {
     setPending(false);
     if (error) return setError(rpcMessage(error));
     setSaved(true);
+    onSaved();
   }
 
-  const id = `period-${period.durationS}`;
+  const id = `${idPrefix}-${period.durationS}`;
   return (
     <form onSubmit={onSubmit} className="space-y-3 rounded-xl border bg-card p-4">
       <div className="flex items-center justify-between gap-3">

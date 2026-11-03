@@ -10,7 +10,7 @@ import { ACCOUNTS } from "@/lib/wallets";
 import { loadAdminActions, type ActionEntry } from "./actions";
 import { LoadingRows } from "@/components/ui/skeleton";
 
-const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "outcome_config", "outcome_override_set", "outcome_override_clear", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
+const ACTIONS = ["adjust_balance", "suspend", "unsuspend", "withdraw_restrict", "withdraw_unrestrict", "delete_user", "set_option_period", "set_fx_period", "outcome_config", "outcome_override_set", "outcome_override_clear", "kyc_approve", "kyc_reject", "kyc_photo_view", "support_reply", "support_close", "admin_grant", "admin_revoke", "head_demote", "head_remove"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const dayFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
@@ -94,6 +94,7 @@ export function ActionsLog() {
       case "head_remove":
         return t("auditLog.noNote");
       case "set_option_period":
+      case "set_fx_period":
         return t("auditLog.summary.period", {
           seconds: num(p.duration_s),
           rate: bpsToPercent(num(p.profit_rate_bps)),

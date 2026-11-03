@@ -27,8 +27,8 @@ Nothing in Part 2 has been implemented. The ★ option is the recommendation, an
 | C9 | Deposit "address" step. UI had AddressDisplay (platform address + QR); DM stores no address | **No receiving address is ever shown** (DM D1 ★). The step becomes a "Virtual funds: no real funds are received" notice. UI route table updated. The flow is coin → network → notice → amount. | The brief says no real money moves. Showing an address invites people to send real funds to a platform that can't credit them. The withdraw flow keeps its destination-address step: the address is recorded but nothing is sent. |
 | C10 | Phone MFA. UI said phone MFA is built in; Supabase billing docs list phone MFA under the paid **Advanced MFA** add-on, unavailable on the Free plan | **Corrected.** Phone MFA is open decision O8. UI security row annotated. | Source: <https://supabase.com/docs/guides/platform/billing-on-supabase> (add-ons list). |
 | C11 | Profit chart. UI wanted hourly `portfolio_snapshots` via pg_cron; DM uses realized PnL from `ledger.pnl_cents` | **DM default** (no table, no cron); the choice stays open as O11. | Snapshots need server prices for every held asset every hour, and deposits netted out. |
-| C12 | Forex order model. UI D6 wanted spot-like conversion; DM implements percentage-return margin positions, no leverage | **DM default** (the migration implements it); open as O2. | Spot-like FX needs JPY/CAD/XAU balances, which breaks the single-currency-cents model. |
-| C13 | Options underlyings. MD says XAU is viable through tokenized gold (PAXG/XAUT); DM seeds forex/metals with `options_enabled = false` | **v1 default: crypto only** (matches the seed); XAU proxy is open as O4. | Every settlement then has ≥2 fresh, independent sources. |
+| C12 | Forex order model. UI D6 wanted spot-like conversion; DM implements percentage-return margin positions, no leverage | **DM default** (the migration implements it); open as O2. | Spot-like FX needs JPY/CAD/XAU balances, which breaks the single-currency-cents model. *Superseded by Part 1j: Forex trades as timed positions on hourly prices.* |
+| C13 | Options underlyings. MD says XAU is viable through tokenized gold (PAXG/XAUT); DM seeds forex/metals with `options_enabled = false` | **v1 default: crypto only** (matches the seed); XAU proxy is open as O4. | Every settlement then has ≥2 fresh, independent sources. *Superseded for Forex by Part 1j: Forex has its own tables and is not an Options underlying.* |
 | C14 | Symbol format | **Id `BTC-USDT` (DB, URLs, code); display `BTC/USDT` (UI only).** | Hyphenated ids are URL-safe; both docs already used them. |
 | C15 | Proxy file. UI called OpenNext's `proxy.ts` support "experimental"; the OpenNext changelog lists it as a shipped feature (#1309) without that label | **Use `proxy.ts`, and smoke-test it on Workers in slice 1** (`pnpm preview`); fall back to `middleware.ts` if it fails (O17). | Cheap to verify; the fallback is the same code. |
 | C16 | KYC gating | **Superseded by slice 8 (owner): KYC gates nothing.** It is a status on Profile, Verification and Admin. Was: UI D7-A and DM D9 agreed on KYC approved + AAL2 for withdrawals only. | |
@@ -70,7 +70,7 @@ These resolve O13, O14, O20, O22, O23 and O24. They win over the starred options
 
 | Decision | Locked choice |
 |---|---|
-| O13 where `/md/v1/*` lives | A route handler inside the app Worker. In slice 3 it serves only the crypto fallback (`/md/v1/tickers`, KuCoin through the Worker). Forex and metals wait for slice 6 |
+| O13 where `/md/v1/*` lives | A route handler inside the app Worker. In slice 3 it serves only the crypto fallback (`/md/v1/tickers`, KuCoin through the Worker). Forex and metals wait for slice 6 *Superseded for Forex by Part 1j: hourly Open Exchange Rates prices come from the `fx-ingest` Edge Function, not `/md/v1`.* |
 | O14 restricted regions | Keep the chain Vision, then `/md/v1`. Sentry gets a report only when every provider fails in a browser (once per failure streak), plus the Vision HTTP 400 message (once per distinct message). No third source yet |
 | O20 browser crypto provider | Vision first, then `/md/v1` (KuCoin through the Worker). **No OKX adapter.** Every request has a short timeout (Vision 4 s, `/md/v1` 5 s) |
 | O22 display names | Internal id stays `BTC-USDT`. `markets.display_symbol` (for example `BTCUSD`) is what the UI shows; the quote asset keeps its own column. Supersedes the `display_name` wording in Part 2 |
@@ -96,7 +96,7 @@ The OKX host does not resolve from Lagos and the failure takes about 22 s, so OK
 |---|---|
 | Spot execution | Market orders fill at the latest server snapshot: buy at the ask, sell at the bid. `spot_market_order` takes no price. Limit orders (Part C) shipped in the database and the Spot Limit ticket: see docs/data-model.md §16.4 and CLAUDE.md |
 | Fill freshness | A snapshot older than 60 s is refused (`spot_config.max_price_age_s`, CHECK ≤ 60). Supersedes C6's 15 s for Spot fills |
-| Price pipeline | One Edge Function, `price-ingest`, fired by pg_cron every 10 s through pg_net while demand exists (C5). Vision first, KuCoin as the fallback source. O12 (multi-source median) is decided in slice 5 and may tighten the same table |
+| Price pipeline | One Edge Function, `price-ingest`, fired by pg_cron every 10 s through pg_net while demand exists (C5). Vision first, KuCoin as the fallback source. O12 (multi-source median) is decided in slice 5 and may tighten the same table *Forex has its own hourly pipeline: see Part 1j.* |
 | Fee | 0.1% of order value (`spot_config.fee_bps = 10`), an assumption because the Spot fee was not captured. Stored in a config row, never in code |
 | Order book and Latest Trades | Real Vision depth and trades, display only, for the selected symbol only. If Vision fails they show an unavailable state; no `/md/v1` fallback for these two |
 | Chart | Vision klines with a `/md/v1/klines` (KuCoin) fallback |
@@ -147,6 +147,18 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 - **A ticket is only a message.** The new ticket form has no topic or subject input. `support_tickets.topic` is dropped and its old values are discarded.
 - **The server derives the subject** from the first 120 characters of the message (whitespace runs made one space, trimmed). It stays the ticket title in both lists, the admin toasts and the audit payloads; existing tickets keep theirs.
 
+## Part 1j: Decisions locked by the owner (Forex terminal, 2026-11-03)
+
+(Part 1g was already taken, so this is 1j.)
+
+- **Timed positions on hourly prices.** Forex trades like Options: a direction, a duration, a premium and a fee, with the Options payout, draw and void rules. Prices are Open Exchange Rates `latest.json`, at most one call per clock hour and only while someone has the Forex screen open (`request_fx_feed` heartbeat). Instruments live in `fx_instruments`, never in `markets`.
+- **Pending entry.** A position opens `pending`; its entry is the first stored print at least 5 minutes after it opened (within 65 minutes), so nobody can open on a price they already saw. With no print it is refunded in full.
+- **Closures in New York time.** Fx closes Friday 17:00 to Sunday 17:00 ET; metals also close 17:00 to 18:00 ET each weekday. A position that could not finish before the next closure is refused. The UI states every time in ET and disables the ticket while the instrument's class is closed.
+- **Forex wallet, 1 hour at launch.** The premium and fee come from the Forex wallet. One duration (3600 s) is enabled; admins edit `fx_periods` on the Option periods page. No outcome control for Forex.
+- **Generated order book.** No public depth exists, so the book is the deterministic ladder around the newest stored price, with no label. With no price yet it shows an empty state. The header shows the last price and the 24 hour change against the stored print nearest 24 hours earlier (within 30 minutes), or `--`; no high, low, volume, bid, ask or status label.
+- **Market tab.** Forex is not in the Market list or its type dropdown.
+
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.
@@ -154,11 +166,15 @@ The ★ option is recommended. Each line gives one good point and one bad point.
 ### Product scope
 
 **O1. Forex terminal data** (MD D1/D3, DM D2). No free intraday FX/metal source was verified, and every probe was blocked from the sandbox.
+
+*Superseded by Part 1j.*
 - ★ (a) v1 Forex shows daily reference data with trading disabled until an intraday source passes probing. *Good:* honest, free. *Bad:* the terminal is mostly inert.
 - (b) Add a free limited source (unofficial chart endpoint, TwelveData free key, or gold-api). *Good:* intraday charts. *Bad:* ToS, caps (TwelveData: 800 calls/day) or unverified freshness.
 - (c) Paid FX feed. *Good:* full product. *Bad:* cost and licensing.
 
 **O2. Forex order model** (DM D3 vs UI D6).
+
+*Superseded by Part 1j.*
 - ★ (a) Percentage-return positions, no leverage (in the migration). *Good:* one USDT wallet, losses capped. *Bad:* not realistic FX.
 - (b) Spot-like conversion. *Good:* reuses the spot form exactly. *Bad:* multi-currency balances and FX valuation.
 - (c) Leveraged margin with SL/TP. *Good:* realistic. *Bad:* liquidation engine; out of v1.
