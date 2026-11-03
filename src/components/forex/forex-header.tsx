@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BookOpen, ChevronDown, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Sheet } from "@/components/app/sheet";
+import { ForexIcon } from "@/components/forex/forex-icon";
 import { durationParts, fxDisplay } from "@/lib/forex-math";
 import type { FxInstrument } from "@/lib/forex";
 import type { OptionPeriod } from "@/lib/options";
@@ -12,21 +13,6 @@ import { cn } from "@/lib/utils";
 
 const SHEET = "max-h-[80dvh] pb-[calc(1rem+var(--safe-b))]";
 const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
-
-// A plain circle with the base currency's first letters (a placeholder, never a logo).
-export function PairIcon({ base, className }: { base: string; className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground",
-        className,
-      )}
-    >
-      {base.slice(0, 2)}
-    </span>
-  );
-}
 
 // The instrument button and the sheet it opens. Shared by the header and the desktop strip.
 export function ForexPairPicker({
@@ -53,7 +39,7 @@ export function ForexPairPicker({
           aria-label={t("choosePair", { symbol: fxDisplay(instrument.id) })}
           className="flex min-w-0 items-center gap-1.5"
         >
-          <PairIcon base={instrument.base} />
+          <ForexIcon id={instrument.id} />
           <span className="text-lg font-semibold">{fxDisplay(instrument.id)}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>
@@ -74,7 +60,7 @@ export function ForexPairPicker({
                 i.id === instrument.id ? "bg-muted text-primary" : "",
               )}
             >
-              <PairIcon base={i.base} />
+              <ForexIcon id={i.id} surface="popover" />
               {fxDisplay(i.id)}
             </button>
           </li>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { LoadingRows } from "@/components/ui/skeleton";
-import { PairIcon } from "@/components/forex/forex-header";
+import { ForexIcon } from "@/components/forex/forex-icon";
 import { useFxFeed, useFxInstruments, useFxTable } from "@/lib/forex";
 import { etParts, fxChangePercent, fxDisplay } from "@/lib/forex-math";
 import { formatChange, formatPrice } from "@/lib/market/decimal";
@@ -62,7 +62,7 @@ export function ForexMarketList({ query }: { query: string }) {
               <li key={i.id}>
                 <Link href={`/forex?instrument=${encodeURIComponent(i.id)}`} className={cn(GRID, "press py-2.5")}>
                   <span className="flex min-w-0 items-center gap-1.5">
-                    <PairIcon base={i.base} className="size-6" />
+                    <ForexIcon id={i.id} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{fxDisplay(i.id)}</span>
                       {closed ? <span className="block text-[11px] text-muted-foreground">{t("closed")}</span> : null}
