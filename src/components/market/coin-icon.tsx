@@ -17,6 +17,10 @@ const COINS = new Set(
 // stay visible on the dark theme.
 const BACKED = new Set(["FET", "QNT", "XLM"]);
 
+// Logos that are plain white in the library: they vanish on a light page, so they sit on a disc in
+// --coin-backing-white (transparent in the dark theme, dark in the light one), at full size.
+const WHITE_LOGOS = new Set(["ARB", "HBAR", "XRP"]);
+
 // Deposit and Withdraw network keys (src/lib/coins.ts) to the chain's icon file.
 const NETWORKS: Record<string, string> = { bitcoin: "bitcoin", trc20: "tron", erc20: "ethereum", solana: "solana" };
 
@@ -50,6 +54,7 @@ export function CoinIcon({
     );
   }
   const backed = kind === "coin" && BACKED.has(symbol);
+  const onDisc = kind === "coin" && WHITE_LOGOS.has(symbol);
   const inner = backed ? Math.round(size * 0.72) : size;
   const image = (
     <Image
@@ -58,15 +63,26 @@ export function CoinIcon({
       width={inner}
       height={inner}
       loading={eager ? "eager" : undefined}
-      className={backed ? undefined : cn("shrink-0", className)}
+      className={backed || onDisc ? undefined : cn("shrink-0", className)}
     />
   );
+  if (onDisc) {
+    return (
+      <span
+        aria-hidden="true"
+        style={{ width: size, height: size }}
+        className={cn("flex shrink-0 rounded-full bg-coin-backing-white", className)}
+      >
+        {image}
+      </span>
+    );
+  }
   if (!backed) return image;
   return (
     <span
       aria-hidden="true"
       style={{ width: size, height: size }}
-      className={cn("flex shrink-0 items-center justify-center rounded-full bg-zinc-200", className)}
+      className={cn("flex shrink-0 items-center justify-center rounded-full bg-coin-backing", className)}
     >
       {image}
     </span>

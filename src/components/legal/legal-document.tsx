@@ -19,7 +19,7 @@ export function LegalDocument({
   const t = useTranslations("LegalPages");
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-[calc(1.5rem+var(--safe-t))] pb-[calc(3rem+var(--safe-b))]">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline">
         <ChevronLeft className="size-4" aria-hidden />
         {t("back")}
       </Link>

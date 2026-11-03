@@ -7,6 +7,7 @@ import { Headset, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AccountMenu } from "@/components/app/account-menu";
 import { LanguageMenu } from "@/components/app/language-menu";
+import { ThemeSwitcher } from "@/components/app/theme-switcher";
 import { TopBarSearch } from "@/components/app/top-bar-search";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -24,7 +25,7 @@ export function DesktopNav() {
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground";
 
   return (
-    <header className="sticky top-0 z-30 hidden h-(--top-bar-h) items-center gap-6 border-b bg-sidebar px-6 md:flex">
+    <header className="sticky top-0 z-30 hidden h-(--top-bar-h) items-center gap-2 border-b bg-sidebar px-3 md:flex lg:gap-6 lg:px-6">
       <Link href="/home" aria-label="AureonX" className="flex shrink-0 items-center gap-2">
         <BrandMark variant="small" idPrefix="desktop-nav" className="size-7" />
         <Wordmark className="h-3.5 w-auto" />
@@ -39,8 +40,8 @@ export function DesktopNav() {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "press rounded-md px-3 py-1.5 text-sm font-medium",
-                active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                "press rounded-md px-2 py-1.5 text-sm font-medium lg:px-3",
+                active ? "text-primary-text" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {t("desktopKey" in item ? item.desktopKey : key)}
@@ -51,7 +52,7 @@ export function DesktopNav() {
           <Link
             href="/admin"
             aria-current={pathname.startsWith("/admin") ? "page" : undefined}
-            className="rounded-md px-3 py-1.5 text-sm font-bold text-orange-500"
+            className="rounded-md px-2 py-1.5 text-sm font-bold text-admin lg:px-3"
           >
             {t("menu.admin")}
           </Link>
@@ -76,6 +77,7 @@ export function DesktopNav() {
           </button>
         )}
         <LanguageMenu className={icon} />
+        <ThemeSwitcher className="hover:text-foreground" />
         <Link href="/support" aria-label={t("support")} className={icon}>
           <Headset className="size-5" />
         </Link>

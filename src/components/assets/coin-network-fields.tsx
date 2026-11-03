@@ -67,7 +67,7 @@ export function CoinNetworkFields({ onChange }: { onChange?: (network: NetworkKe
                     </span>
                     <span className="text-sm text-muted-foreground">{t(`coins.${c.symbol}`)}</span>
                     <Select.ItemIndicator className="ml-auto">
-                      <Check className="size-4 text-primary" />
+                      <Check className="size-4 text-primary-text" />
                     </Select.ItemIndicator>
                   </Select.Item>
                 ))}
@@ -94,7 +94,7 @@ export function CoinNetworkFields({ onChange }: { onChange?: (network: NetworkKe
               }}
               className={cn(
                 "flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium",
-                network === n ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
+                network === n ? "border-primary bg-primary/10 text-primary-text" : "text-muted-foreground",
               )}
             >
               <CoinIcon symbol={n} kind="network" size={20} />

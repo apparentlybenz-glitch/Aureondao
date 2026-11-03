@@ -47,7 +47,7 @@ export function ShareButton({ trade }: { trade: ShareTrade }) {
         <Share2 className="size-4" />
       </button>
       {saved ? (
-        <a href={whatsappUrl(text)} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-primary">
+        <a href={whatsappUrl(text)} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-primary-text">
           {t("whatsapp")}
         </a>
       ) : null}

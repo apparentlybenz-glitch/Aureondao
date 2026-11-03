@@ -171,7 +171,7 @@ export function OptionTicket({
                 onClick={() => change(() => setDirection(d))}
                 className={cn(
                   "press flex size-16 items-center justify-center rounded-full",
-                  d === "rise" ? "bg-up text-black" : "bg-down/60 text-white",
+                  d === "rise" ? "bg-primary text-primary-foreground" : "bg-sell text-sell-foreground",
                   selected
                     ? d === "rise"
                       ? "opacity-100 ring-8 ring-up/25"
@@ -248,7 +248,7 @@ export function OptionTicket({
           <p className="font-medium">{t("premium")}</p>
           <p className="flex items-center gap-1.5 text-sm tabular-nums">
             {available === null ? "--" : t("available", { amount: formatCents(available) })}
-            <Link href="/assets/transfer" aria-label={t("toTransfer")} className="text-primary">
+            <Link href="/assets/transfer" aria-label={t("toTransfer")} className="text-primary-text">
               <ArrowLeftRight className="size-4" />
             </Link>
           </p>
@@ -262,7 +262,7 @@ export function OptionTicket({
               onClick={() => change(() => setAmount(v))}
               className={cn(
                 "press h-9 rounded-md text-xs tabular-nums sm:text-sm",
-                amount === v ? "bg-primary/15 text-primary ring-1 ring-primary" : "bg-muted text-foreground",
+                amount === v ? "bg-primary/15 text-primary-text ring-1 ring-primary" : "bg-muted text-foreground",
               )}
             >
               {v}
@@ -290,7 +290,7 @@ export function OptionTicket({
         <p className="text-muted-foreground">
           {t.rich("estReturn", {
             amount: est !== null && problem === null ? formatCents(est) : "--",
-            value: (chunks) => <span className="text-primary">{chunks}</span>,
+            value: (chunks) => <span className="text-primary-text">{chunks}</span>,
           })}
         </p>
       </div>
@@ -309,7 +309,7 @@ export function OptionTicket({
         disabled={!canSubmit}
         className={cn(
           "h-12 w-full text-base font-semibold",
-          rise ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
+          rise ? "bg-primary text-primary-foreground hover:bg-primary/85" : "bg-sell text-sell-foreground hover:bg-sell-hover",
         )}
       >
         {pending ? t("sending") : !period && periods ? t("noPeriod") : t(rise ? "call" : "put")}

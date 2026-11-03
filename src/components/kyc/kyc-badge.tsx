@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const TONE: Record<KycState, string> = {
   none: "bg-muted text-muted-foreground",
   pending: "bg-foreground/15 text-foreground",
-  approved: "bg-primary/15 text-primary",
+  approved: "bg-primary/15 text-primary-text",
   rejected: "bg-destructive/15 text-destructive",
 };
 

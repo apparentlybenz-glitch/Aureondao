@@ -41,6 +41,8 @@ export function ShareCard({ trade }: { trade: ShareTrade }) {
           "repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 24px), " +
           "repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 24px)",
         color: "#f2f5f3",
+        // The card ignores the theme: no disc behind white-only coin logos, as in the dark theme.
+        ["--coin-backing-white" as string]: "transparent",
       }}
       className="relative overflow-hidden rounded-2xl border border-white/10 px-6 py-6"
     >

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Headset } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AccountMenu } from "@/components/app/account-menu";
-import { LanguageMenu } from "@/components/app/language-menu";
+import { ThemeSwitcher } from "@/components/app/theme-switcher";
 import { TopBarSearch } from "@/components/app/top-bar-search";
 
 // Mobile top bar (below md; the desktop nav replaces it): account menu, search,
-// language, support. Search opens the Market tab (/market?q=).
+// theme switcher, support. Search opens the Market tab (/market?q=).
 export function TopBar() {
   const t = useTranslations("Shell");
   const icon = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground";
@@ -14,7 +14,7 @@ export function TopBar() {
     <header className="sticky top-0 z-30 flex h-[calc(var(--top-bar-h)+var(--safe-t))] items-center gap-2 bg-background/95 px-4 pt-(--safe-t) backdrop-blur md:hidden">
       <AccountMenu />
       <TopBarSearch />
-      <LanguageMenu className={icon} />
+      <ThemeSwitcher />
       <Link href="/support" aria-label={t("support")} className={icon}>
         <Headset className="size-5" />
       </Link>

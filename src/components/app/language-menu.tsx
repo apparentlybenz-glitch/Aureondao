@@ -27,7 +27,7 @@ export function LanguageMenu({ className }: { className?: string }) {
             >
               {t("languageEnglish")}
               <DropdownMenu.ItemIndicator>
-                <Check className="size-4 text-primary" />
+                <Check className="size-4 text-primary-text" />
               </DropdownMenu.ItemIndicator>
             </DropdownMenu.RadioItem>
           </DropdownMenu.RadioGroup>

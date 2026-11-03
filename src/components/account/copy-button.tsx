@@ -29,7 +29,7 @@ export function CopyButton({ value, label, iconOnly = false }: { value: string; 
         );
       }}
     >
-      {copied ? <Check className="text-primary" /> : <Copy />}
+      {copied ? <Check className="text-primary-text" /> : <Copy />}
       {iconOnly ? null : copied ? t("copied") : t("copy")}
     </Button>
   );

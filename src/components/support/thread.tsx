@@ -85,7 +85,7 @@ export function MessageList({ messages, userLabel }: { messages: SupportMessage[
           )}
         >
           <p className="flex justify-between gap-3 text-xs">
-            <span className={cn("font-semibold", m.is_staff && "text-primary")}>{m.is_staff ? t("staffLabel") : userLabel}</span>
+            <span className={cn("font-semibold", m.is_staff && "text-primary-text")}>{m.is_staff ? t("staffLabel") : userLabel}</span>
             <span className="text-muted-foreground">{supportDate.format(new Date(m.created_at))}</span>
           </p>
           <p className="text-sm break-words whitespace-pre-wrap">{m.body}</p>

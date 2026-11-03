@@ -6,16 +6,19 @@ import { cn } from "@/lib/utils";
 
 const SIZES = { sm: 20, md: 28, lg: 36 } as const;
 
-// The two metal badge colors: plain two-stop gradients, original artwork.
-const GOLD = { from: "#f3d98b", to: "#b8892b", text: "#5a3f08" } as const;
-const SILVER = { from: "#eceff2", to: "#9aa3ad", text: "#363d45" } as const;
+// The two metal badges: plain two-stop gradients, original artwork. Their colors are the
+// --metal-* tokens and are the same in both themes.
+const METAL = {
+  gold: { from: "var(--metal-gold-from)", to: "var(--metal-gold-to)", text: "var(--metal-gold-text)" },
+  silver: { from: "var(--metal-silver-from)", to: "var(--metal-silver-to)", text: "var(--metal-silver-text)" },
+} as const;
 
 // Surface the icon sits on: the ring that separates the quote flag from the base takes its color.
 const RING = { background: "ring-background", card: "ring-card", popover: "ring-popover" } as const;
 
 function Metal({ metal, px }: { metal: "gold" | "silver"; px: number }) {
   const id = useId();
-  const c = metal === "gold" ? GOLD : SILVER;
+  const c = METAL[metal];
   return (
     <svg width={px} height={px} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
       <defs>

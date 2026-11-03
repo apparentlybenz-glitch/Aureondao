@@ -50,7 +50,7 @@ export function Splash() {
       onAnimationEnd={(e) => {
         if (e.animationName === "splash-cap") setPhase("gone");
       }}
-      className="splash pointer-events-none fixed inset-0 z-[200] flex items-center justify-center bg-black"
+      className="splash pointer-events-none fixed inset-0 z-[200] flex items-center justify-center bg-splash"
     >
       <BrandMark variant="full" idPrefix="splash" size={96} ringClassName="splash-ring" className="size-24" />
     </div>

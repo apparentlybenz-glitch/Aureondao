@@ -108,7 +108,7 @@ export default function SecurityPage() {
           {enrollment ? (
             <form onSubmit={verifyEnroll} className="space-y-3 pb-3">
               <p className="text-sm text-muted-foreground">{t("totpScan")}</p>
-              <Image src={enrollment.qr} alt="" width={176} height={176} className="rounded bg-white p-2" />
+              <Image src={enrollment.qr} alt="" width={176} height={176} className="rounded bg-qr-tile p-2" />
               <p className="text-xs">
                 {t("totpSecret")}: <code className="break-all">{enrollment.secret}</code>
               </p>
@@ -154,7 +154,7 @@ export default function SecurityPage() {
               </Button>
             }
           >
-            {pwDone ? <span className="text-primary">{t("passwordChanged")}</span> : t("passwordMask")}
+            {pwDone ? <span className="text-primary-text">{t("passwordChanged")}</span> : t("passwordMask")}
           </InfoRow>
         )}
       </InfoCard>

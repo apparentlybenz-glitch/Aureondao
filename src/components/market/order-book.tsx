@@ -131,7 +131,7 @@ function BookView({
       <div key={key} className={CELL}>
         <span
           aria-hidden="true"
-          className={cn("absolute inset-y-0", side === "bid" ? "right-0 bg-up/35" : "left-0 bg-down/35")}
+          className={cn("absolute inset-y-0", side === "bid" ? "right-0 bg-depth-up" : "left-0 bg-depth-down")}
           style={{ width: `${width(l.total)}%` }}
         />
         <span className="relative flex w-full justify-between">
@@ -255,7 +255,7 @@ function FillBookView({
     <li key={`${side}${l.price}`} className={FILL_ROW} style={{ height: ROW_HEIGHT }}>
       <span
         aria-hidden="true"
-        className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-up/35" : "bg-down/35")}
+        className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-depth-up" : "bg-depth-down")}
         style={{ width: `${width(l.total)}%` }}
       />
       <span className={cn("relative", side === "bid" ? "text-up" : "text-down")}>{formatPrice(l.price, priceDecimals)}</span>

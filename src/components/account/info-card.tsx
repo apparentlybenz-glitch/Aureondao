@@ -29,7 +29,7 @@ export function StatusPill({ on = false, children }: { on?: boolean; children: R
     <span
       className={cn(
         "inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        on ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+        on ? "bg-primary/15 text-primary-text" : "bg-muted text-muted-foreground",
       )}
     >
       {children}

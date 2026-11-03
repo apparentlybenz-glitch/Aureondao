@@ -29,7 +29,7 @@ export function DepositPanel() {
       </div>
 
       <div className="flex justify-center">
-        <div className="rounded-2xl bg-white p-3">
+        <div className="rounded-2xl bg-qr-tile p-3">
           <QRCodeSVG value={address} size={176} role="img" aria-label={t("qrLabel")} />
         </div>
       </div>

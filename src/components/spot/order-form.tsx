@@ -208,7 +208,7 @@ function MarketTicket({
       onClick={() => reset(s)}
       className={cn(
         "press h-9 rounded-lg text-sm font-semibold",
-        side === s ? (s === "buy" ? "bg-up text-black" : "bg-down/60 text-white") : "bg-muted text-muted-foreground",
+        side === s ? (s === "buy" ? "bg-primary text-primary-foreground" : "bg-sell text-sell-foreground") : "bg-muted text-muted-foreground",
       )}
     >
       {t(s)}
@@ -237,7 +237,7 @@ function MarketTicket({
       {side === "buy" && available === ZERO_CENTS ? (
         <p className="text-xs text-muted-foreground">
           {t("fundHint")}{" "}
-          <Link href="/assets/transfer" className="font-medium text-primary">
+          <Link href="/assets/transfer" className="font-medium text-primary-text">
             {t("toTransfer")}
           </Link>
         </p>
@@ -335,7 +335,7 @@ function MarketTicket({
         disabled={!canSubmit}
         className={cn(
           "h-11 w-full text-base font-semibold",
-          side === "buy" ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
+          side === "buy" ? "bg-primary text-primary-foreground hover:bg-primary/85" : "bg-sell text-sell-foreground hover:bg-sell-hover",
         )}
       >
         {!ticker ? t("pricesUnavailable") : pending ? t("sending") : t(side === "buy" ? "confirmBuy" : "confirmSell", { asset })}

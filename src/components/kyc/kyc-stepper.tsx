@@ -45,7 +45,7 @@ export function KycStepper({ done, current, compact = false }: { done: number; c
                   isDone
                     ? "border-primary bg-primary text-primary-foreground"
                     : isCurrent
-                      ? "border-primary bg-background text-primary ring-3 ring-primary/25"
+                      ? "border-primary bg-background text-primary-text ring-3 ring-primary/25"
                       : "border-border bg-background text-muted-foreground",
                 )}
               >

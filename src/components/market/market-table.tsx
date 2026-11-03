@@ -162,7 +162,7 @@ export function MarketTable({
         <div className="space-y-3 py-8 text-center text-sm text-muted-foreground">
           <p>{message}</p>
           {tab === "optional" && !isMarket && favorites && rows.length === 0 ? (
-            <Link href="/market" className="inline-block font-medium text-primary">
+            <Link href="/market" className="inline-block font-medium text-primary-text">
               {t("openMarket")}
             </Link>
           ) : null}
@@ -189,7 +189,7 @@ export function MarketTable({
                     aria-label={t(starred ? "removeFavorite" : "addFavorite", { symbol })}
                     className="flex size-8 shrink-0 items-center justify-center"
                   >
-                    <Star className={cn("size-4", starred ? "fill-primary text-primary" : "text-muted-foreground")} />
+                    <Star className={cn("size-4", starred ? "fill-primary text-primary-text" : "text-muted-foreground")} />
                   </button>
                 ) : null}
                 <button type="button" onClick={() => {
@@ -228,7 +228,7 @@ export function MarketTable({
       )}
 
       {!isMarket && markets && rows.length > 0 ? (
-        <Link href="/market" className="block py-1 text-center text-sm font-medium text-primary">
+        <Link href="/market" className="block py-1 text-center text-sm font-medium text-primary-text">
           {t("seeAll")}
         </Link>
       ) : null}

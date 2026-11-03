@@ -243,7 +243,7 @@ function ReviewDetail({
 
           <div className="mt-4 space-y-1.5 md:mt-0">
             <p className="text-sm font-medium">{t("kyc.photo")}</p>
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border bg-black/40">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border bg-well">
               {photo ? (
                 <Image src={photo} alt={t("kyc.photo")} fill sizes="(min-width: 768px) 320px, 100vw" className="object-contain" />
               ) : (

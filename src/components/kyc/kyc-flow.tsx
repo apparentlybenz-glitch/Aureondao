@@ -174,7 +174,7 @@ export function KycFlow() {
                     onClick={() => setDocumentType(type)}
                     className={cn(
                       "flex h-12 items-center justify-between rounded-xl border px-4 text-left text-sm font-medium",
-                      documentType === type ? "border-primary bg-primary/10 text-primary" : "text-foreground",
+                      documentType === type ? "border-primary bg-primary/10 text-primary-text" : "text-foreground",
                     )}
                   >
                     {t(`documents.${type}`)}
@@ -244,13 +244,13 @@ export function KycFlow() {
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/40 p-4 text-center focus-within:ring-3 focus-within:ring-ring/50"
             >
               {photo ? (
-                <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-lg bg-black/40">
+                <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-lg bg-well">
                   <Image src={photo.url} alt={t("photoAlt")} fill sizes="448px" className="object-contain" />
                 </span>
               ) : (
                 <ImageUp className="size-8 text-muted-foreground" />
               )}
-              <span className="text-sm font-medium text-primary">{photo ? t("replacePhoto") : t("choosePhoto")}</span>
+              <span className="text-sm font-medium text-primary-text">{photo ? t("replacePhoto") : t("choosePhoto")}</span>
               <span className="text-xs text-muted-foreground">{t("photoHint")}</span>
               <input
                 id="kyc-photo"
@@ -284,7 +284,7 @@ export function KycFlow() {
               </dl>
             </ReviewGroup>
             <ReviewGroup title={t("steps.documents")} onEdit={() => setStep(2)} editLabel={t("edit")}>
-              <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-lg bg-black/40">
+              <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-lg bg-well">
                 <Image src={photo.url} alt={t("photoAlt")} fill sizes="448px" className="object-contain" />
               </span>
             </ReviewGroup>

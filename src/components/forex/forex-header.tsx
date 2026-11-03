@@ -57,7 +57,7 @@ export function ForexPairPicker({
               }}
               className={cn(
                 "flex h-12 w-full items-center gap-2 rounded-lg px-3 text-left font-medium",
-                i.id === instrument.id ? "bg-muted text-primary" : "",
+                i.id === instrument.id ? "bg-muted text-primary-text" : "",
               )}
             >
               <ForexIcon id={i.id} surface="popover" />
@@ -176,7 +176,7 @@ export function ForexHeader({
           aria-pressed={bookShown}
           aria-label={bookShown ? t("hideBook") : t("showBook")}
           onClick={onToggleBook}
-          className={cn(ICON, "lg:hidden", bookShown && "text-primary")}
+          className={cn(ICON, "lg:hidden", bookShown && "text-primary-text")}
         >
           <BookOpen className="size-5" />
         </button>

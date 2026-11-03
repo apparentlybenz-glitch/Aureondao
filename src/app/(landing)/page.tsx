@@ -60,7 +60,7 @@ export default function LandingPage() {
 
       <section id="products" aria-labelledby="products-title" className="scroll-mt-6 space-y-10">
         <Reveal className="mx-auto max-w-3xl space-y-3 text-center">
-          <p className="text-xs font-medium tracking-wide text-primary uppercase">{t("features.eyebrow")}</p>
+          <p className="text-xs font-medium tracking-wide text-primary-text uppercase">{t("features.eyebrow")}</p>
           <h2 id="products-title" className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("features.title")}
           </h2>
@@ -71,20 +71,20 @@ export default function LandingPage() {
             <article key={key} className="flex flex-col justify-between gap-8 rounded-2xl border bg-card p-6">
               <div className="space-y-4">
                 <span className="flex size-12 items-center justify-center rounded-xl bg-muted">
-                  <Icon aria-hidden="true" className="size-6 text-primary" />
+                  <Icon aria-hidden="true" className="size-6 text-primary-text" />
                 </span>
                 <h3 className="text-lg font-semibold">{t(`features.${key}.title`)}</h3>
                 <p className="text-sm text-muted-foreground">{t(`features.${key}.body`)}</p>
                 <ul className="space-y-2 pt-1 text-sm">
                   {POINTS.map((point) => (
                     <li key={point} className="flex items-center gap-2">
-                      <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                      <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-primary-text" />
                       {t(`features.${key}.points.${point}`)}
                     </li>
                   ))}
                 </ul>
               </div>
-              <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+              <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-text hover:underline">
                 {t(`features.${key}.cta`)}
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Link>

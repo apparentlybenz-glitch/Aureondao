@@ -93,7 +93,7 @@ function TradeMenuItem({
         style={present ? undefined : { pointerEvents: "none" }}
         className="flex h-11 min-w-36 items-center gap-2.5 rounded-full bg-secondary px-5 text-sm font-medium text-secondary-foreground shadow-lg outline-none data-[highlighted]:bg-popover"
       >
-        <Icon className="size-5 text-primary" />
+        <Icon className="size-5 text-primary-text" />
         {label}
       </MotionLink>
     </DropdownMenu.Item>
@@ -116,7 +116,7 @@ function TradeCircle({ open, Icon }: { open: boolean; Icon: LucideIcon }) {
       tabIndex={-1}
       className={cn(
         "-mt-(--tab-bar-overhang) flex size-14 items-center justify-center rounded-full shadow-lg ring-4 ring-background",
-        open ? "bg-foreground text-primary" : "bg-primary text-primary-foreground",
+        open ? "bg-foreground text-primary-text" : "bg-primary text-primary-foreground",
       )}
     >
       <Icon className="size-6" />
@@ -151,7 +151,7 @@ export function TabBar() {
       <div
         aria-hidden
         data-open={open}
-        className="pointer-events-none fixed inset-0 z-[-1] bg-black/60 opacity-0 transition-opacity duration-(--duration-moderate) ease-out-strong data-[open=true]:opacity-100"
+        className="pointer-events-none fixed inset-0 z-[-1] bg-scrim opacity-0 transition-opacity duration-(--duration-moderate) ease-out-strong data-[open=true]:opacity-100"
       />
       <ul className="mx-auto grid h-(--tab-bar-h) max-w-[880px] grid-cols-5">
         {TABS.map(({ href, key, Icon }) => {
@@ -187,7 +187,7 @@ export function TabBar() {
                     }}
                     className={cn(
                       "flex h-full w-full flex-col items-center justify-end gap-0.5 pb-2 text-[11px] outline-none",
-                      active || open ? "text-primary" : "text-muted-foreground",
+                      active || open ? "text-primary-text" : "text-muted-foreground",
                     )}
                   >
                     <TradeCircle open={open} Icon={Icon} />
@@ -250,7 +250,7 @@ export function TabBar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "press flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
-                  active ? "text-primary" : "text-muted-foreground",
+                  active ? "text-primary-text" : "text-muted-foreground",
                 )}
               >
                 <Icon className="size-5" />

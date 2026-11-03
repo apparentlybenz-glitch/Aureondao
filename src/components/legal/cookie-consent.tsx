@@ -82,7 +82,7 @@ export function CookieConsent() {
             <h2 className="text-sm font-semibold">{t("heading")}</h2>
             <p className="text-sm text-muted-foreground">
               {t("bodyBefore")}
-              <Link href="/privacy" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/privacy" className="text-primary-text underline-offset-4 hover:underline">
                 {t("privacyLink")}
               </Link>
               {t("bodyAfter")}
