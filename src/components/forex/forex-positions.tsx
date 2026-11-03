@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { ForexIcon } from "@/components/forex/forex-icon";
 import { LoadingRows } from "@/components/ui/skeleton";
 import { durationParts, etStampText, fxDisplay } from "@/lib/forex-math";
 import type { FxInstrument, FxPosition } from "@/lib/forex";
@@ -24,8 +25,9 @@ function PositionCard({ p, instrument }: { p: FxPosition; instrument: FxInstrume
   return (
     <li className="rounded-xl border bg-card p-3 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">
-          {fxDisplay(p.instrumentId)} <span className={rise ? "text-up" : "text-down"}>{t(p.direction)}</span>
+        <p className="flex items-center gap-2 font-medium">
+          <ForexIcon id={p.instrumentId} size="sm" surface="card" />
+          <span>{fxDisplay(p.instrumentId)}</span> <span className={rise ? "text-up" : "text-down"}>{t(p.direction)}</span>
         </p>
         {settled ? (
           <span

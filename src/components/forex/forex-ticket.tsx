@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { ForexIcon } from "@/components/forex/forex-icon";
 import { DrawnCheck } from "@/components/app/drawn-check";
 import { useRpcMessage } from "@/components/app/use-rpc-message";
 import { FormError } from "@/components/auth/field";
@@ -161,7 +162,8 @@ export function ForexTicket({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-xs text-muted-foreground">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <ForexIcon id={instrument.id} size="sm" />
         {t.rich("currentPrice", {
           symbol,
           price: price ?? "--",
