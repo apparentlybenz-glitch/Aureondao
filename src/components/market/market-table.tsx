@@ -5,9 +5,12 @@ import { useState } from "react";
 import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { CoinIcon } from "@/components/market/coin-icon";
+import { ForexMarketList } from "@/components/market/forex-market-list";
 import { formatChange, formatPrice } from "@/lib/market/decimal";
 import { useFavorites } from "@/lib/market/favorites";
 import { saveLastMarket } from "@/lib/market/last-symbol";
+import { MARKET_TYPES } from "@/lib/market/market-types";
+import type { MarketType } from "@/lib/market/market-types";
 import { rankMarkets } from "@/lib/market/rank";
 import type { TableTab } from "@/lib/market/rank";
 import { isDelayed } from "@/lib/market/types";
@@ -17,7 +20,6 @@ import { cn } from "@/lib/utils";
 import { LoadingRows } from "@/components/ui/skeleton";
 
 const TABS: TableTab[] = ["optional", "popular", "gainer", "down"];
-const TYPES = ["spot", "options"] as const;
 const HOME_ROWS = 8;
 const GRID =
   "grid min-w-0 flex-1 grid-cols-[minmax(7.5rem,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_3.75rem] items-center gap-1";
@@ -37,20 +39,25 @@ function matches(m: Market, query: string): boolean {
 
 // Home shows the first rows and a link; the Market tab shows every row with a
 // search field and a star toggle. Both read the one store in use-market-data.
-// onSelect (the Spot market picker) is called after a row tap saves the symbol.
+// onSelect (the Spot market picker) is called after a row tap saves the symbol. The type
+// selector (Spot or Forex) shows only where onTypeChange is given: the Market page. Home and the
+// Spot picker are crypto only. Favorites stay crypto only.
 export function MarketTable({
   variant,
   query = "",
   onQueryChange,
   onSelect,
+  type = "spot",
+  onTypeChange,
 }: {
   variant: "home" | "market";
   query?: string;
   onQueryChange?: (value: string) => void;
   onSelect?: (id: string) => void;
+  type?: MarketType;
+  onTypeChange?: (type: MarketType) => void;
 }) {
   const t = useTranslations("Market");
-  const c = useTranslations("Common");
   const { markets, tickers, failing, now } = useMarketData();
   const { favorites, toggle } = useFavorites();
   const [tab, setTab] = useState<TableTab>("popular");
@@ -74,18 +81,44 @@ export function MarketTable({
   else if (loading) message = null;
   else if (rows.length === 0) message = tab === "optional" && !query.trim() ? t("emptyOptional") : t("noResults");
 
+  const typeSelect = (
+    <select
+      aria-label={t("types.label")}
+      value={type}
+      onChange={(e) => onTypeChange?.(MARKET_TYPES.find((x) => x === e.target.value) ?? "spot")}
+      className="h-8 w-[4.5rem] shrink-0 rounded-md bg-muted px-2 text-xs pointer-coarse:text-base text-foreground"
+    >
+      {MARKET_TYPES.map((key) => (
+        <option key={key} value={key}>
+          {t(`types.${key}`)}
+        </option>
+      ))}
+    </select>
+  );
+  const search = isMarket ? (
+    <input
+      type="search"
+      value={query}
+      onChange={(e) => onQueryChange?.(e.target.value)}
+      placeholder={t("searchPlaceholder")}
+      aria-label={t("searchLabel")}
+      className="h-10 w-full rounded-full bg-muted px-4 text-base text-foreground outline-none placeholder:text-muted-foreground"
+    />
+  ) : null;
+
+  if (onTypeChange && type === "forex") {
+    return (
+      <section className="space-y-3" aria-label={t("title")}>
+        {search}
+        <div className="flex justify-end">{typeSelect}</div>
+        <ForexMarketList query={query} />
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-3" aria-label={t("title")}>
-      {isMarket ? (
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => onQueryChange?.(e.target.value)}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchLabel")}
-          className="h-10 w-full rounded-full bg-muted px-4 text-base text-foreground outline-none placeholder:text-muted-foreground"
-        />
-      ) : null}
+      {search}
 
       <div className="flex items-center justify-between gap-3">
         <div role="tablist" className="flex min-w-0 gap-3.5 overflow-x-auto text-sm">
@@ -107,17 +140,7 @@ export function MarketTable({
             </button>
           ))}
         </div>
-        <select
-          aria-label={t("types.label")}
-          defaultValue="spot"
-          className="h-8 w-[4.5rem] shrink-0 rounded-md bg-muted px-2 text-xs pointer-coarse:text-base text-foreground"
-        >
-          {TYPES.map((key) => (
-            <option key={key} value={key} disabled={key !== "spot"}>
-              {key === "spot" ? t("types.spot") : `${t(`types.${key}`)} · ${c("soon")}`}
-            </option>
-          ))}
-        </select>
+        {onTypeChange ? typeSelect : null}
       </div>
 
       {failing && !hasTickers && markets ? (
