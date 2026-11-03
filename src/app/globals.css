@@ -36,6 +36,22 @@
   --color-chart-2: var(--chart-2);
   --color-up: var(--up);
   --color-down: var(--down);
+  --color-primary-text: var(--primary-text);
+  --color-depth-up: var(--depth-up);
+  --color-depth-down: var(--depth-down);
+  --color-sell: var(--sell);
+  --color-sell-hover: var(--sell-hover);
+  --color-sell-foreground: var(--sell-foreground);
+  --color-scrim: var(--scrim);
+  --color-well: var(--well);
+  --color-splash: var(--splash);
+  --color-knob: var(--knob);
+  --color-qr-tile: var(--qr-tile);
+  --color-coin-backing: var(--coin-backing);
+  --color-coin-backing-white: var(--coin-backing-white);
+  --color-admin: var(--admin);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -62,39 +78,71 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Theme tokens. Every color in the app comes from here: :root is the light theme (white and
+   green), .dark below is the dark theme (green and black, the default). A new color is a token
+   in both blocks, never a literal in a component. Light text colors are checked at 4.5:1 or more
+   on --background, --card, --muted and --secondary. The share card and the brand mark ignore the
+   theme on purpose. THEME_COLORS in src/lib/theme.ts mirrors --background. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #ffffff;
+  --foreground: #0c1511;
+  --card: #f3f8f5; /* raised surface */
+  --card-foreground: #0c1511;
+  --popover: #ffffff;
+  --popover-foreground: #0c1511;
+  /* Brand green fill. The label stays black: white on this green is 3.2:1, black is 6.3:1. */
+  --primary: #0fa644;
+  --primary-foreground: #03070a;
+  /* Green as text, links and active states on white: 5.5:1 on white, 4.5:1 on --secondary. */
+  --primary-text: #07702c;
+  --secondary: #e3ece7;
+  --secondary-foreground: #0c1511;
+  --muted: #eaf1ed;
+  --muted-foreground: #56655c;
+  --accent: #eaf1ed;
+  --accent-foreground: #0c1511;
+  --destructive: #b8104a;
+  --border: #d3ddd7;
+  --input: #eaf1ed;
+  --ring: #0fa644;
+  --up: #07702c; /* price up, Rise: text and tints; the fill is --primary */
+  --down: #b8104a; /* price down, Fall, sell: text and tints */
+  --depth-up: color-mix(in oklab, var(--up) 14%, transparent); /* order book bars: text stays 4.5:1 */
+  --depth-down: color-mix(in oklab, var(--down) 14%, transparent);
+  --sell: #b8104a; /* Sell and Fall button fill */
+  --sell-hover: #9c0d3f;
+  --sell-foreground: #ffffff;
+  --scrim: rgb(12 21 17 / 0.45); /* behind modals and sheets */
+  --well: #e3ece7; /* letterbox behind a photo */
+  --splash: #ffffff;
+  --knob: #ffffff; /* switch and slider thumbs */
+  --qr-tile: #ffffff; /* a QR code needs a white tile in any theme */
+  --coin-backing: #e4e4e7; /* disc behind near-black coin icons, both themes */
+  --coin-backing-white: #1d2421; /* disc behind white-only coin icons (XRP, HBAR, ARB) */
+  --admin: #c2410c; /* the Admin nav link, the only orange */
+  --cta: #0c1511; /* the Home Add funds pill */
+  --cta-foreground: #ffffff;
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --metal-gold-from: #f3d98b;
+  --metal-gold-to: #b8892b;
+  --metal-gold-text: #5a3f08;
+  --metal-silver-from: #eceff2;
+  --metal-silver-to: #9aa3ad;
+  --metal-silver-text: #363d45;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff; /* header: the desktop nav bar */
+  --sidebar-foreground: #0c1511;
+  --sidebar-primary: #0fa644;
+  --sidebar-primary-foreground: #03070a;
+  --sidebar-accent: #eaf1ed;
+  --sidebar-accent-foreground: #0c1511;
+  --sidebar-border: #d3ddd7;
+  --sidebar-ring: #0fa644;
 }
 
 /* Shell geometry and safe areas. */
@@ -153,6 +201,7 @@
      darker greens, so hover and pressed states lighten, never darken. */
   --primary: #0fa644;
   --primary-foreground: #03070a;
+  --primary-text: #0fa644;
   --secondary: #2e3331;
   --secondary-foreground: #ffffff;
   --muted: #212624;
@@ -165,6 +214,29 @@
   --ring: #0fa644;
   --up: #0fa644; /* price up, Rise */
   --down: #ee266a; /* price down, Fall, sell */
+  /* Sell and Fall fills are the crimson at 60% (hover 70%), as bg-down/60 was. */
+  --depth-up: color-mix(in oklab, var(--up) 35%, transparent);
+  --depth-down: color-mix(in oklab, var(--down) 35%, transparent);
+  --sell: color-mix(in oklab, var(--down) 60%, transparent);
+  --sell-hover: color-mix(in oklab, var(--down) 70%, transparent);
+  --sell-foreground: #ffffff;
+  --scrim: rgb(0 0 0 / 0.6);
+  --well: rgb(0 0 0 / 0.4);
+  --splash: #000000;
+  --knob: #ffffff;
+  --qr-tile: #ffffff;
+  --coin-backing: #e4e4e7;
+  --coin-backing-white: transparent;
+  --admin: #f97316;
+  --cta: #ffffff;
+  --cta-foreground: #000000;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --metal-gold-from: #f3d98b;
+  --metal-gold-to: #b8892b;
+  --metal-gold-text: #5a3f08;
+  --metal-silver-from: #eceff2;
+  --metal-silver-to: #9aa3ad;
+  --metal-silver-text: #363d45;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

@@ -14,10 +14,10 @@ const DEBOUNCE_MS = 300;
 
 // Two brand hues only (green, crimson), so the rest are told apart by fill.
 const BADGE: Record<LedgerGroup, string> = {
-  adjustment: "bg-primary/15 text-primary",
+  adjustment: "bg-primary/15 text-primary-text",
   transfer: "bg-foreground/10 text-foreground",
   spot: "bg-secondary text-secondary-foreground",
-  options: "border border-primary/40 text-primary/80",
+  options: "border border-primary/40 text-primary-text/80",
   fee: "border border-border text-muted-foreground",
 };
 

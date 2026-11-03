@@ -75,7 +75,7 @@ export function HeroPreview() {
         </div>
         <div className="grid grid-cols-2 gap-3 text-sm font-semibold">
           <span className="rounded-xl bg-primary py-3 text-center text-primary-foreground">{t("buy")}</span>
-          <span className="rounded-xl bg-down/60 py-3 text-center">{t("sell")}</span>
+          <span className="rounded-xl bg-sell py-3 text-center text-sell-foreground">{t("sell")}</span>
         </div>
       </div>
     </div>

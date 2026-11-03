@@ -6,6 +6,7 @@ import { MotionProvider } from "@/components/app/motion-provider";
 import { Splash } from "@/components/app/splash";
 import { CookieConsent } from "@/components/legal/cookie-consent";
 import { RegisterServiceWorker } from "@/components/offline/register-sw";
+import { THEME_COLORS, THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = { themeColor: "#151a18", viewportFit: "cover" };
+export const viewport: Viewport = { themeColor: THEME_COLORS.dark, viewportFit: "cover" };
 
 export default async function RootLayout({
   children,
@@ -48,10 +49,16 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
+    // THEME_SCRIPT swaps the class on <html> before first paint, so the attribute can differ from
+    // the server HTML (dark is the default).
     <html
       lang={locale}
+      suppressHydrationWarning
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
           <MotionProvider>

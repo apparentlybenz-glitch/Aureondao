@@ -163,7 +163,7 @@ function WithdrawRestriction({ user, onChanged }: { user: AdminUser; onChanged: 
         >
           <span
             className={cn(
-              "absolute top-0.5 left-0.5 size-5 rounded-full bg-white transition-transform motion-reduce:transition-none",
+              "absolute top-0.5 left-0.5 size-5 rounded-full bg-knob transition-transform motion-reduce:transition-none",
               restricted ? "translate-x-5" : "",
             )}
           />

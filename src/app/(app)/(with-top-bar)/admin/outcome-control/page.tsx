@@ -193,7 +193,7 @@ function GlobalCard({ config, onSaved, onRefresh }: { config: OutcomeConfig; onS
 
         <div className="space-y-2">
           <p className="text-sm font-medium">{t("outcomeControl.appliesTo")}</p>
-          <span className="inline-flex rounded-full border border-primary bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <span className="inline-flex rounded-full border border-primary bg-primary/10 px-3 py-1 text-sm font-medium text-primary-text">
             {t("outcomeControl.optionsOnly")}
           </span>
           <p className="text-xs text-muted-foreground">{t("outcomeControl.optionsOnlyNote")}</p>

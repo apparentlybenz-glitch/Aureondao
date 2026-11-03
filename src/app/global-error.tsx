@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import { SHELL_COLORS } from "@/lib/theme";
 import messages from "../../messages/en.json";
 
 // Replaces the root layout, so no providers, fonts or Tailwind classes can be
@@ -29,13 +30,13 @@ export default function GlobalError({
           gap: 12,
           padding: 16,
           textAlign: "center",
-          background: "#050505",
-          color: "#f5f5f5",
+          background: SHELL_COLORS.background,
+          color: SHELL_COLORS.text,
           fontFamily: "system-ui, sans-serif",
         }}
       >
         <h1 style={{ fontSize: 20, margin: 0 }}>{t.errorTitle}</h1>
-        <p style={{ maxWidth: 320, margin: 0, fontSize: 14, color: "#a3a3a3" }}>{t.errorBody}</p>
+        <p style={{ maxWidth: 320, margin: 0, fontSize: 14, color: SHELL_COLORS.muted }}>{t.errorBody}</p>
         <button
           type="button"
           onClick={reset}
@@ -45,8 +46,8 @@ export default function GlobalError({
             padding: "0 16px",
             border: 0,
             borderRadius: 8,
-            background: "#1ba04a",
-            color: "#050505",
+            background: SHELL_COLORS.button,
+            color: SHELL_COLORS.background,
             fontSize: 14,
             fontWeight: 600,
           }}

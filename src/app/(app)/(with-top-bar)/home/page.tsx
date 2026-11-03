@@ -72,7 +72,7 @@ export default function HomePage() {
           </p>
           <Link
             href={DEPOSIT_HREF}
-            className="press inline-flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-semibold text-black active:bg-primary"
+            className="press inline-flex h-10 shrink-0 items-center rounded-full bg-cta px-4 text-sm font-semibold text-cta-foreground active:bg-primary"
           >
             {t("addFunds")}
           </Link>
@@ -85,7 +85,7 @@ export default function HomePage() {
           const body = (
             <>
               <span className="relative flex size-12 items-center justify-center rounded-full bg-muted">
-                <Icon className="size-5 text-primary" />
+                <Icon className="size-5 text-primary-text" />
                 {"href" in action ? null : (
                   <span className="absolute -top-1 -right-2 rounded-full bg-secondary px-1.5 text-[9px] font-semibold text-muted-foreground ring-1 ring-border">
                     {c("soon")}

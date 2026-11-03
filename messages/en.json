@@ -451,6 +451,8 @@
     "search": "Search symbol",
     "language": "Language",
     "languageEnglish": "English",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme",
     "mainNav": "Main",
     "searchOpen": "Search",
     "support": "Support",

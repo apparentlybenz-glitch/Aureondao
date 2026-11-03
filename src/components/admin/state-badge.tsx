@@ -7,7 +7,7 @@ export function StateBadge({ suspended }: { suspended: boolean }) {
     <span
       className={cn(
         "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        suspended ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary",
+        suspended ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary-text",
       )}
     >
       {suspended ? t("suspended") : t("active")}

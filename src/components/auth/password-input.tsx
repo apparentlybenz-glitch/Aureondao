@@ -27,7 +27,7 @@ export function PasswordInput({
         aria-pressed={shown}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setShown((v) => !v)}
-        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-primary-text focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Icon className="size-5" aria-hidden="true" />
       </button>

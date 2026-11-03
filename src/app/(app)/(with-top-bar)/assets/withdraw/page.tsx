@@ -74,7 +74,7 @@ export default function WithdrawPage() {
                 type="button"
                 disabled={!capital}
                 onClick={() => capital && setAmount(centsToInput(capital.available))}
-                className="pointer-events-auto text-xs font-semibold text-primary disabled:opacity-50"
+                className="pointer-events-auto text-xs font-semibold text-primary-text disabled:opacity-50"
               >
                 {t("max")}
               </button>

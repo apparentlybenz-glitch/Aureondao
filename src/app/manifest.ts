@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
+import { THEME_COLORS } from "@/lib/theme";
 import messages from "../../messages/en.json";
 
 // Static web app manifest, served at /manifest.webmanifest. "any" and "maskable"
 // icons are separate entries: a combined purpose would crop the any icons.
+// The manifest is static, so its colors are the default (dark) theme.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "AureonX",
@@ -12,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: messages.Metadata.description,
     start_url: "/home",
     display: "standalone",
-    background_color: "#151a18",
-    theme_color: "#151a18",
+    background_color: THEME_COLORS.dark,
+    theme_color: THEME_COLORS.dark,
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

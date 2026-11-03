@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const TONE: Record<SupportStatus, string> = {
   open: "bg-foreground/15 text-foreground",
-  answered: "bg-primary/15 text-primary",
+  answered: "bg-primary/15 text-primary-text",
   closed: "bg-muted text-muted-foreground",
 };
 

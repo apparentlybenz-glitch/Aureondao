@@ -96,7 +96,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Menu className="size-5" />
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-black/60" />
+            <Dialog.Overlay className="slide-overlay fixed inset-0 z-50 bg-scrim" />
             <Dialog.Content
               aria-describedby={undefined}
               className="slide-panel slide-panel-left fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 border-r bg-background px-3 pt-[calc(0.5rem+var(--safe-t))] pb-[calc(1rem+var(--safe-b))]"
@@ -123,7 +123,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                             danger
                               ? cn("text-destructive", active ? "bg-destructive/15" : "hover:bg-muted")
                               : active
-                                ? "bg-primary/15 text-primary"
+                                ? "bg-primary/15 text-primary-text"
                                 : "text-muted-foreground hover:bg-muted",
                           )}
                         >

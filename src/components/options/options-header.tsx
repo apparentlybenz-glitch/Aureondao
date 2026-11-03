@@ -57,7 +57,7 @@ export function OptionsMarketPicker({
               }}
               className={cn(
                 "flex h-12 w-full items-center gap-2.5 rounded-lg px-3 text-left font-medium",
-                m.id === market.id ? "bg-muted text-primary" : "",
+                m.id === market.id ? "bg-muted text-primary-text" : "",
               )}
             >
               <CoinIcon symbol={m.base} size={24} />
@@ -139,7 +139,7 @@ export function OptionsHeader({
           aria-pressed={bookShown}
           aria-label={bookShown ? t("hideBook") : t("showBook")}
           onClick={onToggleBook}
-          className={cn(ICON, "lg:hidden", bookShown && "text-primary")}
+          className={cn(ICON, "lg:hidden", bookShown && "text-primary-text")}
         >
           <BookOpen className="size-5" />
         </button>

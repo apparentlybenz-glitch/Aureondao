@@ -115,7 +115,7 @@ function AccessForm({ user, viewerIsOwner }: { user: AdminUser; viewerIsOwner: b
           <span
             className={cn(
               "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              role.isAdmin ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+              role.isAdmin ? "bg-primary/15 text-primary-text" : "bg-muted text-muted-foreground",
             )}
           >
             {role.isOwner ? t("access.owner") : role.isHead ? t("access.head") : role.isAdmin ? t("access.admin") : t("access.notAdmin")}

@@ -54,7 +54,7 @@ export function SupportScreen() {
     <div className="mx-auto max-w-2xl space-y-5">
       <header className="space-y-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <LifeBuoy className="size-5 text-primary" aria-hidden />
+          <LifeBuoy className="size-5 text-primary-text" aria-hidden />
           {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>

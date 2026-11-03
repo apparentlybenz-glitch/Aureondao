@@ -49,7 +49,7 @@ export function Toaster() {
               ) : null}
               {toast.href ? (
                 <Toast.Action asChild altText={t("view")}>
-                  <Link href={toast.href} className="text-sm font-medium text-primary">
+                  <Link href={toast.href} className="text-sm font-medium text-primary-text">
                     {t("view")}
                   </Link>
                 </Toast.Action>

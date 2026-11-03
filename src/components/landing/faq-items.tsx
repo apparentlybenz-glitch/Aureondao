@@ -37,7 +37,7 @@ function withdrawAnswer(t: FaqTranslate): ReactNode {
   return (
     <div className="space-y-3">
       <p>{t("items.withdrawTime.answer")}</p>
-      <ul className="list-disc space-y-1.5 pl-5 marker:text-primary">
+      <ul className="list-disc space-y-1.5 pl-5 marker:text-primary-text">
         {WITHDRAW_ROWS.map((row) => (
           <li key={row}>{t(`items.withdrawTime.${row}`)}</li>
         ))}
@@ -54,8 +54,8 @@ function supportAnswer(t: FaqTranslate): ReactNode {
     <div className="space-y-4">
       <p>{t("items.support.answer")}</p>
       <div className="space-y-3 rounded-xl border bg-background p-4">
-        <Mail aria-hidden="true" className="size-5 text-primary" />
-        <p className="font-semibold text-primary">{t("items.support.helpTitle")}</p>
+        <Mail aria-hidden="true" className="size-5 text-primary-text" />
+        <p className="font-semibold text-primary-text">{t("items.support.helpTitle")}</p>
         <p>{t("items.support.helpBody")}</p>
         <Link href="/support" className={cn(buttonVariants({ variant: "outline" }), "h-10 w-full")}>
           {t("items.support.helpButton")}

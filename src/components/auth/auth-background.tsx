@@ -30,7 +30,7 @@ export function AuthBackground() {
       className="pointer-events-none fixed inset-0 -z-10 min-h-dvh overflow-hidden bg-background"
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_30%,color-mix(in_oklch,var(--primary)_16%,transparent),transparent)]" />
-      <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,#000,transparent_72%)]" />
+      <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,var(--foreground),transparent_72%)]" />
       <div className="absolute -top-[20%] -right-[35%] opacity-[0.07]">
         <BrandMark
           variant="full"

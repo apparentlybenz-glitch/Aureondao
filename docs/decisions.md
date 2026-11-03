@@ -159,6 +159,13 @@ These resolve O4, O5, O6, O7 and O12. They win over Part 2 and over C5/C6 for op
 - **Market tab.** Forex is not in the Market list or its type dropdown.
 
 
+## Part 1k: Decisions locked by the owner (light theme, 2026-11-03)
+
+- **Two themes, dark by default.** Light (white and green) sits beside dark; no system option. The choice is stored per browser in `localStorage` (`aureonx-theme`), applied as a class on `<html>` by an inline head script before first paint, and toggled by one icon button (sun while dark, moon while light): in the mobile top bar in place of the globe (the globe opened a one-entry English menu and switched nothing), and between the globe and the support icon in the desktop top bar.
+- **Tokens, not literals.** Every color is a token defined once for dark and once for light. Brand green stays the fill and the primary button color with a black label (white on it is 3.2:1); green text, links and active states use a darker `--primary-text` for 4.5:1 on white. `--up` and `--down` are darker in light for the same reason; Sell and Fall use `--sell` (a solid crimson with a white label in light, the old 60% crimson in dark).
+- **Fixed in both themes:** the brand mark, the share card, QR tiles, switch knobs, the FET, QNT and XLM coin discs and the Forex metal badges. White-only coin logos (XRP, HBAR, ARB) get a dark disc in light only.
+- **Not themed:** the manifest and the `/offline` and global error shells are static, so they stay dark; iOS reads its status bar style at launch, so a change there applies from the next launch.
+
 ## Part 2: Open decisions for sign-off
 
 The ★ option is recommended. Each line gives one good point and one bad point.

@@ -62,7 +62,7 @@ export function TradeConfirm({ open, onCancel, ...props }: Props) {
         {open ? (
           <Dialog.Portal forceMount>
             <Dialog.Overlay forceMount asChild>
-              <motion.div className="fixed inset-0 z-50 bg-black/60" {...backdropMotion} />
+              <motion.div className="fixed inset-0 z-50 bg-scrim" {...backdropMotion} />
             </Dialog.Overlay>
             <Dialog.Content
               forceMount
@@ -167,7 +167,7 @@ function Body({
             }}
             className={cn(
               "h-11 w-full text-base font-semibold",
-              up ? "bg-up text-black hover:bg-up/85" : "bg-down/60 text-white hover:bg-down/70",
+              up ? "bg-primary text-primary-foreground hover:bg-primary/85" : "bg-sell text-sell-foreground hover:bg-sell-hover",
             )}
           >
             {confirmLabel}

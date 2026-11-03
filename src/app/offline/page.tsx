@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { SHELL_COLORS } from "@/lib/theme";
 
 // Static page the service worker serves when a navigation fails offline. It is
 // the only page cached, and the stylesheet and scripts under /_next are not, so
@@ -18,14 +19,14 @@ export default function OfflinePage() {
         gap: 12,
         padding: 16,
         textAlign: "center",
-        background: "#050505",
-        color: "#f5f5f5",
+        background: SHELL_COLORS.background,
+        color: SHELL_COLORS.text,
         fontFamily: "system-ui, sans-serif",
       }}
     >
       <BrandMark variant="full" idPrefix="offline" size={80} />
       <h1 style={{ fontSize: 20, margin: 0 }}>{t("title")}</h1>
-      <p style={{ maxWidth: 320, margin: 0, fontSize: 14, color: "#a3a3a3" }}>{t("body")}</p>
+      <p style={{ maxWidth: 320, margin: 0, fontSize: 14, color: SHELL_COLORS.muted }}>{t("body")}</p>
       <button
         id="retry"
         type="button"
@@ -35,8 +36,8 @@ export default function OfflinePage() {
           padding: "0 16px",
           border: 0,
           borderRadius: 8,
-          background: "#1ba04a",
-          color: "#050505",
+          background: SHELL_COLORS.button,
+          color: SHELL_COLORS.background,
           fontSize: 14,
           fontWeight: 600,
         }}
