@@ -19,16 +19,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Base for Open Graph image URLs. Used only when NEXT_PUBLIC_SITE_URL is set and
-// is a valid URL; otherwise it stays unset.
+const PRODUCTION_ORIGIN = "https://aureonx.app";
+
+// Base for Open Graph image URLs. NEXT_PUBLIC_SITE_URL when it is a valid URL, else the
+// production origin in production builds, else unset (next dev uses localhost).
 function siteUrl(): URL | undefined {
   const value = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!value) return undefined;
-  try {
-    return new URL(value);
-  } catch {
-    return undefined;
+  if (value) {
+    try {
+      return new URL(value);
+    } catch {
+      // fall through to the default
+    }
   }
+  return process.env.NODE_ENV === "production" ? new URL(PRODUCTION_ORIGIN) : undefined;
 }
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -705,7 +705,7 @@ Assumptions:
 - **Prices:** browser-direct through the existing market store, so the page itself is static HTML that never varies by user. Price display names come from `en.json`.
 - **Glow:** the brand rules forbid glows on the mark. The glow is a separate backdrop element behind it (owner request); the mark is drawn unchanged.
 - **Mark variants:** the small mark (below 48 px) in the nav and footer, the full mark in the hero.
-- **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` comes from `NEXT_PUBLIC_SITE_URL` when it is set and valid; without it Open Graph image URLs resolve against `http://localhost:3000` (true of every page).
+- **Metadata:** title, description and Open Graph tags come from `Landing` in `en.json`; the image is the existing `opengraph-image.png`. `metadataBase` comes from `NEXT_PUBLIC_SITE_URL` when it is set and valid, else `https://aureonx.app` in production builds; only `next dev` without the variable resolves against `http://localhost:3000` (true of every page).
 
 ### 4.14 Day 6 bug pass as shipped (error pages, offline, safe areas)
 
